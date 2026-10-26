@@ -52,7 +52,7 @@ export interface Trip extends BaseNote {
   destinations?: WikiLink[];
   status?: (typeof TRIP_STATUS)[number];
   essentials?: WikiLink[]; // barra "a un toque": DNI, seguro, tarjetas de embarque
-  maps?: WikiLink[]; // [[roma.pmtiles]]
+  offline_maps?: string[]; // ciudades ya descargadas en la app de mapas (paso "Mapas sin conexión")
   currency?: string; // "EUR"
   budget_cents?: number;
   albo_collections?: string[];

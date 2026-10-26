@@ -11,11 +11,11 @@ Tiempo y distancia estimados entre paradas,itinerario,should,yes,no,"S04 · Wand
 Aviso de tiempo justo entre paradas,itinerario,could,yes,no,S04 · Tripsy 3.9 Tight Timing
 Optimizar el orden de las paradas,itinerario,could,yes,no,Wanderlog Pro
 Color por día en timeline y mapa,itinerario,should,yes,no,S04/S05 · Wanderlog
-Mapa con pins de los lugares del viaje,mapa,must,yes,no,"S05 · Wanderlog, Albo, Tripsy; formato location de Map View"
-Filtrar el mapa por día,mapa,must,yes,no,S05 · Wanderlog
-Línea de ruta en orden en el mapa,mapa,should,yes,no,"S05 · Wanderlog, Albo Trip Planner"
+Mapa con pins de los lugares del viaje,mapa,must,yes,no,"S05 · Wanderlog, Albo, Tripsy; en Cool Trip = croquis SVG del día + Abrir en Maps"
+Filtrar el mapa por día,mapa,must,yes,no,S05 · Wanderlog; en Cool Trip = un croquis por día
+Línea de ruta en orden en el mapa,mapa,should,yes,no,"S05 · Wanderlog, Albo; croquis con línea + Ruta del día en la app de mapas"
 Filtrar lugares por categoría y valoración,lugares,could,yes,no,"S05/S06 · Albo 1.11.2 (top rated, open now)"
-Mapa sin conexión,mapa,should,yes,no,"S05 · Wanderlog Pro, Map View; en Cool Trip = PMTiles recortado por ciudad en el vault"
+Mapa sin conexión,mapa,should,yes,no,S05 · Wanderlog Pro; en Cool Trip = descarga en Google/Apple/Organic Maps guiada desde 'Antes del viaje' (sin PMTiles: Sync Standard limita a 5 MB)
 Banquillo de lugares sin día asignado,lugares,must,yes,no,"S06 · Wanderlog secciones/listas, colección de Albo"
 Tablero de lugares por categoría con foto,lugares,should,yes,no,S06 · Albo vista board
 "Ficha de lugar con foto, resumen, categoría, rating y precio",lugares,must,yes,no,S07 · Albo extract (campos vistos en la cuenta de Patt)
@@ -63,3 +63,7 @@ Hoja de ruta antes del viaje con 'estás aquí',viajes,should,yes,no,S03 · refe
 Tarjeta de transporte estilo tarjeta de embarque,reservas,should,yes,no,S08 · referencia de diseño 1
 "Asiento, terminal, puerta, clase y hora de embarque en el transporte",reservas,could,yes,no,S08 · referencia de diseño 1
 "Validar el viaje (zonas, solapes, lugares sin coordenadas)",cool trip,should,no,no,propio: invariantes de schema.ts
+"Abrir lugar, parada o reserva en la app de mapas",mapa,must,yes,no,Wanderlog y Tripsy abren Google/Apple Maps; enlaces universales
+Ruta del día con todas las paradas en la app de mapas,mapa,should,yes,no,Google Maps dir con waypoints; se parte en tramos si hay demasiadas paradas
+"Asistente de configuración del vault (carpetas, propiedades con tipo, plantillas)",cool trip,must,no,no,propio: primero el plugin y luego las notas (decisión de Patt)
+Crear bases (.base) para usar el vault sin el plugin,cool trip,should,no,no,propio: compatible con Cool Bases

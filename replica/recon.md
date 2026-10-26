@@ -212,7 +212,7 @@ Relationships: Trip 1-n Day · Day 1-n Stop (→ Place | Transportation) · Trip
 
 ## Feature matrix
 
-See `features.csv`. Must: 19, should: 19, could: 9, skip: 10 (47 filas puntuables, incluidas las 5 que salen de las referencias de diseño de Patt). Además hay 7 filas propias de Cool Trip (`original=no`) que `parity.py` no puntúa.
+See `features.csv`. Must: 20, should: 20, could: 9, skip: 10 (49 filas puntuables, incluidas las que salen de las referencias de diseño de Patt). Además hay 9 filas propias de Cool Trip (`original=no`) que `parity.py` no puntúa.
 
 Confirmado después con `curl`, ya con los dominios permitidos: según la App Store, Albo 1.19.1 (4 de septiembre de 2026) introduce el Trip Planner con estas palabras: "Albo turns your saved places into a day-by-day itinerary, revealed as a route on the map with every stop a tap away". La 1.25.1 (18 de octubre) añade "suggested routes you can edit".
 

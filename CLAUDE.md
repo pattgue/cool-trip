@@ -1,6 +1,8 @@
 # Cool Trip
 
-Plugin privado de Obsidian para centralizar viajes. La propuesta y el modelo de datos están en `docs/01-propuesta.md`.
+Plugin privado de Obsidian para centralizar viajes. La propuesta está en `docs/01-propuesta.md`, y la arquitectura vigente en `replica/architecture.md` y `replica/schema.ts`. El boceto de todas las pantallas está en https://claude.ai/artifact/EREibCe33hATP7gorQ6771.
+
+**Convenciones:** las de `pattgue/cool-bases`, el otro plugin de Patt (repo público): TypeScript sin framework con los helpers de DOM de Obsidian, esbuild, `css/` que se junta en `styles.css`, `i18n.ts` en español e inglés, `test/` con un mock de Obsidian y un harness en Chromium, un `demo-vault/` y lint con `eslint-plugin-obsidianmd`. Sin mapa propio: los mapas se abren en la app del móvil. El vault de Patt usa Obsidian Sync Standard, que no sube archivos de más de 5 MB.
 
 ## Skills Replica (`.claude/skills/replica-*`)
 

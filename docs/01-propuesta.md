@@ -14,7 +14,7 @@ Una **vista de viaje** dentro de Obsidian, diseñada y fácil de leer de un vist
 
 Ahora mismo la información está repartida: los lugares en Albo, las confirmaciones en el correo, los PDF en Drive o en descargas y la ruta en la cabeza. La idea es que Obsidian sea **la fuente de verdad** y que el plugin sea **la forma bonita de leerla**.
 
-> **Actualización:** la arquitectura (`replica/architecture.md`) y los tipos (`replica/schema.ts`) sustituyen al modelo de datos del §4. La reserva genérica se divide en `stay`, `transport` y `ticket`. Los días van dentro de la nota del viaje, como listas Markdown, lo que resuelve las decisiones 2 y 3. El mapa offline se hace con PMTiles.
+> **Actualización:** la arquitectura (`replica/architecture.md`) y los tipos (`replica/schema.ts`) sustituyen al modelo de datos del §4. La reserva genérica se divide en `stay`, `transport` y `ticket`. Los días van dentro de la nota del viaje, como listas Markdown, lo que resuelve las decisiones 2 y 3. El mapa no va dentro del plugin: hay enlaces a la app de mapas, una descarga sin conexión guiada en el móvil y un croquis SVG por día. Las fechas son del 1 al 10 de diciembre de 2026. Boceto de todas las pantallas: https://claude.ai/artifact/EREibCe33hATP7gorQ6771
 
 ## 2. Qué tomamos de cada app (como referencia)
 
