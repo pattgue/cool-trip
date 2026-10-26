@@ -59,7 +59,7 @@ Patt lo dejó claro en los comentarios de la ronda 2. Esto manda sobre lo que di
 
 ## Ajustes de Cool Trip (ronda 3, cerrada con Patt)
 
-La configuración vive en **Ajustes › Complementos de la comunidad › Cool Trip** (un `PluginSettingTab`), con la misma estructura en escritorio y en móvil. Cada cambio se guarda al momento (`saveData` en cada `onChange`) y el pie lo indica con "Guardado automático.". En escritorio, **cada paso cabe en la pestaña sin scroll**; está medido en Chromium. En móvil, los pasos son solo números: siete círculos como los del ordenador, en una fila sin scroll horizontal. Los desplegables siempre se superponen a lo de debajo; nunca empujan el contenido como un acordeón.
+La configuración vive en **Ajustes › Complementos de la comunidad › Cool Trip** (un `PluginSettingTab`), con la misma estructura en escritorio y en móvil. Cada cambio se guarda al momento (`saveData` en cada `onChange`) y el pie lo indica con "Guardado automático.". En escritorio, **cada paso cabe en la pestaña sin scroll**; está medido en Chromium. En móvil, los pasos son solo números: siete círculos como los del ordenador, en una fila sin scroll horizontal. Los pasos ya configurados llevan el número en verde. Los desplegables siempre se superponen a lo de debajo; nunca empujan el contenido como un acordeón.
 
 1. **Tus notas:** una tarjeta para Viajes y otra para Lugares. El icono es cuadrado y ocupa el alto de la tarjeta. Cada tarjeta permite elegir si se reconoce por propiedad = valor, etiqueta o carpeta. **Debajo** de cada tarjeta va "Los nuevos se guardan en", un desplegable con el árbol de carpetas del vault (la raíz, las existentes y "Organización automática"). La organización automática enseña una vista previa como el explorador de Obsidian y se elige con el botón "Usar organización automática", con una carita, al final de la sección. Organiza así:
    - **viajes:** una sola nota por viaje, sin carpeta propia, todas juntas en `Viajes/`;
@@ -118,6 +118,28 @@ Lo esencial de cada reserva (localizador, horas, asiento, puerta) es **texto den
 | carpeta del ordenador | enlace `file://` | no (solo en ese ordenador) |
 | dentro del vault | carpeta elegida | sí, si se sincroniza el vault; ocupa espacio |
 
+
+## Nuevo viaje y la nota del viaje (ronda 1, en revisión con Patt)
+
+**Dónde se abre.** Es el panel de Cool Trip que cuelga de la Cool Bar, como el de Cool Bases: el botón COOL TRIP pasa a estado activo (la pestaña que baja y se une al panel, tal como la pinta `css/cool-kit.css`). En una nota que no es de viaje, el panel abre «Nuevo viaje»; el comando `Cool Trip: Nuevo viaje` abre lo mismo. En escritorio el panel mide 440 px y cabe sin scroll; en móvil ocupa la pantalla bajo la barra.
+
+**El formulario**, de arriba abajo, con una portada que se rellena en vivo (la misma tarjeta que en «Listo»):
+1. **¿A dónde vas?\*** Ciudades de la lista del plugin, como chips con su país. Debajo, cuántos lugares tienes ya guardados en esos destinos.
+2. **¿Cuándo?\*** Empieza y termina, con el total de días. Con dos destinos o más sale el **reparto**: una tira con un cuadro por día, del color de cada ciudad, y un contador de noches por destino (− y +), que siempre suma las noches del viaje.
+3. **¿Quién viaja?** Chips; se añade escribiendo y pulsando Intro.
+4. **Portada.** Cuatro colores o una imagen.
+- **Nombre de la nota:** sugerido con el año delante («2027 Japón»), editable, y debajo la ruta (`Viajes / 2027 Japón.md`, la carpeta del paso 1 de los ajustes).
+- Cada número se pone verde al rellenar su sección, como en los ajustes. «Crear viaje» se activa con las dos necesarias.
+- Solo salen los campos cuya propiedad esté en uso en el paso 2 de los ajustes, y la nota se marca como viaje según el paso 1 (propiedad, etiqueta o carpeta).
+
+**La nota en Markdown** (láminas del boceto «La nota recién creada» y «La nota completa»):
+- **Frontmatter:** las propiedades elegidas en los ajustes (`tipo`, `inicio`, `fin`, `destinos`, `viajeros`, `portada` si es una imagen).
+- **Resumen:** un callout `> [!summary]` con fechas, días, reparto y viajeros, que el plugin reescribe cuando cambian.
+- **`## Plan`:** un `### Día · ciudad` por cada día del viaje (`### Vie 9 abr · Tokio → Kioto` en los cambios de ciudad). Dentro, una lista: `- 16:30 [[Senso-ji]]`, texto libre, tramos en cursiva (`- *Metro · 35 min*`) y enlaces a su reserva (`[[#Vuelo MAD → NRT|reserva]]`).
+- **`## Reservas`:** un `### …` por reserva, con datos en lista `- **Localizador:** K7QX2P` y el enlace al archivo según el paso 3 de los ajustes.
+- **`## Documentos`** y **`## Equipaje`** (tareas `- [ ]`): solo aparecen cuando tienen algo.
+- **Datos solo del plugin** (el color de portada): un comentario `%% cool-trip v1 · … %%` al final, invisible en modo lectura.
+- *Por decidir:* el formato exacto de los encabezados de día que lee el parser (día legible y año de `inicio`, frente a fecha ISO).
 
 ## Referencias de diseño de Patt y lo que aportan
 
