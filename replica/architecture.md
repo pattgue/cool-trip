@@ -55,26 +55,62 @@ Patt lo dejó claro en los comentarios de la ronda 2. Esto manda sobre lo que di
 2. **El plugin escribe la nota; tú no escribes Markdown.** Cool Trip tiene formularios sencillos para fechas, días, horas, lugares, reservas y documentos. Con lo que rellenas, escribe el cuerpo de la nota del viaje en un Markdown estructurado y legible (`## Plan`, `### 3 dic · Roma`, `- 09:00 [[Galleria Borghese]]`, `## Reservas`, …), y lo pinta encima con una vista diseñada. Por ser Markdown real, los enlaces salen en el grafo y en los backlinks, el texto se encuentra con el buscador y, si se desactiva el plugin, la nota sigue completa.
 3. **Sin interruptor "ver como texto".** La nota de viaje se abre siempre diseñada mientras el plugin esté activo. El Markdown es la copia de seguridad para cuando no lo esté. El precedente técnico es el plugin Kanban: un archivo `.md` normal que se abre en una vista propia y que la vista reescribe.
 4. **Destinos sin notas de ciudad.** El plugin trae una lista de ciudades y países, con coordenadas, zona horaria y país, que no se guarda en el vault como notas. `destinos` y `ciudad` se rellenan eligiendo de esa lista. La lista da la zona horaria, el centro para "Abrir en Maps" y descargar el mapa sin conexión, y agrupa los lugares por destino. *Por decidir:* el tamaño. Una estimación es que GeoNames, con las ciudades de más de 100 000 habitantes, cabe en unos cientos de KB; es CC BY 4.0, así que hay que atribuirla.
-5. **Cool Bar.** Se abre desde un botón en la Cool Bar, que compartirán todos los "Cool Plugins" de Patt, o desde el comando `Cool Trip: Nuevo viaje`. No usa un icono propio en la cinta lateral. *Pendiente:* dónde vive el código común de la Cool Bar (no está en `pattgue/cool-bases`).
+5. **Cool Bar.** Se abre desde el botón COOL TRIP de la Cool Bar, la barra que comparten todos los "Cool Plugins" de Patt, o con el comando `Cool Trip: Nuevo viaje`. No tiene icono propio en la cinta lateral. Su código común es el **Cool Kit**, que está en `pattgue/cool-bases`, rama `cool-bar`: `src/cool-kit/` y `css/cool-kit.css` (ver "Cool Kit y sistema visual Cool" más abajo).
 
-## Ajustes de Cool Trip (ronda 2)
+## Ajustes de Cool Trip (ronda 3, cerrada con Patt)
 
-La configuración vive en **Ajustes › Complementos de la comunidad › Cool Trip** (un `PluginSettingTab`), no en un modal dentro del plugin. Hay una versión para escritorio y otra para móvil, con las mismas opciones. Cada cambio se guarda al momento (`saveData` en cada `onChange`, como en el resto de Obsidian), sin botón de guardar. Tiene seis secciones:
+La configuración vive en **Ajustes › Complementos de la comunidad › Cool Trip** (un `PluginSettingTab`), con la misma estructura en escritorio y en móvil. Cada cambio se guarda al momento (`saveData` en cada `onChange`) y el pie lo indica con "Guardado automático.". En escritorio, **cada paso cabe en la pestaña sin scroll**: está medido en Chromium y deja al menos 50 px libres. En móvil, los pasos son solo números, siete casillas que caben en una fila sin scroll horizontal, con el nombre del paso debajo. Los desplegables siempre se superponen a lo de debajo; nunca empujan el contenido como un acordeón.
 
-1. **Tus notas:** una tarjeta para Viajes y otra para Lugares, con el mismo diseño. Para cada una se elige cómo se reconoce: **propiedad = valor** (sugerido `tipo = viaje`), **etiqueta** o **carpeta**. Después se elige **dónde se guardan las nuevas**, con un desplegable que enseña el árbol de carpetas del vault: la raíz, cualquier carpeta existente u **Organización automática**, que es la única opción que crea carpetas. Debajo se ve exactamente lo que crearía la organización automática, con el aspecto del explorador de archivos de Obsidian: carpetas, notas y bases.
-2. **Propiedades:** se ven todos los campos útiles, no hay opcionales plegados. Los necesarios para que el plugin funcione llevan `*`. Cada fila enseña el dato y para qué sirve, el **tipo** (fecha, lista, texto, número, casilla), el desplegable con las propiedades del vault del mismo tipo o la sugerida, y el estado ("Ya la usas" o "Nueva"). Las reservas, los documentos y el plan no aparecen aquí, porque no son propiedades. Filtrar por tipo se queda así por ahora, aunque a veces sea engorroso.
-   - Viaje: empieza\*, termina\* (fecha), destinos\* (lista, de la lista de ciudades), quién viaja (lista), portada (texto).
-   - Lugar: ubicación\* (lista, como Map View), ciudad\* (texto, de la lista de ciudades), categoría (texto), valoración (número), visitado (casilla).
-3. **Archivos:** dónde viven billetes y PDFs, con textos para cualquier usuario, no solo quien use Sync (ver más abajo). La vista previa es una sección de la nota del viaje, no una nota aparte.
-4. **Mapas:** la app de mapas, y **casillas** con los modos de moverse que se usan (a pie, transporte público, coche, bici, taxi). Esos modos aparecen primero al planear cada tramo del día. El enlace a la app usa el modo de cada tramo, no uno fijo para todo el viaje.
-5. **Bases:** solo `Viajes.base` y `Lugares.base`, cada una con su carpeta. Hay una recomendación de **Cool Bases**: con él, las mismas bases se ven como tarjetas con un diseño que prepara Cool Trip (una vista `type: cool-bases` con su bloque `coolbases:` dentro del `.base`, como en `demo-vault/Films.base` de Cool Bases), y se pueden personalizar. Cada base enseña dos vistas previas, sin y con Cool Bases. *A decidir al implementar:* añadir la vista de Cool Bases solo si el plugin está instalado (o cuando se instale), para que una vista desconocida no dé error.
-6. **Listo:** esquema "Markdown que se guarda → la misma nota pintada por Cool Trip", con una vista previa parecida a la portada real; tres pasos de uso (Cool Bar, formularios, siempre a mano); y qué añade y qué no toca el plugin. Se cierra con un botón **Listo**, sin "crear mi primer viaje": el plugin se abre desde la Cool Bar o con el comando.
+1. **Tus notas:** una tarjeta para Viajes y otra para Lugares. El icono es cuadrado y ocupa el alto de la tarjeta. Cada tarjeta permite elegir si se reconoce por propiedad = valor, etiqueta o carpeta. **Debajo** de cada tarjeta va "Los nuevos se guardan en", un desplegable con el árbol de carpetas del vault (la raíz, las existentes y "Organización automática"). La organización automática enseña una vista previa como el explorador de Obsidian y se elige con un botón al final, "Organízamelo tú", con una carita. Organiza así:
+   - **viajes:** una sola nota por viaje, sin carpeta propia, todas juntas en `Viajes/`;
+   - **título sugerido del viaje:** empieza por el año ("2027 Japón"), para que se ordenen solos;
+   - **lugares:** agrupados por ciudad (`Lugares/Tokio/`).
+2. **Propiedades:** filas de una línea, con el dato y para qué sirve, el tipo, tu propiedad y el estado, y `*` en las necesarias.
+   - **Viaje:** empieza\*, termina\* (fecha), destinos\* (lista, de la lista de ciudades), quién viaja (lista), portada (texto).
+   - **Lugar:** ubicación\* (lista), ciudad\* (texto), **país** (se rellena solo con la ciudad), categoría (texto), **precio** (texto: entrada o precio medio), valoración (número), visitado (casilla).
+   - **El tipo no se puede elegir:** en Obsidian el tipo de una propiedad es único para todo el vault, así que cambiarlo desde Cool Trip afectaría a todas las notas. Además, el plugin necesita, por ejemplo, fechas de verdad.
+   - **Destinos se queda como propiedad:** así se puede filtrar y agrupar en Bases y en Cool Bases, y alimenta los mapas sin conexión. El cuerpo de la nota no se puede consultar desde Bases.
+3. **Archivos:** las tarjetas de opción y, en móvil, la vista previa arriba del todo.
+   - **Opciones:** nube, cartera del móvil, "carpeta de tu dispositivo" y dentro del vault.
+   - **Aviso en la de nube:** compartir el archivo solo contigo, nunca con "cualquiera con el enlace".
+   - **Vista previa:** sin la línea repetida de "descargado".
+4. **Mapas:** app y modos de moverse (casillas).
+   - **Por tramo:** cada tramo se abre con su modo (Google `travelmode`, Apple `dirflg`).
+   - **Ruta del día entera:** usa un solo modo, porque las apps solo admiten uno por ruta.
+5. **Bases:** recomendación del plugin Cool Bases con su icono real (`lucide-id-card`, el de `registerBasesView` en Cool Bases), vistas previas sin y con Cool Bases, y una carpeta por base.
+6. **Cool Bar** (nuevo): la sección común del Cool Kit (`renderCoolBarSettings`), la misma en todos los plugins Cool.
+   - **Pestañas** Ordenador y Móvil.
+   - **Ubicación:** arriba o abajo de la pestaña, o flotante.
+   - **Alineación** y **modo:** fija, contextual o escondida.
+   - **Plegada.**
+   - **Botones:** cuándo se ve cada uno (siempre, solo cuando aplica, nunca) y en qué orden.
+   - **Vista previa** de la barra real en una nota de viaje: COOL TRIP disponible y COOL BASES bloqueado, porque ahí no aplica.
+7. **Listo:** el Markdown que se guarda frente a la misma nota pintada, con un **viaje de ejemplo inventado**: 2027 Japón, del 3 al 14 de abril de 2027, Tokio y Kioto, Ana y Leo, 12 días de viaje, empieza en 159 días contando desde el 26-10-2026, y el vuelo MAD → NRT con localizador K7QX2P.
+   - **Tres pasos:** crea un viaje desde la Cool Bar, rellénalo y Cool Trip lo monta todo.
+   - **Lo que añade y lo que no toca.**
+   - **Botón "Listo".**
+   - **Pendiente:** la estructura del Markdown se redefinirá al diseñar el contenido de la nota del viaje.
+
+### Cool Kit y sistema visual Cool
+
+Cool Trip se une a la Cool Bar copiando tal cual `src/cool-kit/` y `css/cool-kit.css` de `pattgue/cool-bases` (rama `cool-bar`, `KIT_VERSION = 1`) y llamando a `joinCoolKit(this, { id, label, appliesTo, isOpen, toggle, saveShared, loadShared })` en `onload()`.
+- **`appliesTo`:** la pestaña muestra una nota de viaje o de lugar.
+- **`toggle`:** abre o cierra el panel de Cool Trip.
+- **Ajustes de la barra:** se guardan en `coolBar`, dentro del `data.json` de cada plugin Cool, y gana la copia más reciente.
+- **Pestaña de ajustes:** llama a `renderCoolBarSettings(containerEl)` para pintar la sección común.
+
+**Sistema visual:**
+- **Fuente:** "Cool Inter Tight", Inter Tight de 400 a 900, embebida en base64 en `styles.css`; el subconjunto latino ocupa unos 25 KB y su licencia OFL está en `fonts/`.
+- **Colores:** solo las variables `--cool-*`, que mezclan los colores del tema con `color-mix`.
+- **Elementos:** botones y tiles en mayúsculas de peso 900 sobre gris; grupos sobre `--background-secondary` y bloques sobre `--background-primary`; radios 8, 6, 5 y 3.
+
+Esto sustituye la decisión anterior de usar Inter.
 
 **Sin plantillas.** "Nuevo viaje" escribe la nota con las propiedades elegidas en el paso 2.
 
 **Idioma:** el de Obsidian (`getLanguage()`, como `i18n.ts` de Cool Bases), en español o inglés. Los nombres sugeridos de propiedad siguen ese idioma.
 
-**Tipografía:** Inter en toda la interfaz del plugin, con varios pesos (900 para títulos grandes como COOL TRIP, 700 para encabezados, 400 y 600 para texto). Hay que comprobar si Obsidian ya la incluye. Si no, se embebe un subconjunto latino en `styles.css` (del orden de 100 KB), nunca descargado de internet.
+**Tipografía:** la del sistema Cool, Inter Tight embebida, sin descargar nada (ver "Cool Kit y sistema visual Cool").
 
 ### Archivos: billetes y PDFs fuera del vault
 
