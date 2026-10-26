@@ -55,13 +55,13 @@ Patt lo dejó claro en los comentarios de la ronda 2. Esto manda sobre lo que di
 2. **El plugin escribe la nota; tú no escribes Markdown.** Cool Trip tiene formularios sencillos para fechas, días, horas, lugares, reservas y documentos. Con lo que rellenas, escribe el cuerpo de la nota del viaje en un Markdown estructurado y legible (`## Plan`, `### 3 dic · Roma`, `- 09:00 [[Galleria Borghese]]`, `## Reservas`, …), y lo pinta encima con una vista diseñada. Por ser Markdown real, los enlaces salen en el grafo y en los backlinks, el texto se encuentra con el buscador y, si se desactiva el plugin, la nota sigue completa.
 3. **Sin interruptor "ver como texto".** La nota de viaje se abre siempre diseñada mientras el plugin esté activo. El Markdown es la copia de seguridad para cuando no lo esté. El precedente técnico es el plugin Kanban: un archivo `.md` normal que se abre en una vista propia y que la vista reescribe.
 4. **Destinos sin notas de ciudad.** El plugin trae una lista de ciudades y países, con coordenadas, zona horaria y país, que no se guarda en el vault como notas. `destinos` y `ciudad` se rellenan eligiendo de esa lista. La lista da la zona horaria, el centro para "Abrir en Maps" y descargar el mapa sin conexión, y agrupa los lugares por destino. *Por decidir:* el tamaño. Una estimación es que GeoNames, con las ciudades de más de 100 000 habitantes, cabe en unos cientos de KB; es CC BY 4.0, así que hay que atribuirla.
-5. **Cool Bar.** Se abre desde el botón COOL TRIP de la Cool Bar, la barra que comparten todos los "Cool Plugins" de Patt, o con el comando `Cool Trip: Nuevo viaje`. No tiene icono propio en la cinta lateral. Su código común es el **Cool Kit**, que está en `pattgue/cool-bases`, rama `cool-bar`: `src/cool-kit/` y `css/cool-kit.css` (ver "Cool Kit y sistema visual Cool" más abajo).
+5. **Cool Bar.** Se abre desde el botón COOL TRIP de la Cool Bar, la barra que comparten todos los "Cool Plugins" de Patt, o con el comando `Cool Trip: Nuevo viaje`. No tiene icono propio en la cinta lateral. Su código común es el **Cool Kit**, que está en `pattgue/cool-bases`, rama `cool-bar`: `src/cool-kit/` y `css/cool-kit.css` (ver "Cool Kit" más abajo).
 
 ## Ajustes de Cool Trip (ronda 3, cerrada con Patt)
 
-La configuración vive en **Ajustes › Complementos de la comunidad › Cool Trip** (un `PluginSettingTab`), con la misma estructura en escritorio y en móvil. Cada cambio se guarda al momento (`saveData` en cada `onChange`) y el pie lo indica con "Guardado automático.". En escritorio, **cada paso cabe en la pestaña sin scroll**: está medido en Chromium y deja al menos 50 px libres. En móvil, los pasos son solo números, siete casillas que caben en una fila sin scroll horizontal, con el nombre del paso debajo. Los desplegables siempre se superponen a lo de debajo; nunca empujan el contenido como un acordeón.
+La configuración vive en **Ajustes › Complementos de la comunidad › Cool Trip** (un `PluginSettingTab`), con la misma estructura en escritorio y en móvil. Cada cambio se guarda al momento (`saveData` en cada `onChange`) y el pie lo indica con "Guardado automático.". En escritorio, **cada paso cabe en la pestaña sin scroll**; está medido en Chromium. En móvil, los pasos son solo números: siete círculos como los del ordenador, en una fila sin scroll horizontal. Los desplegables siempre se superponen a lo de debajo; nunca empujan el contenido como un acordeón.
 
-1. **Tus notas:** una tarjeta para Viajes y otra para Lugares. El icono es cuadrado y ocupa el alto de la tarjeta. Cada tarjeta permite elegir si se reconoce por propiedad = valor, etiqueta o carpeta. **Debajo** de cada tarjeta va "Los nuevos se guardan en", un desplegable con el árbol de carpetas del vault (la raíz, las existentes y "Organización automática"). La organización automática enseña una vista previa como el explorador de Obsidian y se elige con un botón al final, "Organízamelo tú", con una carita. Organiza así:
+1. **Tus notas:** una tarjeta para Viajes y otra para Lugares. El icono es cuadrado y ocupa el alto de la tarjeta. Cada tarjeta permite elegir si se reconoce por propiedad = valor, etiqueta o carpeta. **Debajo** de cada tarjeta va "Los nuevos se guardan en", un desplegable con el árbol de carpetas del vault (la raíz, las existentes y "Organización automática"). La organización automática enseña una vista previa como el explorador de Obsidian y se elige con el botón "Usar organización automática", con una carita, al final de la sección. Organiza así:
    - **viajes:** una sola nota por viaje, sin carpeta propia, todas juntas en `Viajes/`;
    - **título sugerido del viaje:** empieza por el año ("2027 Japón"), para que se ordenen solos;
    - **lugares:** agrupados por ciudad (`Lugares/Tokio/`).
@@ -91,7 +91,7 @@ La configuración vive en **Ajustes › Complementos de la comunidad › Cool Tr
    - **Botón "Listo".**
    - **Pendiente:** la estructura del Markdown se redefinirá al diseñar el contenido de la nota del viaje.
 
-### Cool Kit y sistema visual Cool
+### Cool Kit
 
 Cool Trip se une a la Cool Bar copiando tal cual `src/cool-kit/` y `css/cool-kit.css` de `pattgue/cool-bases` (rama `cool-bar`, `KIT_VERSION = 1`) y llamando a `joinCoolKit(this, { id, label, appliesTo, isOpen, toggle, saveShared, loadShared })` en `onload()`.
 - **`appliesTo`:** la pestaña muestra una nota de viaje o de lugar.
@@ -99,18 +99,13 @@ Cool Trip se une a la Cool Bar copiando tal cual `src/cool-kit/` y `css/cool-kit
 - **Ajustes de la barra:** se guardan en `coolBar`, dentro del `data.json` de cada plugin Cool, y gana la copia más reciente.
 - **Pestaña de ajustes:** llama a `renderCoolBarSettings(containerEl)` para pintar la sección común.
 
-**Sistema visual:**
-- **Fuente:** "Cool Inter Tight", Inter Tight de 400 a 900, embebida en base64 en `styles.css`; el subconjunto latino ocupa unos 25 KB y su licencia OFL está en `fonts/`.
-- **Colores:** solo las variables `--cool-*`, que mezclan los colores del tema con `color-mix`.
-- **Elementos:** botones y tiles en mayúsculas de peso 900 sobre gris; grupos sobre `--background-secondary` y bloques sobre `--background-primary`; radios 8, 6, 5 y 3.
-
-Esto sustituye la decisión anterior de usar Inter.
+**Diseño de los ajustes:** es el del boceto de Patt (Inter, sus tarjetas y colores). Del Cool Kit solo se toman la configuración común de la barra y el aspecto de la propia Cool Bar, tal como la pinta `css/cool-kit.css`. Un intento de pasar todos los ajustes al sistema visual de Cool Bases (Inter Tight y las variables `--cool-*`) se deshizo: Patt no lo había pedido.
 
 **Sin plantillas.** "Nuevo viaje" escribe la nota con las propiedades elegidas en el paso 2.
 
 **Idioma:** el de Obsidian (`getLanguage()`, como `i18n.ts` de Cool Bases), en español o inglés. Los nombres sugeridos de propiedad siguen ese idioma.
 
-**Tipografía:** la del sistema Cool, Inter Tight embebida, sin descargar nada (ver "Cool Kit y sistema visual Cool").
+**Tipografía:** Inter en toda la interfaz del plugin (petición de Patt). Hay que comprobar si Obsidian ya la incluye; si no, se embebe un subconjunto latino en `styles.css`, nunca descargado de internet.
 
 ### Archivos: billetes y PDFs fuera del vault
 
