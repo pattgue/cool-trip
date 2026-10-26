@@ -1,4 +1,7 @@
 // Cool Trip: tipos de nota y su frontmatter.
+// RONDA 2 (26-10-2026, ver architecture.md › "Cambio de modelo"): solo `trip` y `place` son notas.
+// Stay, Transport, Ticket y Expense pasan a ser bloques dentro del cuerpo de la nota del viaje,
+// escritos por el plugin; sus interfaces describen la forma de cada bloque. Pendiente de rehacer.
 // Equivale al "schema.sql" de /replica-architect. Pasará tal cual a src/model/types.ts.
 // Convenciones:
 //   - Fechas de viaje: "AAAA-MM-DD". Horas: hora local "AAAA-MM-DDTHH:MM" + zona IANA.

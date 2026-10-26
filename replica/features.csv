@@ -68,3 +68,8 @@ Ruta del día con todas las paradas en la app de mapas,mapa,should,yes,no,Google
 "Ajustes del plugin: reconocer notas por propiedad, etiqueta o carpeta y usar las propiedades propias o las sugeridas",cool trip,must,no,no,propio: en la pestaña de ajustes; sin carpetas ni plantillas obligatorias (Patt)
 Crear bases (.base) para usar el vault sin el plugin,cool trip,should,no,no,propio: compatible con Cool Bases
 "Billetes y PDFs fuera del vault (nube, Wallet o carpeta local), con los datos clave en texto",cool trip,must,no,no,propio: el vault no se llena de archivos (Patt)
+"Vista diseñada sobre la nota del viaje; el plugin escribe el cuerpo en Markdown estructurado",cool trip,must,no,no,propio: grafo y buscador siguen funcionando; sin interruptor a texto (Patt)
+"Reservas, documentos y plan dentro de la nota del viaje (no notas sueltas)",cool trip,must,no,no,propio: menos ruido por viaje (Patt)
+"Lista de ciudades y países integrada para destinos y ciudad",cool trip,should,no,no,propio: zona horaria y centro del mapa sin notas de ciudad
+"Botón en la Cool Bar compartida de los Cool Plugins",cool trip,must,no,no,propio: código común pendiente de localizar
+"Ajustes con versión móvil",cool trip,must,no,no,propio

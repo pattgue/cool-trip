@@ -47,33 +47,45 @@ Cool Trip no lleva mapa propio. Hay tres piezas:
 
 Patt marca cada ciudad como hecha.
 
-## Ajustes de Cool Trip (revisado con Patt, 26-10-2026)
+## Cambio de modelo (ronda 2 del boceto, 26-10-2026)
 
-La configuración vive en **Ajustes › Complementos de la comunidad › Cool Trip** (un `PluginSettingTab`), no en un modal dentro del plugin. La primera vez, un aviso lleva a esa pestaña. Tiene seis secciones navegables, y los cambios se guardan solos:
+Patt lo dejó claro en los comentarios de la ronda 2. Esto manda sobre lo que diga más abajo hasta que se rehaga el schema:
 
-1. **Tus notas:** cómo reconoce Cool Trip los viajes, los lugares y las reservas. Para cada tipo se elige **propiedad = valor** (sugerido: `tipo: viaje`), **etiqueta** o **carpeta**. No se crean carpetas por defecto. Las notas nuevas se guardan donde diga Obsidian, en la carpeta del viaje o en una carpeta elegida. Hay un botón opcional, "Crear estas carpetas", para quien quiera un orden ya hecho.
-2. **Propiedades:** cada dato que usa el plugin aparece con una línea de para qué sirve y un desplegable. El desplegable ofrece las **propiedades que ya existen en el vault con el mismo tipo** y la **sugerida**. Si el vault ya usa una equivalente (por ejemplo `location`, de Map View), se preselecciona. Las sugeridas no se escriben en ninguna nota hasta que se rellenan. Las opcionales van plegadas.
-3. **Archivos:** dónde viven billetes y PDFs, sin llenar el vault (ver más abajo).
-4. **Mapas:** app de mapas y modo habitual de moverse (Patt lo dio por bueno).
-5. **Bases:** `Viajes.base`, `Lugares.base` y `Reservas.base` opcionales, con una vista previa y para qué sirven fuera del plugin. Se elige la carpeta donde guardarlas.
-6. **Listo:** esquema visual de "tus notas → vista del viaje", tres pasos de uso y qué añade y qué no toca el plugin.
+1. **Solo hay dos tipos de nota: viaje y lugar.** Las reservas (vuelos, trenes, alojamientos, entradas), los documentos y el plan de cada día **no son notas sueltas**: son secciones dentro de la nota del viaje. Una nota por reserva era "muchísimo ruido por cada viaje". Desaparecen las notas `stay`, `transport` y `ticket`, la base `Reservas.base` y la vista de reservas como notas aparte. Sus campos (`schema.ts`) pasan a ser la forma de cada bloque dentro de la nota.
+2. **El plugin escribe la nota; tú no escribes Markdown.** Cool Trip tiene formularios sencillos para fechas, días, horas, lugares, reservas y documentos. Con lo que rellenas, escribe el cuerpo de la nota del viaje en un Markdown estructurado y legible (`## Plan`, `### 3 dic · Roma`, `- 09:00 [[Galleria Borghese]]`, `## Reservas`, …), y lo pinta encima con una vista diseñada. Por ser Markdown real, los enlaces salen en el grafo y en los backlinks, el texto se encuentra con el buscador y, si se desactiva el plugin, la nota sigue completa.
+3. **Sin interruptor "ver como texto".** La nota de viaje se abre siempre diseñada mientras el plugin esté activo. El Markdown es la copia de seguridad para cuando no lo esté. El precedente técnico es el plugin Kanban: un archivo `.md` normal que se abre en una vista propia y que la vista reescribe.
+4. **Destinos sin notas de ciudad.** El plugin trae una lista de ciudades y países, con coordenadas, zona horaria y país, que no se guarda en el vault como notas. `destinos` y `ciudad` se rellenan eligiendo de esa lista. La lista da la zona horaria, el centro para "Abrir en Maps" y descargar el mapa sin conexión, y agrupa los lugares por destino. *Por decidir:* el tamaño. Una estimación es que GeoNames, con las ciudades de más de 100 000 habitantes, cabe en unos cientos de KB; es CC BY 4.0, así que hay que atribuirla.
+5. **Cool Bar.** Se abre desde un botón en la Cool Bar, que compartirán todos los "Cool Plugins" de Patt, o desde el comando `Cool Trip: Nuevo viaje`. No usa un icono propio en la cinta lateral. *Pendiente:* dónde vive el código común de la Cool Bar (no está en `pattgue/cool-bases`).
 
-**Sin plantillas.** "Nuevo viaje" (nombre, fechas o "sin fechas", destinos, viajeros y portada) escribe la nota con las propiedades elegidas en el paso 2. Sin foto, la portada se genera con tipografía, como en Cool Bases.
+## Ajustes de Cool Trip (ronda 2)
 
-**Idioma:** el de Obsidian (`getLanguage()`, como `i18n.ts` de Cool Bases), en español o inglés. Los nombres sugeridos de propiedad siguen ese idioma; no hay casilla aparte.
+La configuración vive en **Ajustes › Complementos de la comunidad › Cool Trip** (un `PluginSettingTab`), no en un modal dentro del plugin. Hay una versión para escritorio y otra para móvil, con las mismas opciones. Cada cambio se guarda al momento (`saveData` en cada `onChange`, como en el resto de Obsidian), sin botón de guardar. Tiene seis secciones:
+
+1. **Tus notas:** una tarjeta para Viajes y otra para Lugares, con el mismo diseño. Para cada una se elige cómo se reconoce: **propiedad = valor** (sugerido `tipo = viaje`), **etiqueta** o **carpeta**. Después se elige **dónde se guardan las nuevas**, con un desplegable que enseña el árbol de carpetas del vault: la raíz, cualquier carpeta existente u **Organización automática**, que es la única opción que crea carpetas. Debajo se ve exactamente lo que crearía la organización automática, con el aspecto del explorador de archivos de Obsidian: carpetas, notas y bases.
+2. **Propiedades:** se ven todos los campos útiles, no hay opcionales plegados. Los necesarios para que el plugin funcione llevan `*`. Cada fila enseña el dato y para qué sirve, el **tipo** (fecha, lista, texto, número, casilla), el desplegable con las propiedades del vault del mismo tipo o la sugerida, y el estado ("Ya la usas" o "Nueva"). Las reservas, los documentos y el plan no aparecen aquí, porque no son propiedades. Filtrar por tipo se queda así por ahora, aunque a veces sea engorroso.
+   - Viaje: empieza\*, termina\* (fecha), destinos\* (lista, de la lista de ciudades), quién viaja (lista), portada (texto).
+   - Lugar: ubicación\* (lista, como Map View), ciudad\* (texto, de la lista de ciudades), categoría (texto), valoración (número), visitado (casilla).
+3. **Archivos:** dónde viven billetes y PDFs, con textos para cualquier usuario, no solo quien use Sync (ver más abajo). La vista previa es una sección de la nota del viaje, no una nota aparte.
+4. **Mapas:** la app de mapas, y **casillas** con los modos de moverse que se usan (a pie, transporte público, coche, bici, taxi). Esos modos aparecen primero al planear cada tramo del día. El enlace a la app usa el modo de cada tramo, no uno fijo para todo el viaje.
+5. **Bases:** solo `Viajes.base` y `Lugares.base`, cada una con su carpeta. Hay una recomendación de **Cool Bases**: con él, las mismas bases se ven como tarjetas con un diseño que prepara Cool Trip (una vista `type: cool-bases` con su bloque `coolbases:` dentro del `.base`, como en `demo-vault/Films.base` de Cool Bases), y se pueden personalizar. Cada base enseña dos vistas previas, sin y con Cool Bases. *A decidir al implementar:* añadir la vista de Cool Bases solo si el plugin está instalado (o cuando se instale), para que una vista desconocida no dé error.
+6. **Listo:** esquema "Markdown que se guarda → la misma nota pintada por Cool Trip", con una vista previa parecida a la portada real; tres pasos de uso (Cool Bar, formularios, siempre a mano); y qué añade y qué no toca el plugin. Se cierra con un botón **Listo**, sin "crear mi primer viaje": el plugin se abre desde la Cool Bar o con el comando.
+
+**Sin plantillas.** "Nuevo viaje" escribe la nota con las propiedades elegidas en el paso 2.
+
+**Idioma:** el de Obsidian (`getLanguage()`, como `i18n.ts` de Cool Bases), en español o inglés. Los nombres sugeridos de propiedad siguen ese idioma.
 
 **Tipografía:** Inter en toda la interfaz del plugin, con varios pesos (900 para títulos grandes como COOL TRIP, 700 para encabezados, 400 y 600 para texto). Hay que comprobar si Obsidian ya la incluye. Si no, se embebe un subconjunto latino en `styles.css` (del orden de 100 KB), nunca descargado de internet.
 
 ### Archivos: billetes y PDFs fuera del vault
 
-Lo esencial de cada reserva (localizador, horas, asiento, puerta) es **texto en el frontmatter**: pesa nada, se sincroniza y se ve sin conexión. El archivo es solo un respaldo enlazado en `docs`, y Patt marca qué sitios usa:
+Lo esencial de cada reserva (localizador, horas, asiento, puerta) es **texto dentro de la nota del viaje**: no pesa nada, se sincroniza con el vault y se ve sin conexión. El archivo es solo un enlace de respaldo, y cada persona marca qué sitios usa:
 
 | dónde | cómo lo usa Cool Trip | sin conexión en el móvil |
 | --- | --- | --- |
-| nube (Drive, iCloud, Dropbox) — recomendado | enlace en `docs`. Antes del viaje, "Antes del viaje" recuerda marcar cada archivo como disponible sin conexión en su app | sí, si se ha descargado en la app de la nube (*por comprobar* que el enlace abre la copia local) |
-| cartera del móvil (Apple/Google Wallet) | anota que la tarjeta o entrada está ahí y lo recuerda el día que toca | sí |
-| carpeta del ordenador | enlace `file://` | no (solo ese ordenador) |
-| dentro del vault | carpeta elegida | sí, pero ocupa Sync y no sube archivos de más de 5 MB |
+| nube (Drive, iCloud, Dropbox): recomendado | enlace al archivo. "Antes del viaje" recuerda descargarlo en la app de la nube | sí, si se ha descargado en esa app (*por comprobar* que el enlace abre la copia local) |
+| cartera del móvil (Apple/Google Wallet) | un botón "Abrir Wallet" abre la app, y el billete se elige desde ahí. No hay un enlace público a un pase concreto. En iOS sería `shoebox://`, que no está documentado; en Android, el enlace de Google Wallet (*por comprobar los dos*) | sí |
+| carpeta del ordenador | enlace `file://` | no (solo en ese ordenador) |
+| dentro del vault | carpeta elegida | sí, si se sincroniza el vault; ocupa espacio |
 
 
 ## Referencias de diseño de Patt y lo que aportan
