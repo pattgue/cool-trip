@@ -15,7 +15,7 @@ Mapa con pins de los lugares del viaje,mapa,must,yes,no,"S05 · Wanderlog, Albo,
 Filtrar el mapa por día,mapa,must,yes,no,S05 · Wanderlog
 Línea de ruta en orden en el mapa,mapa,should,yes,no,"S05 · Wanderlog, Albo Trip Planner"
 Filtrar lugares por categoría y valoración,lugares,could,yes,no,"S05/S06 · Albo 1.11.2 (top rated, open now)"
-Mapa sin conexión,mapa,could,yes,no,"S05 · Wanderlog Pro, Map View; teselas en caché"
+Mapa sin conexión,mapa,should,yes,no,"S05 · Wanderlog Pro, Map View; en Cool Trip = PMTiles recortado por ciudad en el vault"
 Banquillo de lugares sin día asignado,lugares,must,yes,no,"S06 · Wanderlog secciones/listas, colección de Albo"
 Tablero de lugares por categoría con foto,lugares,should,yes,no,S06 · Albo vista board
 "Ficha de lugar con foto, resumen, categoría, rating y precio",lugares,must,yes,no,S07 · Albo extract (campos vistos en la cuenta de Patt)
@@ -35,7 +35,7 @@ Importar reservas desde el email,importar,should,yes,no,"F07 · TripIt, Tripsy (
 Importar desde capturas o listas de mapas,importar,could,yes,no,Tripsy 3.10
 Exportar día o viaje a PDF,exportar,should,yes,no,"F08 · Itini, Wanderlog Pro"
 Modo Hoy con próxima parada y documentos del día,viaje en curso,should,yes,no,"S14/F05 · *guess* widgets de Tripsy, Go Now de TripIt"
-Checklists de equipaje y pendientes,checklists,could,yes,no,"S16 · Wanderlog, Itini"
+Checklists de pendientes,checklists,could,yes,no,"S16 · Wanderlog, Itini"
 Presupuesto y gastos,presupuesto,could,yes,no,"S17 · Wanderlog budget, Tripsy expenses (Pro)"
 Sincronizar con el calendario,calendario,could,yes,no,"Tripsy Pro, TripIt; en Cool Trip = Claude con Google Calendar"
 "Bloques libres de texto, teléfono e imagen en el día",itinerario,could,yes,no,Itini; en Obsidian es Markdown normal
@@ -57,3 +57,9 @@ Compatible con el formato location de Map View,cool trip,should,no,no,propio
 Importar una colección de Albo con Claude y geocodificar,cool trip,must,no,no,propio: F01; Albo no tiene API pública
 Ruta del día escrita como lista Markdown,cool trip,should,no,no,propio: decisión abierta 2 de la propuesta
 "Enlaces wiki entre lugar, día, reserva y documento",cool trip,must,no,no,propio
+"Panel de resumen con contadores (documentos, equipaje, estancias, trayectos, lugares, gastos)",viajes,should,yes,no,S03 · referencia de diseño 2 de Patt
+Lista de equipaje con progreso empaquetado,checklists,should,yes,no,S03/S16 · referencia de diseño 2 (55/78 packed)
+Hoja de ruta antes del viaje con 'estás aquí',viajes,should,yes,no,S03 · referencia de diseño 3 (stepper vertical); pasos calculados de los estados
+Tarjeta de transporte estilo tarjeta de embarque,reservas,should,yes,no,S08 · referencia de diseño 1
+"Asiento, terminal, puerta, clase y hora de embarque en el transporte",reservas,could,yes,no,S08 · referencia de diseño 1
+"Validar el viaje (zonas, solapes, lugares sin coordenadas)",cool trip,should,no,no,propio: invariantes de schema.ts

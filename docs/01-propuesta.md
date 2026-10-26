@@ -14,7 +14,9 @@ Una **vista de viaje** dentro de Obsidian, diseñada y fácil de leer de un vist
 
 Ahora mismo la información está repartida: los lugares en Albo, las confirmaciones en el correo, los PDF en Drive o en descargas y la ruta en la cabeza. La idea es que Obsidian sea **la fuente de verdad** y que el plugin sea **la forma bonita de leerla**.
 
-## 2. Qué copiamos de cada app
+> **Actualización:** la arquitectura (`replica/architecture.md`) y los tipos (`replica/schema.ts`) sustituyen al modelo de datos del §4. La reserva genérica se divide en `stay`, `transport` y `ticket`. Los días van dentro de la nota del viaje, como listas Markdown, lo que resuelve las decisiones 2 y 3. El mapa offline se hace con PMTiles.
+
+## 2. Qué tomamos de cada app (como referencia)
 
 | App | Qué hace bien | Qué nos llevamos |
 |---|---|---|
