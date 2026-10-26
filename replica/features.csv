@@ -1,0 +1,59 @@
+feature,area,priority,original,clone,notes
+Lista de viajes con próximos y pasados,viajes,must,yes,no,"S01 · Tripsy, TripIt, Wanderlog"
+"Crear viaje con nombre, fechas, destino y portada",viajes,must,yes,no,S02 · Tripsy API trips; en Cool Trip = plantilla de nota
+Viaje sin fechas (has_dates=false),viajes,should,yes,no,S02 · Tripsy API: has_dates es autoritativo
+"Portada del viaje con fechas, cuenta atrás y viajeros",viajes,must,yes,no,"S03 · Wanderlog overview, Tripsy"
+Itinerario día a día con paradas en orden,itinerario,must,yes,no,"S04 · Wanderlog, Tripsy, TripIt, Albo Trip Planner"
+Hora y nota en cada parada,itinerario,must,yes,no,"S04 · Wanderlog (reseñas), Tripsy activities"
+Reservas intercaladas por hora en el timeline,itinerario,must,yes,no,S04 · Tripsy y TripIt master itinerary
+Tramo entre paradas con modo de transporte,itinerario,should,yes,no,"S04/S13 · Tripsy 3.9 multi-stop, Wanderlog"
+Tiempo y distancia estimados entre paradas,itinerario,should,yes,no,"S04 · Wanderlog Pro, Tripsy Smart Routes; sin API de pago = estimación"
+Aviso de tiempo justo entre paradas,itinerario,could,yes,no,S04 · Tripsy 3.9 Tight Timing
+Optimizar el orden de las paradas,itinerario,could,yes,no,Wanderlog Pro
+Color por día en timeline y mapa,itinerario,should,yes,no,S04/S05 · Wanderlog
+Mapa con pins de los lugares del viaje,mapa,must,yes,no,"S05 · Wanderlog, Albo, Tripsy; formato location de Map View"
+Filtrar el mapa por día,mapa,must,yes,no,S05 · Wanderlog
+Línea de ruta en orden en el mapa,mapa,should,yes,no,"S05 · Wanderlog, Albo Trip Planner"
+Filtrar lugares por categoría y valoración,lugares,could,yes,no,"S05/S06 · Albo 1.11.2 (top rated, open now)"
+Mapa sin conexión,mapa,could,yes,no,"S05 · Wanderlog Pro, Map View; teselas en caché"
+Banquillo de lugares sin día asignado,lugares,must,yes,no,"S06 · Wanderlog secciones/listas, colección de Albo"
+Tablero de lugares por categoría con foto,lugares,should,yes,no,S06 · Albo vista board
+"Ficha de lugar con foto, resumen, categoría, rating y precio",lugares,must,yes,no,S07 · Albo extract (campos vistos en la cuenta de Patt)
+Marcar lugar como visitado,lugares,should,yes,no,F09 · Albo status COMPLETED
+Aviso de reserva obligatoria en el lugar,lugares,should,yes,no,S07 · Albo summary (Galleria Borghese: Booking essential)
+Añadir lugar al último día editado,itinerario,should,yes,no,F02 · Wanderlog Add + Change
+Ficha de transporte con zona horaria por extremo,reservas,must,yes,no,"S08 · Tripsy API transportations (departure_timezone, arrival_timezone)"
+"Tipos de transporte: avión, tren, bus, coche, ferry, a pie, metro, transfer",reservas,must,yes,no,S08 · Tripsy API + 3.9
+Ficha de alojamiento con check-in y check-out,reservas,must,yes,no,S09 · Tripsy API hostings
+Localizador y número de servicio,reservas,must,yes,no,"S08/S09 · Tripsy provider_reservation_code, transport_number"
+"Estado de la reserva (idea, pendiente, confirmada)",reservas,should,yes,no,S08 · *guess* a partir de TripIt/Tripsy; útil para los pendientes
+Documentos a nivel de viaje y de elemento,documentos,must,yes,no,S10 · Tripsy API documents parent_type
+Barra de documentos esenciales a un toque,documentos,must,yes,no,F06 · objetivo 2 clics; Tripsy ~3
+"Links externos como documento (check-in, web)",documentos,should,yes,no,S10 · Tripsy documents attach link
+Documentos disponibles sin conexión,documentos,must,yes,no,Tripsy offline; en Obsidian = adjuntos del vault
+Importar reservas desde el email,importar,should,yes,no,"F07 · TripIt, Tripsy (Pro), Wanderlog (Pro); en Cool Trip lo hace Claude con Gmail"
+Importar desde capturas o listas de mapas,importar,could,yes,no,Tripsy 3.10
+Exportar día o viaje a PDF,exportar,should,yes,no,"F08 · Itini, Wanderlog Pro"
+Modo Hoy con próxima parada y documentos del día,viaje en curso,should,yes,no,"S14/F05 · *guess* widgets de Tripsy, Go Now de TripIt"
+Checklists de equipaje y pendientes,checklists,could,yes,no,"S16 · Wanderlog, Itini"
+Presupuesto y gastos,presupuesto,could,yes,no,"S17 · Wanderlog budget, Tripsy expenses (Pro)"
+Sincronizar con el calendario,calendario,could,yes,no,"Tripsy Pro, TripIt; en Cool Trip = Claude con Google Calendar"
+"Bloques libres de texto, teléfono e imagen en el día",itinerario,could,yes,no,Itini; en Obsidian es Markdown normal
+Vista móvil usable con una mano,plataforma,must,yes,no,todas las apps son móviles; Obsidian móvil
+Respetar modo claro y oscuro del tema,plataforma,must,yes,no,variables CSS de Obsidian
+Búsqueda y reserva de vuelos y hoteles,reservas,could,yes,skip,acuerdos con partners y datos de pago
+Alertas de vuelo en tiempo real,reservas,should,yes,skip,"necesita un proveedor de datos de vuelos de pago (TripIt Pro, Tripsy Pro)"
+Sitios tendencia y lo que guardan los amigos,lugares,could,yes,skip,es la red social de Albo
+Chat y votos en la colección,colaboración,could,yes,skip,red de Albo; plugin personal
+Guías y catálogo de lugares,lugares,could,yes,skip,contenido propio de Wanderlog
+Colaboradores con permisos por viajero,colaboración,should,yes,skip,plugin personal; Obsidian Sync si hiciera falta
+Previsión del tiempo a 10 días,viaje en curso,could,yes,skip,"Tripsy Pro; fuente de datos externa, fuera del scope"
+Asistente de IA dentro de la app,ia,could,yes,skip,lo hace Claude desde fuera escribiendo en las notas
+"Integraciones corporativas (Concur, TripAdvisor)",importar,could,yes,skip,acuerdos de terceros
+Recordatorio de renovación de pasaporte,documentos,could,yes,skip,TripIt Pro; fuera del scope del viaje
+Lugares como notas reutilizables entre viajes,cool trip,must,no,no,propio: un lugar vive fuera del viaje
+"Datos en frontmatter legibles sin el plugin (Bases, Dataview)",cool trip,must,no,no,propio: Markdown primero
+Compatible con el formato location de Map View,cool trip,should,no,no,propio
+Importar una colección de Albo con Claude y geocodificar,cool trip,must,no,no,propio: F01; Albo no tiene API pública
+Ruta del día escrita como lista Markdown,cool trip,should,no,no,propio: decisión abierta 2 de la propuesta
+"Enlaces wiki entre lugar, día, reserva y documento",cool trip,must,no,no,propio
