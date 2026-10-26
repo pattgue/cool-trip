@@ -11,7 +11,7 @@ Lee `replica/recon.md` y `replica/features.csv`. Aquí "stack" es la API de plug
 | UI | **TypeScript sin framework**, con los helpers de DOM de Obsidian (`createDiv`, `createEl`), dentro de vistas `ItemView` y bloques de código | lo mismo que `pattgue/cool-bases`: ligero, sin dependencias y con un estilo que Patt ya conoce |
 | estilos | carpeta `css/` que esbuild junta en `styles.css` (como Cool Bases), con las **variables del tema de Obsidian** + tokens propios (de `/replica-design`) | respeta el modo claro y oscuro y los temas de Patt; los colores de día y de categoría son tokens |
 | idiomas | `i18n.ts` en español e inglés (como Cool Bases) | Patt usa Obsidian en los dos idiomas |
-| configuración | **asistente de configuración**: carpetas, propiedades con su tipo, bases (`.base`) y plantillas | el plugin monta el vault; las notas que crea también sirven sin él |
+| configuración | **pestaña de ajustes** del plugin: cómo reconoce tus notas (propiedad, etiqueta o carpeta), qué propiedades usa (las tuyas o las sugeridas), archivos, mapas y bases (`.base`). Sin plantillas | el plugin se adapta al vault y no al revés; las notas también sirven sin él |
 | datos | notas Markdown + frontmatter; índice en memoria construido desde `metadataCache` | Markdown primero: sin el plugin, el viaje sigue siendo legible y consultable con Bases o Dataview |
 | escritura | `fileManager.processFrontMatter` y `vault.process` (atómicos, por línea) | no machacar lo que Patt edita a mano ni provocar conflictos de Sync |
 | mapa | **enlaces a la app de mapas de Patt** (Google Maps, Apple Maps u Organic Maps) + un **croquis SVG** por día, dibujado con las coordenadas | sin librerías ni teselas: el plugin sigue pesando unos KB; ver §Mapas |
@@ -19,7 +19,7 @@ Lee `replica/recon.md` y `replica/features.csv`. Aquí "stack" es la API de plug
 | geocodificación | la hace Claude al importar (`geocodeLocation` de Albo y, si falla, Nominatim a 1 petición/s) | el plugin no llama a la red; las coordenadas quedan guardadas en la nota |
 | puentes | Claude con conectores (Albo, Gmail, Drive, Calendar) escribiendo notas | Albo no tiene API pública; las mismas reglas de idempotencia que en Tripsy |
 | tests | **como en Cool Bases**: `test/` con un *mock* de Obsidian y un *harness* que pinta las vistas del `demo-vault` en Chromium con Playwright; más pruebas unitarias del parser de días y de las zonas horarias | Obsidian no se puede ejecutar en el contenedor Cloud; el harness permite diseñar y testear sin él |
-| vault de ejemplo | `demo-vault/` dentro del repo (como Cool Bases), con Italia 2026 | para probar y hacer capturas; el vault real de Patt se monta con el asistente |
+| vault de ejemplo | `demo-vault/` dentro del repo (como Cool Bases), con Italia 2026 | para probar y hacer capturas; el vault real de Patt se configura en Ajustes › Cool Trip |
 | instalación | `npm run build` → copiar `main.js`, `manifest.json` y `styles.css` a `.obsidian/plugins/cool-trip/` (o BRAT desde un release privado) | plugin privado, no se publica en el directorio de la comunidad |
 
 **Descartados:**
@@ -31,7 +31,7 @@ Lee `replica/recon.md` y `replica/features.csv`. Aquí "stack" es la API de plug
 
 Cool Trip no lleva mapa propio. Hay tres piezas:
 
-1. **"Abrir en Maps"** en cada lugar, parada y reserva. Usa la app elegida en el asistente:
+1. **"Abrir en Maps"** en cada lugar, parada y reserva. Usa la app elegida en Ajustes › Mapas:
    - Google Maps: `https://www.google.com/maps/search/?api=1&query=<nombre>%20<ciudad>` (o las coordenadas);
    - Apple Maps: `https://maps.apple.com/?q=<nombre>&ll=<lat>,<lng>`;
    - Organic Maps: su enlace con coordenadas, a confirmar en su documentación.
@@ -47,15 +47,33 @@ Cool Trip no lleva mapa propio. Hay tres piezas:
 
 Patt marca cada ciudad como hecha.
 
-## Asistente de configuración
+## Ajustes de Cool Trip (revisado con Patt, 26-10-2026)
 
-Se abre la primera vez o con el comando `Configurar Cool Trip`. Tiene cuatro pasos:
-1. **Carpetas:** `Viajes/`, `Lugares/` y `Viajes/{viaje}/Archivos`, editables. El asistente nunca toca notas que ya existan.
-2. **Propiedades:** las registra con su tipo en Obsidian (fecha, lista, texto, número, casilla), así que funcionan en Bases y en otros plugins. Los nombres son en español o en inglés y se pueden renombrar en los ajustes.
-3. **Mapas:** la app y el modo por defecto entre paradas.
-4. **Listo:** crea `Viajes.base`, `Lugares.base` y `Reservas.base` (vistas para usar el vault sin Cool Trip, y compatibles con Cool Bases) y las plantillas de viaje, lugar, transporte y estancia.
+La configuración vive en **Ajustes › Complementos de la comunidad › Cool Trip** (un `PluginSettingTab`), no en un modal dentro del plugin. La primera vez, un aviso lleva a esa pestaña. Tiene seis secciones navegables, y los cambios se guardan solos:
 
-Después viene **Nuevo viaje** (nombre, fechas o "sin fechas", destinos con sus fechas, viajeros y portada), que crea `Viajes/<viaje>/<viaje>.md`. Sin foto, la portada se genera con tipografía, como las portadas de Cool Bases.
+1. **Tus notas:** cómo reconoce Cool Trip los viajes, los lugares y las reservas. Para cada tipo se elige **propiedad = valor** (sugerido: `tipo: viaje`), **etiqueta** o **carpeta**. No se crean carpetas por defecto. Las notas nuevas se guardan donde diga Obsidian, en la carpeta del viaje o en una carpeta elegida. Hay un botón opcional, "Crear estas carpetas", para quien quiera un orden ya hecho.
+2. **Propiedades:** cada dato que usa el plugin aparece con una línea de para qué sirve y un desplegable. El desplegable ofrece las **propiedades que ya existen en el vault con el mismo tipo** y la **sugerida**. Si el vault ya usa una equivalente (por ejemplo `location`, de Map View), se preselecciona. Las sugeridas no se escriben en ninguna nota hasta que se rellenan. Las opcionales van plegadas.
+3. **Archivos:** dónde viven billetes y PDFs, sin llenar el vault (ver más abajo).
+4. **Mapas:** app de mapas y modo habitual de moverse (Patt lo dio por bueno).
+5. **Bases:** `Viajes.base`, `Lugares.base` y `Reservas.base` opcionales, con una vista previa y para qué sirven fuera del plugin. Se elige la carpeta donde guardarlas.
+6. **Listo:** esquema visual de "tus notas → vista del viaje", tres pasos de uso y qué añade y qué no toca el plugin.
+
+**Sin plantillas.** "Nuevo viaje" (nombre, fechas o "sin fechas", destinos, viajeros y portada) escribe la nota con las propiedades elegidas en el paso 2. Sin foto, la portada se genera con tipografía, como en Cool Bases.
+
+**Idioma:** el de Obsidian (`getLanguage()`, como `i18n.ts` de Cool Bases), en español o inglés. Los nombres sugeridos de propiedad siguen ese idioma; no hay casilla aparte.
+
+**Tipografía:** Inter en toda la interfaz del plugin, con varios pesos (900 para títulos grandes como COOL TRIP, 700 para encabezados, 400 y 600 para texto). Hay que comprobar si Obsidian ya la incluye. Si no, se embebe un subconjunto latino en `styles.css` (del orden de 100 KB), nunca descargado de internet.
+
+### Archivos: billetes y PDFs fuera del vault
+
+Lo esencial de cada reserva (localizador, horas, asiento, puerta) es **texto en el frontmatter**: pesa nada, se sincroniza y se ve sin conexión. El archivo es solo un respaldo enlazado en `docs`, y Patt marca qué sitios usa:
+
+| dónde | cómo lo usa Cool Trip | sin conexión en el móvil |
+| --- | --- | --- |
+| nube (Drive, iCloud, Dropbox) — recomendado | enlace en `docs`. Antes del viaje, "Antes del viaje" recuerda marcar cada archivo como disponible sin conexión en su app | sí, si se ha descargado en la app de la nube (*por comprobar* que el enlace abre la copia local) |
+| cartera del móvil (Apple/Google Wallet) | anota que la tarjeta o entrada está ahí y lo recuerda el día que toca | sí |
+| carpeta del ordenador | enlace `file://` | no (solo ese ordenador) |
+| dentro del vault | carpeta elegida | sí, pero ocupa Sync y no sube archivos de más de 5 MB |
 
 
 ## Referencias de diseño de Patt y lo que aportan
@@ -80,6 +98,8 @@ Hay 6 tipos de nota (`type:` en el frontmatter) y 1 estructura dentro de la nota
 | `transport` | `Viajes/<viaje>/Reservas/` | `mode`, `from`, `to`, `depart` + `depart_tz`, `arrive` + `arrive_tz`, `from_location`, `to_location`, `number`, `code`, `seat`, `terminal`, `gate`, `boarding`, `class`, `passengers`, `docs[]`, `status` | Tripsy: **cada extremo tiene su zona horaria** |
 | `ticket` | `Viajes/<viaje>/Reservas/` | `place`, `start`, `end?` + `timezone`, `code`, `docs[]`, `status` | entrada con hora (Galleria Borghese) |
 | `expense` (*could*) | dentro de la nota del viaje, o como notas | `amount` (céntimos), `currency`, `category`, `parent?` | Tripsy expenses; dinero como entero |
+
+Los nombres de campo de esta tabla son los internos. En el vault, cada uno se mapea a la propiedad que Patt elija en Ajustes › Propiedades, y la columna "nota" es solo el orden sugerido opcional: el plugin reconoce las notas por propiedad, etiqueta o carpeta (Ajustes › Tus notas).
 
 Esto **refina la propuesta** (§4.4): el `booking` genérico con `kind` se parte en `stay`, `transport` y `ticket`, porque tienen campos y comportamientos distintos (Tripsy).
 
@@ -118,12 +138,12 @@ Invariantes (las comprueba el comando "Validar viaje"; avisa, nunca bloquea):
 | vista `cool-trip-view` (ItemView) | el viaje en pestañas: **Resumen** (S03), **Itinerario** (S04, con el croquis del día), **Lugares** (S06) y **Reservas y documentos** (S08–S10) | Patt | nota de viaje activa o elegida | vista | F04, F06 |
 | vista `cool-trip-list` | lista de viajes, próximos y pasados (S01) | Patt | — | vista | — |
 | comando `Abrir viaje` | abre la vista del viaje (la nota activa o un selector) | Patt | — | vista | F05, F06 |
-| comando `Nuevo viaje` | modal (S02) que crea la carpeta y la nota con su plantilla | Patt | nombre, fechas o sin fechas, destinos, zona | nota `trip` | — |
+| comando `Nuevo viaje` | modal (S02) que crea la nota del viaje con las propiedades elegidas en ajustes (sin plantillas) | Patt | nombre, fechas o sin fechas, destinos, zona | nota `trip` | — |
 | comandos `Nuevo transporte`, `Nueva estancia`, `Nueva entrada` | crea la nota con el `trip` y la zona ya rellenados | Patt | tipo | nota | F03 |
 | comando `Añadir al día…` | desde una nota `place`: elige un día (recuerda el último usado) y añade la línea | Patt | día | línea en la nota del viaje | F02 |
 | acción en timeline: casilla | marca o desmarca una parada como hecha (`- [x]`) | Patt | clic | línea editada con `vault.process` | F09 |
 | acción en timeline: arrastrar (escritorio) o subir/bajar (móvil) | reordena las paradas de un día | Patt | — | líneas reordenadas | F02 |
-| comando `Configurar Cool Trip` | asistente: carpetas, propiedades con tipo, app de mapas, bases y plantillas | Patt | — | carpetas, `.base`, plantillas | — |
+| comando `Ajustes de Cool Trip` | abre la pestaña de ajustes: reconocer notas, propiedades, archivos, mapas, bases | Patt | — | `.base` opcionales; carpetas solo si se piden | — |
 | acción `Abrir en Maps` y `Ruta del día` | enlace a la app de mapas elegida (lugar, parada, reserva o día entero) | Patt | — | abre la app | F04 |
 | comando `Hoy` | vista compacta: próxima parada, siguiente tramo y documentos del día (S14) | Patt | fecha del dispositivo | vista | F05 |
 | comando `Validar viaje` | lista los problemas de las invariantes | Patt | viaje | aviso o nota de informe | — |
@@ -143,7 +163,7 @@ No hay jobs en el plugin. "Hoy" y la cuenta atrás se recalculan al abrir la vis
 | `importar-reservas <viaje>` | lee las confirmaciones en Gmail y crea notas `transport`, `stay` o `ticket`, con los PDF como `docs` | la clave es `code` + `type` | F07 |
 | `calendario <viaje>` (*could*) | eventos en Google Calendar para los trayectos | la clave es `code` | — |
 
-Orden acordado con Patt: **primero el plugin**, que monta las carpetas, propiedades y plantillas con su asistente, y **después las notas**. Las operaciones de Claude escriben con esa misma estructura. Mientras tanto se prueban en `demo-vault/` dentro del repo.
+Orden acordado con Patt: **primero el plugin**, configurado en su pestaña de ajustes para adaptarse a las notas y propiedades que ya haya, y **después las notas**. Las operaciones de Claude escriben con esa misma estructura. Mientras tanto se prueban en `demo-vault/` dentro del repo.
 
 ## The parts that bite
 
@@ -159,7 +179,7 @@ Orden acordado con Patt: **primero el plugin**, que monta las carpetas, propieda
 
 ## Build order
 
-0. **Andamiaje + rebanada vertical** (fea pero completa). Esqueleto del plugin, copiando la estructura de Cool Bases (TypeScript, esbuild, `css/`, `i18n.ts`, `test/` con mock y harness); `schema.ts` → `types.ts`; parser de frontmatter y de días con tests; `TripIndex`; vista con **Resumen mínimo (S03) + Itinerario de solo lectura (S04)**; `demo-vault/` con Italia 2026 (1–10 dic) y unos 10 lugares reales de Albo; **asistente de configuración** (S00). Así se prueba el stack: abrir "Italia 2026" y ver los días.
+0. **Andamiaje + rebanada vertical** (fea pero completa). Esqueleto del plugin, copiando la estructura de Cool Bases (TypeScript, esbuild, `css/`, `i18n.ts`, `test/` con mock y harness); `schema.ts` → `types.ts`; parser de frontmatter y de días con tests; `TripIndex`; vista con **Resumen mínimo (S03) + Itinerario de solo lectura (S04)**; `demo-vault/` con Italia 2026 (1–10 dic) y unos 10 lugares reales de Albo; **pestaña de ajustes** (S00, seis secciones). Así se prueba el stack: abrir "Italia 2026" y ver los días.
 1. **Must** (`features.csv`), por área:
    - **viajes y plataforma:** S01, S02, S03 con hero, cuenta atrás y viajeros; temas claro y oscuro; móvil.
    - **itinerario:** paradas con hora y nota; reservas intercaladas.
@@ -176,7 +196,7 @@ Cada hito con sus pantallas:
 
 | hito | pantallas | tipos | superficie |
 | --- | --- | --- | --- |
-| 0 | asistente, S03 (mín.), S04 (lectura) | trip, place, días | `Configurar Cool Trip`, `cool-trip-view`, `Abrir viaje` |
+| 0 | ajustes, S03 (mín.), S04 (lectura) | trip, place, días | `Ajustes de Cool Trip`, `cool-trip-view`, `Abrir viaje` |
 | 1 | S01, S02, S03, S04 (+ croquis), S06, S07, S08, S09, S10 | todos menos expense | vistas, comandos `Nuevo…`, importar Albo |
 | 2 | S03 (tiles y stepper), S11, S13 (simple), S14, S15, S16 | + checklist | `Añadir al día…`, `Hoy`, `Imprimir día`, importar reservas |
 | 3 | S17 | expense | — |
@@ -184,6 +204,6 @@ Cada hito con sus pantallas:
 ## Decisiones tomadas (26-10-2026)
 
 1. **Sincronización:** Obsidian Sync Standard (máximo 5 MB por archivo). Fuera el mapa propio, y Cool Trip avisa de los PDF grandes.
-2. **Orden:** primero el plugin con su asistente; después las notas, ya con la estructura que crea el plugin.
+2. **Orden:** primero el plugin con sus ajustes; después las notas. El plugin se adapta a las notas y propiedades que ya existan, sin carpetas ni plantillas obligatorias.
 3. **Fechas:** del 1 al 10 de diciembre de 2026. El reparto (Roma 1–6, Palermo 6–10) y el origen de los vuelos siguen siendo de ejemplo.
 4. **Mapas:** enlaces a la app de mapas, descarga sin conexión en el móvil y croquis SVG, en lugar de MapLibre + PMTiles.

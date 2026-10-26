@@ -1,6 +1,6 @@
 feature,area,priority,original,clone,notes
 Lista de viajes con próximos y pasados,viajes,must,yes,no,"S01 · Tripsy, TripIt, Wanderlog"
-"Crear viaje con nombre, fechas, destino y portada",viajes,must,yes,no,S02 · Tripsy API trips; en Cool Trip = plantilla de nota
+"Crear viaje con nombre, fechas, destino y portada",viajes,must,yes,no,S02 · Tripsy API trips; en Cool Trip = nota creada por el plugin sin plantilla
 Viaje sin fechas (has_dates=false),viajes,should,yes,no,S02 · Tripsy API: has_dates es autoritativo
 "Portada del viaje con fechas, cuenta atrás y viajeros",viajes,must,yes,no,"S03 · Wanderlog overview, Tripsy"
 Itinerario día a día con paradas en orden,itinerario,must,yes,no,"S04 · Wanderlog, Tripsy, TripIt, Albo Trip Planner"
@@ -65,5 +65,6 @@ Tarjeta de transporte estilo tarjeta de embarque,reservas,should,yes,no,S08 · r
 "Validar el viaje (zonas, solapes, lugares sin coordenadas)",cool trip,should,no,no,propio: invariantes de schema.ts
 "Abrir lugar, parada o reserva en la app de mapas",mapa,must,yes,no,Wanderlog y Tripsy abren Google/Apple Maps; enlaces universales
 Ruta del día con todas las paradas en la app de mapas,mapa,should,yes,no,Google Maps dir con waypoints; se parte en tramos si hay demasiadas paradas
-"Asistente de configuración del vault (carpetas, propiedades con tipo, plantillas)",cool trip,must,no,no,propio: primero el plugin y luego las notas (decisión de Patt)
+"Ajustes del plugin: reconocer notas por propiedad, etiqueta o carpeta y usar las propiedades propias o las sugeridas",cool trip,must,no,no,propio: en la pestaña de ajustes; sin carpetas ni plantillas obligatorias (Patt)
 Crear bases (.base) para usar el vault sin el plugin,cool trip,should,no,no,propio: compatible con Cool Bases
+"Billetes y PDFs fuera del vault (nube, Wallet o carpeta local), con los datos clave en texto",cool trip,must,no,no,propio: el vault no se llena de archivos (Patt)
