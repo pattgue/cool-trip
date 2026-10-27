@@ -3,7 +3,9 @@
 .ct-plan-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 26px; }
 .ct-h-big { margin: 0; padding: 0; border: 0; background: none; font-weight: 900; font-size: 56px; line-height: .9; letter-spacing: -.035em; text-transform: uppercase; color: var(--ct-strong); }
 .ct-root { --ct-col: 76px; --ct-gap: 18px; }
-.ct-view.is-phone { --ct-col: 52px; --ct-gap: 10px; }
+.ct-view.is-phone { --ct-col: 44px; --ct-gap: 10px; }
+/* en el móvil (fondos casi negros) las tarjetas aclaran un poco más para despegarse del fondo */
+.ct-view.is-phone { --ct-ticket: color-mix(in srgb, var(--text-normal) 11%, var(--background-primary)); }
 .ct-view.is-phone .ct-h-big { font-size: 40px; }
 .ct-day { position: relative; padding-bottom: 52px; display: flex; flex-direction: column; gap: 6px; }
 .ct-day.is-empty { padding-bottom: 30px; gap: 2px; }
@@ -17,11 +19,11 @@
 .ct-badge-wd { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .ct-badge-n { font-size: 34px; font-weight: 900; line-height: .95; font-variant-numeric: tabular-nums; }
 .ct-badge.is-small .ct-badge-n { font-size: 24px; }
-.ct-view.is-phone .ct-badge { width: 56px; height: 56px; border-radius: 14px; }
-.ct-view.is-phone .ct-badge.is-small { width: 48px; height: 48px; }
-.ct-view.is-phone .ct-badge-wd { font-size: 9px; }
-.ct-view.is-phone .ct-badge-n { font-size: 26px; }
-.ct-view.is-phone .ct-badge.is-small .ct-badge-n { font-size: 20px; }
+.ct-view.is-phone .ct-badge { width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 0 0 4px var(--ct-page); }
+.ct-view.is-phone .ct-badge.is-small { width: 38px; height: 38px; }
+.ct-view.is-phone .ct-badge-wd { font-size: 8px; }
+.ct-view.is-phone .ct-badge-n { font-size: 22px; }
+.ct-view.is-phone .ct-badge.is-small .ct-badge-n { font-size: 18px; }
 .ct-day-title { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .ct-day-city { font-weight: 900; font-size: 30px; line-height: .95; letter-spacing: -.02em; text-transform: uppercase; }
 .ct-day.is-empty .ct-day-city { font-size: 22px; }
@@ -41,7 +43,8 @@
 .ct-node-icon.is-small { width: 28px; height: 28px; }
 .ct-node-icon .ct-ico svg { width: 17px; height: 17px; }
 .ct-node-icon.is-small .ct-ico svg { width: 14px; height: 14px; }
-.ct-view.is-phone .ct-node-icon:not(.is-small) { width: 34px; height: 34px; }
+.ct-view.is-phone .ct-node-icon:not(.is-small) { width: 32px; height: 32px; box-shadow: 0 0 0 4px var(--ct-page); }
+.ct-view.is-phone .ct-node-icon .ct-ico svg { width: 15px; height: 15px; }
 .ct-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ct-muted); box-shadow: 0 0 0 5px var(--ct-page); }
 .ct-node-dashed { width: 22px; height: 22px; border-radius: 50%; border: 2px dashed var(--ct-muted); background: var(--ct-page); display: grid; place-items: center; color: var(--ct-muted); }
 .ct-node-dashed .ct-ico svg { width: 11px; height: 11px; stroke-width: 2.4; }
@@ -203,8 +206,20 @@
 .ct-view.is-phone .ct-end-time { font-size: 17px; }
 .ct-view.is-phone .ct-route-big { gap: 8px; }
 .ct-view.is-phone .ct-details { grid-template-columns: 1fr 1fr; }
-.ct-view.is-phone .ct-key-tag { width: auto; flex-direction: row; align-items: center; padding: 14px 16px; gap: 14px; border-radius: 18px 18px 0 0; }
-.ct-view.is-phone .ct-key-nights b { font-size: 44px; }
+/* alojamiento en el móvil: la llave es una franja de cabecera tintada (agujero, noches y fechas en una línea) */
+.ct-view.is-phone .ct-key-tag { width: auto; flex-direction: row; align-items: center; padding: 12px 16px; gap: 12px; border-radius: 0;
+  box-shadow: none; background: color-mix(in srgb, var(--ct-key) 14%, transparent); border-bottom: 2px dashed color-mix(in srgb, var(--ct-key) 55%, transparent); }
+.ct-view.is-phone .ct-key-tag > .ct-grow { display: none; }
+.ct-view.is-phone .ct-key-hole { width: 14px; height: 14px; box-shadow: inset 0 0 0 2.5px var(--ct-key); }
+.ct-view.is-phone .ct-key-nights { gap: 5px; }
+.ct-view.is-phone .ct-key-nights b { font-size: 30px; }
+.ct-view.is-phone .ct-key-nights span { font-size: 11px; }
+.ct-view.is-phone .ct-key-dates { margin-left: auto; font-size: 11px; white-space: nowrap; }
+/* el nombre y el mapa: el nombre ocupa su sitio (con la flecha pegada al final) y el mapa queda arriba a la derecha */
+.ct-view.is-phone .ct-name-row { align-items: flex-start; }
+.ct-view.is-phone .ct-place-link.is-big { display: inline; line-height: 1.15; }
+.ct-view.is-phone .ct-place-link.is-big .ct-ico { display: inline-block; margin-left: 4px; vertical-align: middle; }
+.ct-view.is-phone .ct-name-row .ct-map { width: 38px; height: 38px; flex: none; }
 .ct-view.is-phone .ct-io-time { font-size: 19px; }
 .ct-view.is-phone .ct-admit { width: auto; height: 34px; }
 .ct-view.is-phone .ct-admit span { writing-mode: horizontal-tb; transform: none; }

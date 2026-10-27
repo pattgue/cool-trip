@@ -4,7 +4,6 @@ import { NewTripModal } from "../src/modal";
 import { defaultSettings } from "../src/settings";
 import { CoolTripSettingTab } from "../src/settings-tab";
 import { TFile } from "obsidian";
-import { joinCoolKit } from "../src/cool-kit/kit";
 declare const window: Window & { __sample: string; __phone: boolean; __mode: string };
 
 const places: Record<string, Record<string, unknown>> = {
@@ -33,17 +32,6 @@ if (window.__mode.startsWith("settings")) {
   document.body.appendChild(tab.containerEl);
   (plugin as unknown as { saveSettings: () => Promise<void> }).saveSettings = async () => {};
   tab.display();
-} else if (window.__mode === "bar") {
-  /* una pestaña del móvil con la cabecera flotante de Obsidian (sus botones redondos tapan la parte de arriba) */
-  const btn = '<button class="clickable-icon" style="width:48px;height:48px;border-radius:50%"></button>';
-  document.body.insertAdjacentHTML("beforeend", `<div class="workspace-leaf-content" style="position:fixed;inset:0;display:flex;flex-direction:column">
-    <div class="view-header" style="position:absolute;top:47px;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 12px">
-    <div class="view-header-left">${btn}</div><div class="view-actions">${btn}</div></div><div class="view-content" style="padding:120px 20px">2026 - Roma</div></div>`);
-  const host = document.querySelector<HTMLElement>(".workspace-leaf-content")!;
-  const leaf = { view: { containerEl: host }, getRoot: () => null };
-  const ws = { leftSplit: {}, rightSplit: {}, on: () => ({}), iterateAllLeaves: (f: (l: unknown) => void) => f(leaf) };
-  joinCoolKit({ manifest: { id: "cool-trip" }, app: { workspace: ws }, addCommand() {}, removeCommand() {}, register() {} } as never,
-    { id: "cool-trip", label: () => "Cool Trip", appliesTo: () => true, isOpen: () => true, kind: "view", toggle() {} });
 } else if (window.__mode === "modal") {
   const m = new NewTripModal(plugin as never);
   (m as unknown as { trip: { dests: unknown[]; start: string; end: string; travelers: string[] } }).trip.dests.push(

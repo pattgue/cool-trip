@@ -132,6 +132,8 @@
 .ct-phone-cells { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr auto auto auto; gap: 12px; align-items: end; }
 .ct-phone-edit { border-top: 1px solid var(--ct-line); padding: 14px 0 0; }
 .ct-phone-edit > .ct-note { padding: 0 18px; }
+.ct-phone-swatches { padding: 4px 16px 16px; }
+.ct-btn-done { margin: 0 18px 18px; height: 44px; width: calc(100% - 36px); border-radius: 14px; gap: 6px; }
 .ct-phone-count { padding: 18px 20px; display: flex; flex-direction: column; align-items: center; gap: 21px; }
 .ct-phone-count .ct-countdown { gap: 12px; }
 .ct-phone-count .ct-countdown-n { font-size: 75px; }

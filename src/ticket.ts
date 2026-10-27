@@ -332,7 +332,12 @@ function phone(ctx: TicketCtx): HTMLElement {
     iconButton(ctx.expanded ? "chevron-down" : "pencil", t("editCover"), () => ctx.toggleExpanded?.(), "ct-ibtn ct-ibtn-sm"));
   const stub = h("div", { cls: "ct-phone-count" }, countdown(tr, true),
     barcode(plain(tr.name).replace(/\W/g, "").toUpperCase() || "COOLTRIP", ["CT", tr.start.slice(0, 4), ...tr.dests.slice(0, 3).map(d => plain(d.city).slice(0, 3).toUpperCase())].filter(Boolean).join(" · "), 46));
-  return h("div", { cls: "ct-ticket ct-ticket-phone" }, header, cells, ctx.expanded ? h("div", { cls: "ct-phone-edit" }, noteName(ctx, true), editor) : null, notchH(), stub);
+  /* sellada: los colores siempre a mano; desplegada: lo de «Nuevo viaje» y un botón para volver a sellarla */
+  const edit = ctx.expanded
+    ? h("div", { cls: "ct-phone-edit" }, noteName(ctx, true), editor,
+      button([icon("check"), t("done")], "ct-btn-primary ct-btn-done", () => ctx.toggleExpanded?.()))
+    : h("div", { cls: "ct-phone-swatches" }, swatches(ctx));
+  return h("div", { cls: "ct-ticket ct-ticket-phone" }, header, cells, edit, notchH(), stub);
 }
 
 export function ticket(ctx: TicketCtx): HTMLElement {

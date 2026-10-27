@@ -168,6 +168,8 @@ class BarPainter {
 
   paint() {
     if (!this.comp) return;
+    /* en el móvil, por ahora sin barra (pendiente: un diseño más sutil que no tape la cabecera de Obsidian) */
+    if (Platform.isPhone) { for (const el of this.bars.values()) { el.parentElement?.removeClass("cool-has-bar"); el.remove(); } this.bars.clear(); return; }
     const reg = registry(), prefs = devicePrefs(), ws = this.plugin.app.workspace;
     const vis = (t: CoolTool): ToolVisibility => prefs.tools[t.id]?.visibility || "always";
     const tools = sortedTools(prefs).filter(t => vis(t) !== "never");
@@ -222,15 +224,6 @@ class BarPainter {
     bar.setAttribute("data-align", prefs.align);
     bar.toggleClass("is-collapsed", prefs.collapsed);
     bar.toggleClass("is-phone", Platform.isPhone);
-    this.overlay(host, bar, prefs);
-  }
-  /* Móvil con la cabecera flotante (Obsidian reciente): la cabecera no ocupa sitio y la barra quedaría debajo de la hora del
-     sistema. Entonces va a la altura de los botones de la cabecera, entre ellos (tamaños fijos en el CSS: no se mide nada). */
-  overlay(host: HTMLElement, bar: HTMLElement, prefs: BarPrefs) {
-    const head = Platform.isPhone && prefs.location === "top" ? host.querySelector<HTMLElement>(":scope > .view-header") : null;
-    const pos = head ? getComputedStyle(head).position : "";
-    const on = !!head && (pos === "absolute" || pos === "fixed" || head.offsetHeight === 0);
-    bar.toggleClass("is-overlay", on);
   }
   fill(leaf: WorkspaceLeaf, bar: HTMLElement, states: { t: CoolTool; s: State }[], prefs: BarPrefs) {
     const fold = bar.querySelector<HTMLButtonElement>(".cool-fold")!, box = bar.querySelector<HTMLElement>(".cool-tools")!;

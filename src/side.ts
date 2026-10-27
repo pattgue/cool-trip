@@ -112,8 +112,8 @@ function taskRow(text: string, done: boolean, onToggle: (() => void) | null, ext
   return h("div", { cls: "ct-task" + (done ? " is-done" : "") },
     button(done ? icon("check") : null, "ct-task-check" + (done ? " is-done" : ""), onToggle || undefined,
       { role: "checkbox", "aria-checked": String(done), "aria-label": text, ...(onToggle ? {} : { disabled: "" }) }),
-    h("span", { cls: "ct-task-text" }, text), extra,
-    iconButton("x", t("remove"), onRemove, "ct-ibtn ct-ibtn-sm ct-task-x"));
+    h("span", { cls: "ct-task-body" }, h("span", { cls: "ct-task-text" }, text), extra),
+    iconButton("x", t("remove"), onRemove, "ct-ibtn ct-task-x ct-hover"));
 }
 export function porHacer(ctx: SideCtx): HTMLElement {
   const tr = ctx.trip;
@@ -136,7 +136,7 @@ export function porHacer(ctx: SideCtx): HTMLElement {
   const list = (rows: HTMLElement[]) => rows.length ? h("div", { cls: "ct-task-list" }, rows) : null;
   const pendingRows = [
     ...open.map(s => taskRow(s.text, false, () => { tr.tasks.push({ text: s.text, done: true }); ctx.commit(); },
-      s.action ? button(s.action[0], "ct-pill is-small", s.action[1]) : h("span", { cls: "ct-sub" }, t("todo.suggested")), () => hide(s.text))),
+      s.action ? button([h("span", null, s.action[0]), icon("arrow-right")], "ct-task-action", s.action[1]) : h("span", { cls: "ct-task-meta" }, t("todo.suggested")), () => hide(s.text))),
     ...pending.map(x => taskRow(x.text, false, () => { x.done = true; ctx.commit(); }, null, () => drop(x))),
   ];
   const doneRows = [
