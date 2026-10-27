@@ -1,8 +1,9 @@
-/* Ajustes › Cool Trip: los siete pasos del boceto (Tus notas, Propiedades, Archivos, Mapas, Bases, Cool Bar, Listo),
-   cada uno con su vista previa. Cada cambio se guarda al momento.
-   Se adaptan al hueco que da Obsidian: con sitio, los pasos van a la izquierda; si es estrecho (o en el móvil), en una fila
-   de números arriba. El ancho se mide con un ResizeObserver (no con container queries: Obsidian dimensiona esta pestaña
-   por su contenido y una «container query» la encogería). */
+/* Ajustes › Cool Trip: los siete pasos del boceto (Tus notas, Propiedades, Archivos, Mapas, Bases, Cool Bar, Listo).
+   Se sigue el boceto; solo cambia lo que no cabe en el hueco que da Obsidian. Cada cambio se guarda al momento.
+   Con sitio, los pasos van a la izquierda; si es estrecho (o en el móvil), en una fila de números arriba. El ancho se mide
+   con un ResizeObserver (no con container queries: Obsidian dimensiona esta pestaña por su contenido y una «container
+   query» la encogería). Las vistas previas de la nota (la reserva del paso 3 y la portada del paso 7) son las piezas de
+   verdad de la vista del viaje, pintadas con un viaje de ejemplo que no se guarda en ninguna parte. */
 import { App, Notice, Platform, PluginSettingTab, TFile, TFolder, normalizePath } from "obsidian";
 import type CoolTripPlugin from "./main";
 import { h } from "./dom";
@@ -10,24 +11,27 @@ import { t } from "./i18n";
 import { KIT_VERSION, devicePrefs, registry, saveBarSettings, sortedTools, thisDevice } from "./cool-kit/kit";
 import type { BarAlign, BarLocation, BarMode, Device, ToolVisibility } from "./cool-kit/kit";
 import { kt } from "./cool-kit/i18n";
-import { AUTO_FOLDERS, propKey, suggestedProps } from "./settings";
+import { AUTO_FOLDERS, defaultSettings, propKey, suggestedProps, tripFolder } from "./settings";
 import { allPlaces, ensureFolder, iconFor, isTripFile } from "./places";
 import { promptText } from "./prompt";
 import { spanLabel } from "./dates";
-import { blankTrip, newItem, serializeTrip, toList } from "./md";
-import { docButton, blankDoc } from "./docs";
+import { parseTrip, serializeTrip, toList } from "./md";
+import { blankDoc } from "./docs";
+import { bookingCard, fitRoutes } from "./plan";
+import type { PlanCtx } from "./plan";
 import { ticket } from "./ticket";
-import type { MapsApp, PropNames, Recog, RecogMode, Trip, Where } from "./types";
+import type { Doc, MapsApp, PropNames, Recog, RecogMode, Trip, Where } from "./types";
 import { PALETTE, button, coverHex, icon } from "./ui";
 
 const STEPS = 7;
-const NOTE_W = 760;                 // el ancho al que se pinta la portada de ejemplo (luego se escala a su hueco)
+const NOTE_PHONE = 760;             // como en la vista del viaje: por debajo de este ancho, la nota se pinta como en el móvil
 
 export class CoolTripSettingTab extends PluginSettingTab {
   plugin: CoolTripPlugin;
   step = 1;
   private barDevice: Device = thisDevice();
   private ro: ResizeObserver | null = null;
+  private closePicker: (() => void) | null = null;
   constructor(app: App, plugin: CoolTripPlugin) { super(app, plugin); this.plugin = plugin; }
 
   private save() { void this.plugin.saveSettings(); }
@@ -43,6 +47,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
 
   display(): void {
     const el = this.containerEl, s = this.plugin.settings;
+    this.closePicker?.();
     el.empty();
     el.addClass("ct-root", "ct-settings");
     el.toggleClass("is-phone", Platform.isPhone);
@@ -63,16 +68,18 @@ export class CoolTripSettingTab extends PluginSettingTab {
     const last = this.step === STEPS;
     body.appendChild(h("div", { cls: "ct-set-foot" + (last ? " is-last" : "") },
       this.step > 1 ? button(t("s.back"), "ct-set-btn", () => this.go(this.step - 1)) : null,
-      last ? h("span", { cls: "ct-set-foot-text is-ok" }, icon("circle-check"), t("s7.done")) : h("span", { cls: "ct-set-foot-text" }, t("saved")),
+      last ? h("span", { cls: "ct-set-foot-text is-ok" }, icon("circle-check"), h("span", { cls: "ct-if-wide" }, t("s7.done")), h("span", { cls: "ct-if-narrow" }, t("s7.doneShort")))
+        : h("span", { cls: "ct-set-foot-text" }, t("saved")),
       last ? button(t("s.ready"), "ct-set-btn is-primary", () => { markDone(); new Notice(t("s7.done")); this.display(); })
         : button(t("s.next"), "ct-set-btn is-primary", () => { markDone(); this.go(this.step + 1); })));
     const wrap = h("div", { cls: "ct-set" }, nav, body);
     el.appendChild(wrap);
     this.watch(wrap);
   }
-  hide(): void { this.ro?.disconnect(); this.ro = null; }
+  hide(): void { this.ro?.disconnect(); this.ro = null; this.closePicker?.(); }
 
-  /* el diseño según el ancho: estrecho (pasos arriba), medio (pasos más estrechos) o ancho; y el ancho del contenido */
+  /* el diseño según el ancho: estrecho (pasos arriba), medio (pasos más estrechos) o ancho; el ancho del contenido;
+     y las vistas previas de la nota, con la versión (ordenador o móvil) que tocaría a ese ancho */
   private watch(wrap: HTMLElement) {
     this.ro?.disconnect();
     const fit = () => {
@@ -83,9 +90,19 @@ export class CoolTripSettingTab extends PluginSettingTab {
       el.toggleClass("is-mid", mid);
       const bw = narrow ? w : w - (mid ? 200 + 24 : 240 + 32);
       el.setAttribute("data-bw", bw < 520 ? "s" : bw < 760 ? "m" : "l");
-      for (const z of Array.from(el.querySelectorAll<HTMLElement>(".ct-set-zoom"))) {
-        const inner = z.firstElementChild as HTMLElement | null;
-        if (inner && z.clientWidth && !Platform.isPhone) inner.style.zoom = String(Math.min(1, z.clientWidth / NOTE_W));
+      for (const real of Array.from(el.querySelectorAll<HTMLElement>(".ct-set-real"))) {
+        const cw = real.clientWidth;
+        if (!cw) continue;
+        const desk = !Platform.isPhone && cw >= Number(real.dataset.break);
+        real.toggleClass("is-desk", desk);
+        const box = real.querySelector<HTMLElement>(desk ? ".ct-set-scale.is-desk" : ".ct-set-scale.is-phone");
+        const inner = box?.firstElementChild as HTMLElement | null;
+        if (!box || !inner) continue;
+        const width = Math.max(cw, Number(box.dataset.min));
+        inner.style.width = width + "px";
+        inner.style.transform = width > cw ? `scale(${cw / width})` : "";
+        fitRoutes(inner);
+        box.style.height = Math.ceil(inner.offsetHeight * cw / width) + "px";
       }
     };
     fit();
@@ -95,16 +112,38 @@ export class CoolTripSettingTab extends PluginSettingTab {
 
   private head(body: HTMLElement, title: string, p: string) {
     /* sin <h2>: Obsidian y los temas les ponen raya, sangría y márgenes propios en los ajustes */
-    body.appendChild(h("div", { cls: "ct-set-head" }, h("div", { cls: "ct-set-title", attr: { role: "heading", "aria-level": "2" } }, title), h("p", null, p)));
+    body.appendChild(h("div", { cls: "ct-set-head" }, h("div", { cls: "ct-set-title", attr: { role: "heading", "aria-level": "2" } }, title), h("p", null, this.lines(p))));
   }
-  private folderSelect(value: string, onPick: (v: string) => void, rootLabel: string): HTMLSelectElement {
-    const sel = h("select", { cls: "ct-input ct-select" });
-    sel.appendChild(h("option", { attr: { value: "" } }, rootLabel));
-    for (const f of this.folders()) sel.appendChild(h("option", { attr: { value: f } }, f));
-    if (value && !this.folders().includes(value)) sel.appendChild(h("option", { attr: { value } }, value));
-    sel.value = value;
-    sel.addEventListener("change", () => onPick(sel.value));
-    return sel;
+  /* «\n» en un texto: salto de línea (los del boceto) */
+  private lines(text: string): (string | HTMLElement)[] { return text.split("\n").flatMap((l, i) => i ? [h("br"), l] : [l]); }
+  /* el desplegable de carpetas del boceto: la carpeta elegida y, al abrirlo, el árbol del vault */
+  private folderPicker(value: string, onPick: (v: string) => void, label: string): HTMLElement {
+    const shown = value || t("s1.rootShort", { v: this.app.vault.getName() });
+    const btn = button([icon("folder"), h("span", { cls: "ct-set-picker-text" }, shown), icon("chevron-down")], "ct-set-picker-btn", () => open(),
+      { "aria-haspopup": "listbox", "aria-expanded": "false", "aria-label": label });
+    const box = h("div", { cls: "ct-set-picker" }, btn);
+    const open = () => {
+      if (box.querySelector(".ct-set-picker-list")) { this.closePicker?.(); return; }
+      this.closePicker?.();
+      const opt = (path: string, depth: number, text: (string | HTMLElement)[]) => button([icon("folder"), ...text], "ct-set-picker-opt" + (path === value ? " is-on" : ""),
+        () => { this.closePicker?.(); onPick(path); }, { role: "option", "aria-selected": String(path === value), style: `--d: ${depth}` });
+      const listEl = h("div", { cls: "ct-set-picker-list", attr: { role: "listbox", "aria-label": label } },
+        opt("", 0, [this.app.vault.getName(), h("span", { cls: "ct-sub" }, " · " + t("s1.rootHint"))]),
+        this.folders().map(f => opt(f, f.split("/").length, [f.split("/").pop() || f])));
+      box.appendChild(listEl);
+      btn.setAttribute("aria-expanded", "true");
+      const away = (ev: Event) => { if (!box.contains(ev.target as Node)) this.closePicker?.(); };
+      const esc = (ev: KeyboardEvent) => { if (ev.key === "Escape") this.closePicker?.(); };
+      activeDocument.addEventListener("pointerdown", away, true);
+      activeDocument.addEventListener("keydown", esc, true);
+      this.closePicker = () => {
+        listEl.remove(); btn.setAttribute("aria-expanded", "false");
+        activeDocument.removeEventListener("pointerdown", away, true);
+        activeDocument.removeEventListener("keydown", esc, true);
+        this.closePicker = null;
+      };
+    };
+    return box;
   }
   private select(options: [string, string][], value: string, onPick: (v: string) => void, label: string): HTMLSelectElement {
     const sel = h("select", { cls: "ct-input ct-select", attr: { "aria-label": label } }, options.map(([v, l]) => h("option", { attr: { value: v } }, l)));
@@ -125,21 +164,30 @@ export class CoolTripSettingTab extends PluginSettingTab {
   }
   private label(text: string) { return h("span", { cls: "ct-set-caps" }, text); }
 
-  /* el viaje de ejemplo de las vistas previas (pasos 3 y 7): no se guarda en ninguna parte */
+  /* el viaje de ejemplo de las vistas previas (pasos 3 y 7), escrito en el Markdown de la nota y leído como cualquier viaje */
   private demo(): Trip {
-    const tr = blankTrip(t("demo.name"), "2027-04-03", "2027-04-14", [
-      { city: t("demo.c1"), country: t("demo.country"), nights: 6, travelers: ["Ana", "Leo"] },
-      { city: t("demo.c2"), country: t("demo.country"), nights: 5, travelers: ["Ana", "Leo"] }], ["Ana", "Leo"], "bermellon");
-    tr.days[0].items.push(newItem("flight", { time: "11:55", title: "MAD → NRT" }));
-    tr.days[1].items.push(newItem("place", { time: "09:00", link: t("demo.p1"), title: t("demo.p1") }), newItem("place", { time: "18:30", link: t("demo.p2"), title: t("demo.p2") }));
-    return tr;
+    const c1 = t("demo.c1"), c2 = t("demo.c2"), co = t("demo.country");
+    const md = ["---", "tipo: viaje", "inicio: 2027-04-03", "fin: 2027-04-14", `destinos: [${c1}, ${c2}]`, "viajeros: [Ana, Leo]", "portada: bermellon", "---",
+      `> [!cool-trip] ${t("demo.name")}`, `> ${c1} · ${co} · 6 noches · Ana, Leo`, `> ${c2} · ${co} · 5 noches · Ana, Leo`, "",
+      "## Plan", "", `### Sáb 3 abr · ${c1}`, "- 11:50 **Vuelo MAD → NRT** · 920 € · para Ana, Leo",
+      "    - Sale: sáb 3 abr · 11:50 · T4S", "    - Llega: dom 4 abr · 08:30 · T1", "    - Vuelo: IB 281 · Equipaje: 1 maleta cada uno",
+      "    - Reserva: K7QX2P", "    - Asientos: Ana 32A · Leo 32B", "",
+      `### Dom 4 abr · ${c1}`, `- [ ] 09:00 [[${t("demo.p1")}]]`, `- [ ] 18:30 [[${t("demo.p2")}]]`, ""].join("\n");
+    return parseTrip(md, t("demo.name"), defaultSettings("es"));
+  }
+  /* una pieza de la nota en sus dos versiones (ordenador y móvil); watch() enseña la que toca al ancho que hay y la escala si no cabe */
+  private real(cls: string, breakAt: number, desk: [HTMLElement, number], phone: [HTMLElement, number], acc: string): HTMLElement {
+    const view = (el: HTMLElement, isPhone: boolean) => h("div", { cls: "ct-view" + (isPhone ? " is-phone" : ""), attr: { style: `--ct-acc: ${acc}` } }, el);
+    return h("div", { cls: "ct-set-real " + cls, attr: { "data-break": String(breakAt), "aria-hidden": "true" } },
+      h("div", { cls: "ct-set-scale is-desk", attr: { "data-min": String(desk[1]) } }, view(desk[0], false)),
+      h("div", { cls: "ct-set-scale is-phone", attr: { "data-min": String(phone[1]) } }, view(phone[0], true)));
   }
 
   /* 1 · Tus notas */
   private s1(body: HTMLElement) {
     const s = this.plugin.settings;
     this.head(body, t("s1.h"), t("s1.p"));
-    const block = (title: string, desc: string, iconName: string, r: Recog, kind: string, folderLabel: string, folder: () => string, setFolder: (v: string) => void) => {
+    const block = (title: string, desc: string, iconName: string, r: Recog, kind: string, tagPh: string, folder: () => string, setFolder: (v: string) => void) => {
       const modes: [RecogMode, string][] = [["property", t("s1.property")], ["tag", t("s1.tag")], ["folder", t("s1.folder")]];
       const radios = h("div", { cls: "ct-set-radios", attr: { role: "radiogroup", "aria-label": title } }, modes.map(([m, l]) => {
         const rb = h("input", { cls: "ct-radio", attr: { type: "radio", name: "ct-recog-" + kind } });
@@ -152,54 +200,44 @@ export class CoolTripSettingTab extends PluginSettingTab {
         const key = this.text(r.key, v => { r.key = v; this.save(); }, { placeholder: "tipo", "aria-label": t("s1.property") });
         key.classList.add("is-key");
         how = h("div", { cls: "ct-set-how" }, key, h("span", { cls: "ct-eq" }, "="), this.text(r.value, v => { r.value = v; this.save(); }, { placeholder: kind, "aria-label": kind }));
-      } else if (r.mode === "tag") how = h("div", { cls: "ct-set-how" }, this.text(r.value ? "#" + r.value.replace(/^#/, "") : "", v => { r.value = v.replace(/^#/, ""); this.save(); }, { placeholder: "#" + kind, "aria-label": t("s1.tag") }));
+      } else if (r.mode === "tag") how = h("div", { cls: "ct-set-how" }, this.text(r.value ? "#" + r.value.replace(/^#/, "") : "", v => { r.value = v.replace(/^#/, ""); this.save(); }, { placeholder: tagPh, "aria-label": t("s1.tag") }));
       else how = h("span", { cls: "ct-sub" }, t("s1.folderHint", { k: kind }));
       /* con «Carpeta», el desplegable de abajo elige esa carpeta (y ahí se guardan los nuevos) */
       const inFolder = r.mode === "folder";
-      const pick = s.autoOrganize ? h("span", { cls: "ct-set-auto" }, icon("sparkles"), folder())
-        : this.folderSelect(inFolder ? r.folder : folder(), v => { if (inFolder) r.folder = v; setFolder(v); this.save(); }, inFolder ? "—" : t("s1.root"));
+      const pick = s.autoOrganize ? h("span", { cls: "ct-set-auto" }, icon("smile"), folder())
+        : this.folderPicker(inFolder ? r.folder : folder(), v => { if (inFolder) r.folder = v; setFolder(v); this.save(); this.display(); }, title);
       return [
         h("div", { cls: "ct-set-card ct-set-recog" },
           h("div", { cls: "ct-set-card-top" }, h("span", { cls: "ct-set-icon" }, icon(iconName)),
-            h("span", { cls: "ct-set-card-text" }, h("b", { cls: "is-caps" }, title), h("span", null, desc))),
+            h("span", { cls: "ct-set-card-text" }, h("b", { cls: "is-caps" }, title), h("span", null, this.lines(desc)))),
           h("div", { cls: "ct-set-recog-how" }, radios, how)),
-        h("label", { cls: "ct-f ct-set-save" }, h("span", { cls: "ct-label" }, inFolder && !s.autoOrganize ? folderLabel : t("s1.saveIn")), pick),
+        h("div", { cls: "ct-f ct-set-save" }, h("span", { cls: "ct-label" }, inFolder && !s.autoOrganize ? t("s1.folderLbl") : t("s1.saveIn")), pick),
       ];
     };
-    body.append(...block(t("s1.trips"), t("s1.tripsD"), "plane", s.trips, t("s1.trip"), t("s1.tripsFolder"),
+    body.append(...block(t("s1.trips"), t("s1.tripsD"), "plane", s.trips, t("s1.trip"), t("s1.tripTag"),
       () => s.autoOrganize ? AUTO_FOLDERS[s.language].trips : s.tripFolder, v => { s.tripFolder = v; }));
-    body.append(...block(t("s1.places"), t("s1.placesD"), "map-pin", s.places, t("s1.place"), t("s1.placesFolder"),
+    body.append(...block(t("s1.places"), t("s1.placesD"), "map-pin", s.places, t("s1.place"), t("s1.placeTag"),
       () => s.autoOrganize ? AUTO_FOLDERS[s.language].places + "/…" : s.placeFolder, v => { s.placeFolder = v; }));
     body.appendChild(h("div", { cls: "ct-set-autoorg" },
-      h("b", { cls: "ct-set-autoorg-title" }, t("s1.auto"), h("span", { cls: "ct-sub" }, " · " + t("s1.optional"))),
-      h("p", { cls: "ct-set-autoorg-text" }, h("b", null, t("s1.autoB")), " ", t("s1.autoD")),
       this.tree(),
-      button([icon(s.autoOrganize ? "check" : "sparkles"), s.autoOrganize ? t("s1.usingAuto") : t("s1.useAuto")], "ct-set-btn ct-set-autoorg-btn" + (s.autoOrganize ? " is-on" : ""),
-        () => { s.autoOrganize = !s.autoOrganize; this.save(); this.display(); })));
+      h("div", { cls: "ct-set-autoorg-side" },
+        h("b", { cls: "ct-set-autoorg-title" }, t("s1.auto"), h("span", { cls: "ct-sub" }, " · " + t("s1.optional"))),
+        h("p", { cls: "ct-set-autoorg-text ct-if-l" }, h("b", null, t("s1.autoB")), h("br"), h("br"), t("s1.autoD")),
+        h("p", { cls: "ct-set-autoorg-text ct-if-ms" }, h("b", null, t("s1.autoB")), " ", t("s1.autoDShort")),
+        button([icon(s.autoOrganize ? "check" : "smile"), h("span", null, s.autoOrganize ? t("s1.usingAuto") : t("s1.useAuto"))], "ct-set-btn ct-set-autoorg-btn" + (s.autoOrganize ? " is-on" : ""),
+          () => { s.autoOrganize = !s.autoOrganize; this.save(); this.display(); }))));
   }
-  private basePath(kind: "trips" | "places") {
-    const folder = this.plugin.settings.bases[kind];
-    return normalizePath((folder ? folder + "/" : "") + t("s5." + kind) + ".base");
-  }
-  private baseExists(kind: "trips" | "places") { return this.app.vault.getAbstractFileByPath(this.basePath(kind)) instanceof TFile; }
-  /* lo que quedaría en el vault con la organización automática, con los viajes y lugares que ya tienes */
+  /* el explorador de archivos con la organización automática (el ejemplo del boceto) */
   private tree(): HTMLElement {
-    const s = this.plugin.settings, F = AUTO_FOLDERS[s.language];
-    const trips = this.app.vault.getMarkdownFiles().filter(f => isTripFile(this.app, s, f)).map(f => f.basename).sort().reverse().slice(0, 3);
-    const cities = new Map<string, string[]>();
-    for (const p of allPlaces(this.app, s)) if (p.city) cities.set(p.city, [...(cities.get(p.city) || []), p.name]);
-    const row = (depth: number, ico: string, name: string, base = false) => h("span", { cls: "ct-set-tree-row", attr: { style: `--d: ${depth}` } },
-      icon(ico), name, base ? h("span", { cls: "ct-set-tree-tag" }, "BASE") : null);
-    const more = (depth: number) => h("span", { cls: "ct-set-tree-row is-faint", attr: { style: `--d: ${depth}` } }, "…");
-    const kids: HTMLElement[] = [row(0, "folder", F.trips)];
-    kids.push(...(trips.length ? trips.map(n => row(1, "file", n)) : [more(1)]));
-    if (this.baseExists("trips")) kids.push(row(1, "table", t("s5.trips"), true));
-    kids.push(row(0, "folder", F.places));
-    const cs = [...cities.keys()].sort().slice(0, 2);
-    if (!cs.length) kids.push(more(1));
-    for (const c of cs) kids.push(row(1, "folder", c), ...(cities.get(c) || []).sort().slice(0, 2).map(n => row(2, "file", n)));
-    if (this.baseExists("places")) kids.push(row(1, "table", t("s5.places"), true));
-    return h("div", { cls: "ct-set-tree", attr: { "aria-label": t("s1.preview") } }, kids);
+    const F = AUTO_FOLDERS[this.plugin.settings.language];
+    type R = [number, "open" | "closed" | null, string, string, boolean?];
+    const rows: R[] = [[0, "open", "folder", F.trips], [1, null, "file", t("tree.t1")], [1, null, "file", t("tree.t2")], [1, null, "table", F.trips, true],
+      [0, "open", "folder", F.places], [1, "open", "folder", t("tree.c1")], [2, null, "file", t("tree.p1")], [2, null, "file", t("tree.p2")],
+      [1, "closed", "folder", t("tree.c2")], [1, null, "table", F.places, true]];
+    return h("div", { cls: "ct-set-tree", attr: { role: "img", "aria-label": t("s1.preview") } }, rows.map(([d, fold, ico, name, base]) =>
+      h("span", { cls: "ct-set-tree-row" + (d ? " is-in" : "") + (d === 2 ? " is-deep" : ""), attr: { style: `--d: ${d}` } },
+        fold ? icon(fold === "open" ? "chevron-down" : "chevron-right", "ct-ico ct-set-tree-fold") : null,
+        icon(ico, "ct-ico" + (ico === "folder" ? " is-folder" : "")), name, base ? h("span", { cls: "ct-set-tree-tag" }, "BASE") : null)));
   }
 
   /* 2 · Propiedades */
@@ -208,25 +246,29 @@ export class CoolTripSettingTab extends PluginSettingTab {
     this.head(body, t("s2.h"), t("s2.p"));
     const TYPE_ICON: Record<string, string> = { date: "calendar", list: "list", text: "type", number: "hash", checkbox: "square-check" };
     const req = h("p", { cls: "ct-set-req" }, h("span", { cls: "ct-req" }, "*"), " ", t("s2.req"));
+    const OTHER = "\u0000other", NONE = "\u0000none";
     const row = (k: keyof PropNames, type: string, need: boolean) => {
-      const val = s.props[k], isUsed = used.has(val);
+      const val = s.props[k], isUsed = !!val && used.has(val);
       const others = [...used].filter(p => p !== sug[k]).sort((a, b) => a.localeCompare(b));
       const opts: [string, string][] = [[sug[k], t("s2.suggested", { p: sug[k] })], ...others.map(p => [p, p] as [string, string])];
       if (val && !opts.some(([v]) => v === val)) opts.push([val, val]);
-      opts.push(["\u0000other", t("s2.other")]);
-      const sel = this.select(opts, val, v => {
-        if (v !== "\u0000other") { s.props[k] = v; this.save(); this.display(); return; }
+      if (!need) opts.push([NONE, t("s2.none")]);
+      opts.push([OTHER, t("s2.other")]);
+      const sel = this.select(opts, val || NONE, v => {
+        if (v === NONE) { s.props[k] = ""; this.save(); this.display(); return; }
+        if (v !== OTHER) { s.props[k] = v; this.save(); this.display(); return; }
         void promptText(this.app, t("p." + k), sug[k], val).then(name => {
           if (name?.trim()) { s.props[k] = name.trim(); this.save(); }
           this.display();
         });
       }, t("s2.yours") + " · " + t("p." + k));
+      const state = !val ? ["", t("s2.unused")] : k === "country" ? ["is-auto", t("s2.auto")] : isUsed ? ["is-used", t("s2.used")] : ["", t("s2.new")];
       return h("div", { cls: "ct-set-prop" },
         h("span", { cls: "ct-set-prop-name" }, t("p." + k), need ? h("span", { cls: "ct-req", attr: { "aria-label": t("s2.reqShort") } }, "*") : null),
         h("span", { cls: "ct-set-prop-desc" }, t(`p.${k}D`)),
         h("span", { cls: "ct-set-type" }, icon(TYPE_ICON[type]), t("t." + type)),
         h("span", { cls: "ct-set-prop-in" }, sel),
-        h("span", { cls: "ct-set-state" + (isUsed ? " is-used" : "") }, isUsed ? t("s2.used") : t("s2.new")));
+        h("span", { cls: "ct-set-state " + state[0] + (val ? "" : " is-off") }, state[1]));
     };
     const group = (title: string, ico: string) => h("div", { cls: "ct-set-group" }, icon(ico), title);
     body.append(req, h("div", { cls: "ct-set-table" },
@@ -238,7 +280,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
 
   /* 3 · Archivos */
   private s3(body: HTMLElement) {
-    const f = this.plugin.settings.files;
+    const s = this.plugin.settings, f = s.files;
     this.head(body, t("s3.h"), t("s3.p"));
     const TAG: Record<string, string> = { cloud: "is-accent", wallet: "is-green", device: "", vault: "is-amber" };
     const opt = (k: "cloud" | "wallet" | "device" | "vault", tag: string, sub: string, extra: HTMLElement | null) =>
@@ -247,25 +289,27 @@ export class CoolTripSettingTab extends PluginSettingTab {
           h("span", { cls: "ct-set-opt-title" }, h("b", null, t("s3." + k)), sub ? h("span", { cls: "ct-sub" }, sub) : null),
           h("span", { cls: "ct-set-tag " + TAG[k] }, tag),
           h("span", null, t(`s3.${k}D`)), extra));
-    const opts = h("div", { cls: "ct-set-files-opts" }, this.label(t("s3.where")),
-      opt("cloud", t("s3.rec"), t("s3.cloudSub"), h("span", { cls: "ct-set-warn", attr: { role: "note" } }, icon("triangle-alert"), h("span", null, h("b", null, t("s3.careful")), " ", t("s3.cloudWarn")))),
-      opt("wallet", t("s3.offline"), t("s3.walletSub"), null),
-      opt("device", t("s3.only"), "", null),
-      opt("vault", t("s3.space"), "", f.vault ? h("label", { cls: "ct-f" }, h("span", { cls: "ct-label" }, t("s3.vaultFolder")),
-        this.folderSelect(f.vaultFolder, v => { f.vaultFolder = v; this.save(); }, t("s1.root"))) : null));
-    /* la vista previa: una reserva de la nota con los botones de los sitios que marques */
-    const tr = this.demo();
-    const wheres = (["cloud", "wallet", "device", "vault"] as Where[]).filter(w => f[w as "cloud"]);
-    const docs = [...new Set(wheres.map(w => w === "vault" || w === "device" ? "cloud" : w))].map(w =>
-      w === "wallet" ? blankDoc("wallet", { name: t("s3.wallet.btn") }) : blankDoc(wheres.includes("cloud") ? "cloud" : wheres.includes("vault") ? "vault" : "device", { name: t("s3.file") }));
-    const preview = h("div", { cls: "ct-set-files-prev" }, this.label(t("s3.preview")),
-      h("div", { cls: "ct-set-card ct-set-prev-card", attr: { role: "img", "aria-label": t("s3.preview") } },
-        h("span", { cls: "ct-set-crumb" }, tr.name, h("span", { attr: { "aria-hidden": "true" } }, "›"), h("b", null, t("s3.bookings"))),
-        h("div", { cls: "ct-set-booking" },
-          h("div", { cls: "ct-set-booking-top" }, h("span", null, t("s3.flightLine")), h("b", null, "MAD → NRT")),
-          h("div", { cls: "ct-set-booking-fields" }, ([["s3.locator", "K7QX2P"], ["s3.seat", "23A"], ["s3.gate", "S24"]] as const).map(([k, v]) => h("span", null, t(k), h("b", null, v)))),
-          docs.length ? h("div", { cls: "ct-set-booking-docs" }, docs.map(d => docButton({ openDoc: () => {} }, d))) : null)));
-    body.appendChild(h("div", { cls: "ct-set-files" }, opts, preview));
+    /* la vista previa: la reserva de verdad del plan, con los documentos en los sitios que marques */
+    const tr = this.demo(), it = tr.days[0].items[0];
+    const files = (["cloud", "device", "vault"] as Where[]).filter(w => f[w as "cloud"]);
+    const docs: Doc[] = [];
+    if (files.length) docs.push(blankDoc(files[0], { name: t("demo.file"), url: files[0] === "cloud" ? "https://drive.google.com/" : "", also: files.slice(1) }));
+    if (f.wallet) docs.push(blankDoc("wallet", { name: t("demo.pass"), para: ["Ana"] }), blankDoc("wallet", { name: t("demo.pass2"), para: ["Leo"] }));
+    it.docs = docs;
+    const ctx = (phone: boolean): PlanCtx => ({
+      app: this.app, s, trip: tr, file: null as unknown as TFile, phone, form: null, collapsed: new Set(), docAdd: null,
+      setDocAdd: () => {}, commit: () => {}, rerender: () => {}, openForm: () => {}, renderForm: () => h("div"), openLink: () => {}, openDoc: () => {}, openUrl: () => {}, move: () => {},
+    });
+    const acc = coverHex(tr.cover);
+    body.append(
+      h("div", { cls: "ct-set-files-prev" }, this.label(t("s3.preview")),
+        this.real("ct-set-real-card", 560, [bookingCard(ctx(false), 0, 0), 560], [bookingCard(ctx(true), 0, 0), 320], acc)),
+      h("div", { cls: "ct-set-files-opts" }, this.label(t("s3.where")),
+        opt("cloud", t("s3.rec"), t("s3.cloudSub"), h("span", { cls: "ct-set-warn", attr: { role: "note" } }, icon("triangle-alert"), h("span", null, h("b", null, t("s3.careful")), " ", t("s3.cloudWarn")))),
+        opt("wallet", t("s3.offline"), t("s3.walletSub"), null),
+        opt("device", t("s3.only"), "", null),
+        opt("vault", t("s3.space"), "", f.vault ? h("div", { cls: "ct-f" }, h("span", { cls: "ct-label" }, t("s3.vaultFolder")),
+          this.folderPicker(f.vaultFolder, v => { f.vaultFolder = v; this.save(); this.display(); }, t("s3.vaultFolder"))) : null)));
   }
 
   /* 4 · Mapas */
@@ -290,29 +334,42 @@ export class CoolTripSettingTab extends PluginSettingTab {
         h("div", { cls: "ct-set-chips" }, ["walk", "transit", "car", "bike", "taxi"].map(mode))));
   }
 
-  /* 5 · Bases */
+  /* 5 · Bases: cada base va, si no se elige otra carpeta, con las notas que organiza (la carpeta del paso 1) */
+  private baseFolder(kind: "trips" | "places") {
+    const s = this.plugin.settings;
+    if (s.bases[kind]) return s.bases[kind];
+    if (kind === "trips") return tripFolder(s);
+    return s.autoOrganize ? AUTO_FOLDERS[s.language].places : s.places.mode === "folder" ? s.places.folder : s.placeFolder;
+  }
+  private basePath(kind: "trips" | "places") {
+    const folder = this.baseFolder(kind);
+    return normalizePath((folder ? folder + "/" : "") + t("s5." + kind) + ".base");
+  }
+  private baseExists(kind: "trips" | "places") { return this.app.vault.getAbstractFileByPath(this.basePath(kind)) instanceof TFile; }
   private s5(body: HTMLElement) {
     const s = this.plugin.settings;
     this.head(body, t("s5.h"), t("s5.p"));
     body.appendChild(h("div", { cls: "ct-set-promo" },
-      h("span", { cls: "ct-set-promo-icon" }, icon("layout-grid")),
+      h("span", { cls: "ct-set-promo-icon" }, icon("id-card")),
       h("span", { cls: "ct-set-card-text" }, h("b", null, t("s5.promoH")), h("span", null, t("s5.promo"))),
-      button(t("s5.promoBtn"), "ct-set-promo-btn", () => { window.open("https://github.com/pattgue/cool-bases"); })));
+      /* la ficha de Cool Bases en el buscador de plugins de la comunidad de Obsidian */
+      button(t("s5.promoBtn"), "ct-set-promo-btn", () => { window.open("obsidian://show-plugin?id=cool-bases"); })));
     const card = (kind: "trips" | "places") => {
-      const p = this.basePath(kind), exists = this.baseExists(kind), name = t("s5." + kind);
-      const open = () => { const f = this.app.vault.getAbstractFileByPath(p); if (f instanceof TFile) void this.app.workspace.getLeaf("tab").openFile(f); };
+      const exists = this.baseExists(kind), name = t("s5." + kind);
+      const open = () => { const f = this.app.vault.getAbstractFileByPath(this.basePath(kind)); if (f instanceof TFile) void this.app.workspace.getLeaf("tab").openFile(f); };
       const create = async () => {
-        await ensureFolder(this.app, s.bases[kind]);
-        await this.app.vault.create(p, this.baseYaml(kind, name));
+        const folder = this.baseFolder(kind), p = this.basePath(kind);
+        await ensureFolder(this.app, folder);
+        if (!(this.app.vault.getAbstractFileByPath(p) instanceof TFile)) await this.app.vault.create(p, this.baseYaml(kind, name));
         new Notice(t("s5.created", { p }));
         this.display();
       };
       const left = h("div", { cls: "ct-set-base-main" },
         h("label", { cls: "ct-set-base-on" }, this.check(exists, on => { if (on && !exists) void create(); }, exists ? { disabled: "" } : {}), h("b", { cls: "is-caps" }, name)),
         h("span", { cls: "ct-set-base-desc" }, t(`s5.${kind}D`)),
-        exists ? h("span", { cls: "ct-set-base-path" }, icon("table"), h("span", null, p), button(t("s5.open"), "ct-set-btn is-small", open))
-          : h("label", { cls: "ct-f" }, h("span", { cls: "ct-label" }, t("s5.saveIn")),
-            this.folderSelect(s.bases[kind], v => { s.bases[kind] = v; this.save(); }, t("s1.root"))));
+        exists ? h("span", { cls: "ct-set-base-path" }, icon("table"), h("span", null, this.basePath(kind)), button(t("s5.open"), "ct-set-btn is-small", open))
+          : h("div", { cls: "ct-f" }, h("span", { cls: "ct-label" }, t("s5.saveIn")),
+            this.folderPicker(this.baseFolder(kind), v => { s.bases[kind] = v; this.save(); this.display(); }, t("s5.saveIn") + " · " + name)));
       return h("div", { cls: "ct-set-card ct-set-base" }, left,
         h("div", { cls: "ct-set-base-prev" }, this.label(t("s5.table")), kind === "trips" ? this.tripTable() : this.placeTable()),
         h("div", { cls: "ct-set-base-prev" }, this.label(t("s5.cards")), kind === "trips" ? this.tripCards() : this.placeCards()));
@@ -357,28 +414,23 @@ export class CoolTripSettingTab extends PluginSettingTab {
     const s = this.plugin.settings, r = kind === "trips" ? s.trips : s.places, P = s.props;
     const q = (v: string) => JSON.stringify(v);
     const filter = r.mode === "folder" ? `file.inFolder(${q(r.folder)})` : r.mode === "tag" ? `file.hasTag(${q(r.value.replace(/^#/, ""))})` : `note[${q(r.key)}] == ${q(r.value)}`;
-    const cols = kind === "trips" ? ["file.name", `note.${P.start}`, `note.${P.end}`, `note.${P.destinations}`, `note.${P.travelers}`]
-      : ["file.name", `note.${P.city}`, `note.${P.category}`, `note.${P.rating}`, `note.${P.visited}`];
-    const sort = kind === "trips" ? `    sort:\n      - property: note.${P.start}\n        direction: DESC\n` : `    sort:\n      - property: note.${P.city}\n        direction: ASC\n`;
+    const cols = (kind === "trips" ? ["file.name", P.start && `note.${P.start}`, P.end && `note.${P.end}`, P.destinations && `note.${P.destinations}`, P.travelers && `note.${P.travelers}`]
+      : ["file.name", P.city && `note.${P.city}`, P.category && `note.${P.category}`, P.rating && `note.${P.rating}`, P.visited && `note.${P.visited}`]).filter(Boolean);
+    const sortKey = kind === "trips" ? P.start : P.city;
+    const sort = sortKey ? `    sort:\n      - property: note.${sortKey}\n        direction: ${kind === "trips" ? "DESC" : "ASC"}\n` : "";
     return `filters:\n  and:\n    - ${filter}\nviews:\n  - type: table\n    name: ${q(name)}\n    order:\n${cols.map(c => `      - ${c}`).join("\n")}\n${sort}`;
   }
 
-  /* 6 · Cool Bar: los ajustes compartidos del Cool Kit (los mismos datos que en los demás plugins Cool), con su vista previa */
+  /* 6 · Cool Bar: los ajustes compartidos del Cool Kit (los mismos datos que en los demás plugins Cool) */
   private s6(body: HTMLElement) {
     this.head(body, t("s6.h"), t("s6.p"));
     const p = devicePrefs(this.barDevice), tools = sortedTools(p);
     const save = () => { void saveBarSettings(); this.display(); };
-    /* la barra tal como queda en una nota de viaje (con las clases de la barra de verdad) */
-    const bar = h("div", { cls: "cool-bar" + (p.collapsed ? " is-collapsed" : ""), attr: { "data-ck": String(KIT_VERSION), "data-align": p.align, "data-loc": p.location } },
+    /* cómo queda la barra con los plugins Cool que tienes y estas opciones (con sus clases de verdad) */
+    const bar = h("div", { cls: "cool-bar ct-set-bar" + (p.collapsed ? " is-collapsed" : ""), attr: { "data-ck": String(KIT_VERSION), "data-align": p.align, role: "img", "aria-label": t("s6.preview") } },
       h("span", { cls: "cool-fold" }, icon(p.collapsed ? "chevron-down" : "chevron-up")),
-      p.collapsed ? null : h("div", { cls: "cool-tools" }, tools.flatMap(tl => {
-        const vis = p.tools[tl.id]?.visibility || "always", mine = tl.id === this.plugin.manifest.id;
-        if (vis === "never" || (!mine && vis === "applies")) return [];
-        return [h("span", { cls: "cool-tool", attr: mine ? { "data-state": "active", "data-kind": "view" } : { "data-state": "locked" } }, tl.label())];
-      })));
-    const note = h("div", { cls: "ct-set-bar-note" }, h("b", null, t("demo.name")));
-    const preview = h("div", { cls: "ct-set-bar-prev is-" + p.location, attr: { role: "img", "aria-label": t("s6.preview") } },
-      p.location === "bottom" ? [note, bar] : [bar, note]);
+      p.collapsed ? null : h("div", { cls: "cool-tools" }, tools.filter(tl => (p.tools[tl.id]?.visibility || "always") !== "never").map(tl =>
+        h("span", { cls: "cool-tool", attr: { "data-state": "available" } }, tl.label()))));
     const tabs = h("div", { cls: "ct-set-tabs", attr: { role: "tablist", "aria-label": kt("s.device") } }, (["desktop", "phone"] as Device[]).map(d =>
       button(kt("s." + d), "ct-set-tab" + (d === this.barDevice ? " is-on" : ""), () => { this.barDevice = d; this.display(); }, { role: "tab", "aria-selected": String(d === this.barDevice) })));
     const row = (name: string, desc: string | null, control: HTMLElement, cls = "") => h("div", { cls: "ct-set-row " + cls },
@@ -387,7 +439,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
       h("div", { cls: "ct-set-row is-head" }, h("b", null, t("s6.bar")), tabs),
       row(kt("s.location"), null, this.select([["top", kt("s.top")], ["bottom", kt("s.bottom")], ["float", kt("s.float")]], p.location, v => { p.location = v as BarLocation; save(); }, kt("s.location"))),
       row(kt("s.align"), null, this.select([["right", kt("s.right")], ["center", kt("s.center")], ["left", kt("s.left")]], p.align, v => { p.align = v as BarAlign; save(); }, kt("s.align"))),
-      row(kt("s.mode"), kt("s.modeDesc"), this.select([["fixed", kt("s.fixed")], ["context", kt("s.context")], ["hidden", kt("s.hidden")]], p.mode, v => { p.mode = v as BarMode; registry().toggled = false; save(); }, kt("s.mode"))),
+      row(kt("s.mode"), t("s6.modeD"), this.select([["fixed", kt("s.fixed")], ["context", kt("s.context")], ["hidden", kt("s.hidden")]], p.mode, v => { p.mode = v as BarMode; registry().toggled = false; save(); }, kt("s.mode"))),
       row(kt("s.collapsed"), kt("s.collapsedDesc"), this.check(p.collapsed, v => { p.collapsed = v; save(); }, { "aria-label": kt("s.collapsed") }), "is-check"));
     const move = (i: number, by: number) => {
       const ids = tools.map(x => x.id);
@@ -408,45 +460,45 @@ export class CoolTripSettingTab extends PluginSettingTab {
           this.select([["always", kt("s.always")], ["applies", kt("s.applies")], ["never", kt("s.never")]], p.tools[tl.id]?.visibility || "always",
             v => { (p.tools[tl.id] ??= {}).visibility = v as ToolVisibility; save(); }, tl.label()),
           arrow("arrow-up", kt("s.up"), i === 0, () => move(i, -1)), arrow("arrow-down", kt("s.down"), i === tools.length - 1, () => move(i, 1))))));
-    body.append(h("div", { cls: "ct-set-bar-block" }, this.label(t("s6.preview")), preview), h("div", { cls: "ct-set-grid is-bar" }, barCard, btnCard));
+    body.append(h("div", { cls: "ct-set-bar-block" }, this.label(t("s6.preview")), h("div", { cls: "ct-set-bar-frame" }, bar)),
+      h("div", { cls: "ct-set-grid is-bar" }, barCard, btnCard));
   }
 
   /* 7 · Listo */
   private s7(body: HTMLElement) {
     this.head(body, t("s7.h"), t("s7.p"));
     const tr = this.demo();
-    /* lo que se guarda: el Markdown de verdad del viaje de ejemplo (sin las secciones y días vacíos) */
+    /* lo que se guarda: el Markdown de verdad del viaje de ejemplo (sin las secciones y días vacíos ni la marca del final) */
     const md = serializeTrip(tr, this.plugin.settings).split("\n");
-    const lines: HTMLElement[] = [];
     const level = (l: string) => /^(#{2,3}) /.exec(l)?.[1].length ?? 0;
     const hasContent = (i: number) => {
-      for (let j = i + 1; j < md.length; j++) { const lj = level(md[j]); if (lj && lj <= level(md[i])) return false; if (!lj && md[j].trim()) return true; }
+      for (let j = i + 1; j < md.length; j++) { const lj = level(md[j]); if (lj && lj <= level(md[i])) return false; if (!lj && md[j].trim() && !md[j].startsWith("%%")) return true; }
       return false;
     };
+    const lines: HTMLElement[] = [];
     let fm = 0;
-    for (let i = 0; i < md.length && lines.length < 22; i++) {
+    for (let i = 0; i < md.length && lines.length < 24; i++) {
       const l = md[i];
       if (l === "---") fm++;
-      if (!l.trim() || (level(l) && !hasContent(i))) continue;
+      if (!l.trim() || l.startsWith("%%") || (level(l) && !hasContent(i))) continue;
       const cls = fm < 2 || l === "---" || l.startsWith(">") ? "is-fm" : level(l) === 2 ? "is-h2" : level(l) === 3 ? "is-h3" : "";
       lines.push(h("span", { cls }, l.split(/(\[\[[^\]]+\]\])/).map(x => x.startsWith("[[") ? h("span", { cls: "is-link" }, x) : x)));
     }
-    const zoom = h("div", { cls: "ct-set-zoom" }, h("div", { cls: "ct-view" + (Platform.isPhone ? " is-phone" : ""), attr: { style: `--ct-acc: ${coverHex(tr.cover)}; width: ${Platform.isPhone ? "100%" : NOTE_W + "px"}` } },
-      ticket({ mode: "note", phone: Platform.isPhone, trip: tr, path: "", locked: true, changed: () => {}, prompt: () => Promise.resolve(null), promptDest: () => Promise.resolve(null), coverSrc: () => null })));
+    const tk = (phone: boolean) => ticket({ mode: "note", phone, trip: tr, path: "", locked: true, changed: () => {}, prompt: () => Promise.resolve(null), promptDest: () => Promise.resolve(null), coverSrc: () => null });
     body.appendChild(h("div", { cls: "ct-set-how-it" },
       h("div", { cls: "ct-set-card ct-set-md" }, this.label(t("s7.saved")), h("span", { cls: "ct-set-md-lines" }, lines)),
-      h("span", { cls: "ct-set-how-arrow", attr: { "aria-hidden": "true" } }, icon("arrow-right")),
-      h("div", { cls: "ct-set-card ct-set-sees" }, this.label(t("s7.sees")), h("div", { cls: "ct-set-sees-ticket", attr: { role: "img", "aria-label": t("s7.sees") } }, zoom))));
+      h("span", { cls: "ct-set-how-arrow", attr: { "aria-hidden": "true" } }, icon("arrow-down")),
+      h("div", { cls: "ct-set-sees" }, this.label(t("s7.sees")), this.real("ct-set-real-ticket", NOTE_PHONE, [tk(false), 1000], [tk(true), 360], coverHex(tr.cover)))));
     const bar = h("span", { cls: "cool-bar ct-set-mini-bar", attr: { "data-ck": String(KIT_VERSION), "data-align": "right" } }, h("span", { cls: "cool-fold" }, icon("chevron-up")),
-      h("span", { cls: "cool-tools" }, h("span", { cls: "cool-tool" }, "Cool Trip")));
-    const form = h("span", { cls: "ct-set-mini-form" }, h("span", null, "09:00"), h("span", { cls: "is-grow" }, icon("map-pin"), t("demo.p1")), h("span", { cls: "is-add" }, t("s7.add")));
+      h("span", { cls: "cool-tools" }, h("span", { cls: "cool-tool", attr: { "data-state": "available" } }, "Cool Trip")));
+    const form = h("span", { cls: "ct-set-mini-form" }, h("span", null, "09:00"), h("span", { cls: "is-grow" }, icon("map-pin"), h("span", null, t("demo.p1"))), h("span", { cls: "is-add" }, t("s7.add")));
     const chips = h("span", { cls: "ct-set-mini-chips" }, ([["calendar", "s7.chipPlan"], ["ticket", "s7.chipBook"], ["file-text", "s7.chipDocs"]] as const).map(([i, k]) => h("span", null, icon(i), t(k))));
     const step = (n: number, visual: HTMLElement) => h("div", { cls: "ct-set-card ct-set-howstep" },
-      h("span", { cls: "ct-set-howstep-head" }, h("span", { cls: "ct-set-num is-current" }, String(n)), h("b", null, t(`s7.${n}`))),
-      h("span", { cls: "ct-set-howstep-visual" }, visual), h("span", { cls: "ct-set-howstep-desc" }, t(`s7.${n}d`)));
+      h("span", { cls: "ct-set-num is-current" }, String(n)),
+      h("span", { cls: "ct-set-howstep-text" }, h("b", null, t(`s7.${n}`)), h("span", { cls: "ct-set-howstep-visual" }, visual), h("span", { cls: "ct-set-howstep-desc" }, t(`s7.${n}d`))));
     const list = (title: string, keys: string[], ico: string, cls: string) => h("div", { cls: "ct-set-ul " + cls }, h("b", null, title),
       keys.map(k => h("span", null, icon(ico), t(k))));
     body.append(h("div", { cls: "ct-set-grid is-3 is-steps" }, step(1, bar), step(2, form), step(3, chips)),
-      h("div", { cls: "ct-set-grid is-lists" }, list(t("s7.adds"), ["s7.adds1", "s7.adds2", "s7.adds3"], "plus", "is-adds"), list(t("s7.keeps"), ["s7.keeps1", "s7.keeps2", "s7.keeps3"], "shield-check", "is-keeps")));
+      h("div", { cls: "ct-set-grid is-lists" }, list(t("s7.adds"), ["s7.adds1", "s7.adds2", "s7.adds3"], "check", "is-adds"), list(t("s7.keeps"), ["s7.keeps1", "s7.keeps2", "s7.keeps3"], "minus", "is-keeps")));
   }
 }

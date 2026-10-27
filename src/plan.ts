@@ -281,6 +281,11 @@ function transportCard(ctx: PlanCtx, it: Item, di: number, index: number, key: s
     label(t("f.docs")), docsBlock(ctx, it, key, false));
   return h("article", { cls: "ct-card ct-pass" }, main, ctx.phone ? notchH() : notchV(), stub);
 }
+/* una reserva de transporte tal como sale en el plan (la vista previa de los ajustes) */
+export function bookingCard(ctx: PlanCtx, di: number, index: number): HTMLElement {
+  const it = ctx.trip.days[di].items[index];
+  return transportCard(ctx, it, di, index, itemKey(di, index, it));
+}
 /* los códigos de salida y llegada encogen (los dos igual) hasta caber cada uno en su mitad; se llama tras pintar y al cambiar el ancho */
 export function fitRoutes(root: HTMLElement) {
   const MAX = 50, MIN = 14;
