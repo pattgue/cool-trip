@@ -222,6 +222,26 @@ class BarPainter {
     bar.setAttribute("data-align", prefs.align);
     bar.toggleClass("is-collapsed", prefs.collapsed);
     bar.toggleClass("is-phone", Platform.isPhone);
+    this.overlay(host, bar, prefs);
+  }
+  /* Móvil con la cabecera flotante (Obsidian reciente): la cabecera no ocupa sitio y la barra quedaría debajo de la hora del
+     sistema. Entonces va a la altura de los botones de la cabecera, entre ellos y con su mismo alto. */
+  overlay(host: HTMLElement, bar: HTMLElement, prefs: BarPrefs) {
+    const head = Platform.isPhone && prefs.location === "top" ? host.querySelector<HTMLElement>(":scope > .view-header") : null;
+    const pos = head ? getComputedStyle(head).position : "";
+    const on = !!head && (pos === "absolute" || pos === "fixed" || head.offsetHeight === 0);
+    bar.toggleClass("is-overlay", on);
+    if (!on || !head) return;
+    const hr = host.getBoundingClientRect(), mid = hr.left + hr.width / 2;
+    const btns = Array.from(head.querySelectorAll<HTMLElement>("button, .clickable-icon")).map(b => b.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0);
+    if (!btns.length) return;
+    const left = btns.filter(r => r.left + r.width / 2 < mid), right = btns.filter(r => r.left + r.width / 2 >= mid);
+    const top = Math.min(...btns.map(r => r.top)), bottom = Math.max(...btns.map(r => r.bottom)), gap = 8;
+    bar.setCssProps({
+      "--cool-top": `${Math.round(top - hr.top)}px`, "--cool-h": `${Math.round(bottom - top)}px`,
+      "--cool-l": `${Math.round((left.length ? Math.max(...left.map(r => r.right)) : hr.left) - hr.left + gap)}px`,
+      "--cool-r": `${Math.round(hr.right - (right.length ? Math.min(...right.map(r => r.left)) : hr.right) + gap)}px`,
+    });
   }
   fill(leaf: WorkspaceLeaf, bar: HTMLElement, states: { t: CoolTool; s: State }[], prefs: BarPrefs) {
     const fold = bar.querySelector<HTMLButtonElement>(".cool-fold")!, box = bar.querySelector<HTMLElement>(".cool-tools")!;

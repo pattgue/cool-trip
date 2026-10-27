@@ -71,5 +71,19 @@ ok("sugerencias ocultas", t4.hidden.join() === "Mapas sin conexión de Tokio y K
 const hotel2 = t4.days[1].items[0];
 ok("el alojamiento no lleva hora", hotel2.kind === "lodging" && !md.itemMd(hotel2)[0].includes("15:00"), md.itemMd(hotel2)[0]);
 
+/* ajustes en español (sincronizados desde el móvil) y una nota de viaje en inglés */
+const enNote = "---\ntype:\n  - trip\nstart: 2026-12-01\nend: 2026-12-03\ndestinations:\n  - Roma\n---\n";
+const fmEn = { type: ["trip"], start: "2026-12-01", end: "2026-12-03", destinations: ["Roma"] };
+const Ses = md.defaultSettings("es");
+ok("reconoce el viaje del otro idioma", md.recognizes(Ses.trips, "trip", "a.md", fmEn, []) && !md.recognizes(Ses.trips, "trip", "a.md", { type: "lugar" }, []));
+const tEn = md.parseTrip(enNote, "2026 - Roma", Ses);
+ok("lee las propiedades del otro idioma", tEn.start === "2026-12-01" && tEn.end === "2026-12-03", JSON.stringify([tEn.start, tEn.end]));
+const outEn = md.serializeTrip(tEn, Ses);
+ok("las escribe con los nombres de la nota", !/inicio|tipo|destinos/.test(outEn) && /start: '?2026-12-01/.test(outEn), outEn.split("\n").slice(0, 8).join(" | "));
+const Sad = md.defaultSettings("es");
+ok("se adapta al idioma de las notas", md.adaptToVault(Sad, [{ path: "a.md", fm: fmEn, tags: [] }]) && Sad.trips.key === "type" && Sad.props.start === "start" && Sad.language === "en");
+const Sno = md.defaultSettings("es");
+ok("no cambia si ya hay viajes suyos", !md.adaptToVault(Sno, [{ path: "a.md", fm: fmEn, tags: [] }, { path: "b.md", fm: { tipo: "viaje" }, tags: [] }]) && Sno.trips.key === "tipo");
+
 console.log(fails ? `\n${fails} fallos` : "\nTodo bien");
 process.exit(fails ? 1 : 0);

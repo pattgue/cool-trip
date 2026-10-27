@@ -98,8 +98,20 @@ export class TripView extends TextFileView {
     if (phone) page.append(mochila(ctx), porHacer(ctx), plan(ctx), coste(ctx));
     else page.appendChild(h("div", { cls: "ct-columns" }, plan(ctx), aside = h("aside", { cls: "ct-aside" }, mochila(ctx), porHacer(ctx), coste(ctx))));
     el.appendChild(page);
+    if (phone) this.clearHeader(page);
     el.scrollTop = scroll;
     this.watchAside(aside);
+  }
+
+  /* móvil con la cabecera flotante (y la Cool Bar a su altura): la portada empieza debajo de sus botones, no tapada por ellos */
+  private clearHeader(page: HTMLElement) {
+    const btns = [":scope > .view-header", ":scope > .cool-bar"].flatMap(sel => {
+      const box = this.containerEl.querySelector<HTMLElement>(sel);
+      return box ? Array.from(box.querySelectorAll<HTMLElement>("button, .clickable-icon")) : [];
+    }).map(b => b.getBoundingClientRect()).filter(r => r.height > 0);
+    const top = page.getBoundingClientRect().top + this.contentEl.scrollTop;
+    const covered = btns.filter(r => r.top < top + 40).map(r => r.bottom);
+    page.setCssProps({ "--ct-head-gap": (covered.length ? Math.max(0, Math.ceil(Math.max(...covered) + 8 - (top + 14))) : 0) + "px" });
   }
 
   /* el lateral acompaña al plan: si no cabe en la pantalla, baja con el scroll hasta que se ve su final y ahí se queda */

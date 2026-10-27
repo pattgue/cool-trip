@@ -28,7 +28,7 @@ export const stringifyYaml = o => yaml.dump(o, { lineWidth: -1 });
 export const getLanguage = () => "es";
 export const moment = { locale: () => "es" };
 export const normalizePath = p => p.replace(/\/+/g, "/").replace(/^\/|\/$/g, "");
-export const Platform = { get isPhone() { return !!window.__phone; }, isIosApp: false, isAndroidApp: false, isMobile: false };
+export const Platform = { get isPhone() { return !!window.__phone; }, isIosApp: false, isAndroidApp: false, get isMobile() { return !!window.__phone; } };
 /* iconos: un trazo genérico de Lucide (solo para ver dónde van) */
 const PATHS = { plane: "M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z",
   send: "M22 2L11 13M22 2l-7 20-4-9-9-4z", check: "M5 12l5 5L20 7", plus: "M12 5v14M5 12h14", minus: "M5 12h14", x: "M6 6l12 12M18 6L6 18",
@@ -48,8 +48,8 @@ export class Component { load() {} unload() {} registerEvent() {} }
 export class ItemView { constructor(leaf) { this.leaf = leaf; this.app = leaf.app; this.containerEl = document.createElement("div"); this.contentEl = this.containerEl.createDiv({ cls: "view-content" }); } }
 export class TextFileView extends ItemView { requestSave() { window.__saved = this.data; } }
 export class MarkdownView extends ItemView {}
-export class Modal { constructor(app) { this.app = app; this.modalEl = document.createElement("div"); this.titleEl = this.modalEl.createDiv(); this.contentEl = this.modalEl.createDiv({ cls: "modal-content" }); }
-  open() { document.body.appendChild(this.modalEl); this.onOpen?.(); } close() { this.modalEl.remove(); this.onClose?.(); } }
+export class Modal { constructor(app) { this.app = app; this.containerEl = document.createElement("div"); this.containerEl.className = "modal-container"; this.modalEl = this.containerEl.createDiv({ cls: "modal" }); this.modalEl.createDiv({ cls: "modal-close-button" }); this.titleEl = this.modalEl.createDiv(); this.contentEl = this.modalEl.createDiv({ cls: "modal-content" }); }
+  open() { document.body.appendChild(this.containerEl); this.onOpen?.(); } close() { this.containerEl.remove(); this.onClose?.(); } }
 export class Plugin {}
 export class PluginSettingTab { constructor(app, plugin) { this.app = app; this.plugin = plugin; this.containerEl = document.createElement("div"); } }
 export class Setting { constructor() { return new Proxy(this, { get: (t, k) => k === "then" ? undefined : () => t.proxy() }); } proxy() { return this; } }

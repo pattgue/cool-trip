@@ -204,7 +204,7 @@ Hay 6 tipos de nota (`type:` en el frontmatter) y 1 estructura dentro de la nota
 | `ticket` | `Viajes/<viaje>/Reservas/` | `place`, `start`, `end?` + `timezone`, `code`, `docs[]`, `status` | entrada con hora (Galleria Borghese) |
 | `expense` (*could*) | dentro de la nota del viaje, o como notas | `amount` (céntimos), `currency`, `category`, `parent?` | Tripsy expenses; dinero como entero |
 
-Los nombres de campo de esta tabla son los internos. En el vault, cada uno se mapea a la propiedad que Patt elija en Ajustes › Propiedades, y la columna "nota" es solo el orden sugerido opcional: el plugin reconoce las notas por propiedad, etiqueta o carpeta (Ajustes › Tus notas).
+Los nombres de campo de esta tabla son los internos. En el vault, cada uno se mapea a la propiedad que Patt elija en Ajustes › Propiedades, y la columna "nota" es solo el orden sugerido opcional: el plugin reconoce las notas por propiedad, etiqueta o carpeta (Ajustes › Tus notas). Los valores por defecto de un idioma también reconocen y leen los del otro (`tipo: viaje` ↔ `type: trip`, `inicio` ↔ `start`…), porque el móvil y el ordenador pueden tener Obsidian en idiomas distintos y compartir los ajustes con Sync; y si ninguna nota usa los de los ajustes pero sí los del otro idioma, los ajustes se pasan a ese idioma al cargar.
 
 Esto **refina la propuesta** (§4.4): el `booking` genérico con `kind` se parte en `stay`, `transport` y `ticket`, porque tienen campos y comportamientos distintos (Tripsy).
 

@@ -38,7 +38,7 @@
 /* el lateral baja con el scroll hasta que se ve entero y ahí se queda (--ct-aside-top lo calcula la vista) */
 .ct-aside { display: flex; flex-direction: column; gap: 18px; position: sticky; top: var(--ct-aside-top, 16px); }
 .ct-nowrap { white-space: nowrap; }
-.ct-view.is-phone .ct-page { padding: 14px 12px 40px; gap: 12px; }
+.ct-view.is-phone .ct-page { padding: calc(14px + var(--ct-head-gap, 0px)) 12px calc(96px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); gap: 12px; }
 .ct-empty { padding: 40px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; color: var(--ct-muted); }
 
 /* botones */

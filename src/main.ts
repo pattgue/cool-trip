@@ -5,9 +5,9 @@ import type { WorkspaceLeaf } from "obsidian";
 import { joinCoolKit } from "./cool-kit/kit";
 import type { CoolKitHandle } from "./cool-kit/kit";
 import { locale, t } from "./i18n";
-import { allPlaces, isTripFile, resolve } from "./places";
+import { allPlaces, isTripFile, resolve, tagsOf } from "./places";
 import { promptDest } from "./prompt";
-import { mergeSettings } from "./settings";
+import { adaptToVault, mergeSettings } from "./settings";
 import { CoolTripSettingTab } from "./settings-tab";
 import { NewTripModal } from "./modal";
 import { TripView, VIEW_TYPE } from "./view";
@@ -56,7 +56,18 @@ export default class CoolTripPlugin extends Plugin {
     /* las notas de viaje se abren pintadas */
     this.registerEvent(this.app.workspace.on("file-open", () => this.syncLeaves()));
     this.registerEvent(this.app.metadataCache.on("changed", file => { if (isTripFile(this.app, this.settings, file)) this.syncLeaves(); }));
-    this.app.workspace.onLayoutReady(() => this.syncLeaves());
+    this.app.workspace.onLayoutReady(() => { void this.adapt(); this.syncLeaves(); });
+    this.registerEvent(this.app.metadataCache.on("resolved", () => { void this.adapt(); }));
+  }
+
+  /* si los ajustes por defecto son de otro idioma que las notas del vault, se pasan al de las notas (una vez) */
+  private adapted = false;
+  async adapt() {
+    if (this.adapted) return;
+    const notes = this.app.vault.getMarkdownFiles().map(f => ({ path: f.path, fm: this.app.metadataCache.getFileCache(f)?.frontmatter, tags: tagsOf(this.app, f) }));
+    if (!notes.some(n => n.fm)) return;                     // la caché aún no está lista
+    this.adapted = true;
+    if (adaptToVault(this.settings, notes)) { await this.saveSettings(); this.syncLeaves(); }
   }
 
   onunload() {

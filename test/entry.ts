@@ -1,2 +1,2 @@
 export * from "../src/md";
-export { defaultSettings } from "../src/settings";
+export { adaptToVault, defaultSettings, recognizes } from "../src/settings";

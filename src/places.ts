@@ -1,8 +1,8 @@
 /* Las notas de lugar: encontrarlas, crearlas, su icono según la categoría y el enlace a la app de mapas. */
 import { normalizePath, Platform, TFile } from "obsidian";
 import type { App } from "obsidian";
-import { matches, placeFolder } from "./settings";
-import type { MapsApp, Settings } from "./types";
+import { placeFolder, propKey, recognizes } from "./settings";
+import type { MapsApp, PropNames, Settings } from "./types";
 import { toList } from "./md";
 
 export interface PlaceInfo { file: TFile; name: string; city: string; country: string; category: string; price: string; loc: [number, number] | null }
@@ -15,9 +15,9 @@ export function tagsOf(app: App, f: TFile): string[] {
   return out.concat(toList(c?.frontmatter?.tags).map(x => "#" + x.replace(/^#/, "")));
 }
 export const isTripFile = (app: App, s: Settings, f: TFile | null | undefined): f is TFile =>
-  !!f && f.extension === "md" && matches(s.trips, f.path, fmOf(app, f), tagsOf(app, f));
+  !!f && f.extension === "md" && recognizes(s.trips, "trip", f.path, fmOf(app, f), tagsOf(app, f));
 export const isPlaceFile = (app: App, s: Settings, f: TFile | null | undefined): f is TFile =>
-  !!f && f.extension === "md" && matches(s.places, f.path, fmOf(app, f), tagsOf(app, f));
+  !!f && f.extension === "md" && recognizes(s.places, "place", f.path, fmOf(app, f), tagsOf(app, f));
 
 function readLoc(x: unknown): [number, number] | null {
   const nums = (Array.isArray(x) ? x.map(str).join(",") : str(x)).match(/-?\d+(?:\.\d+)?/g);
@@ -27,9 +27,9 @@ function readLoc(x: unknown): [number, number] | null {
 }
 export function placeInfo(app: App, s: Settings, f: TFile): PlaceInfo {
   const fm = fmOf(app, f) || {};
-  const get = (k: string) => { const v = fm[k]; return (Array.isArray(v) ? v.map(str).join(", ") : str(v)).replace(/^\[\[|\]\]$/g, ""); };
-  return { file: f, name: f.basename, city: get(s.props.city), country: get(s.props.country), category: get(s.props.category),
-    price: get(s.props.price), loc: readLoc(fm[s.props.location]) };
+  const get = (k: keyof PropNames) => { const v = fm[propKey(s, k, fm)]; return (Array.isArray(v) ? v.map(str).join(", ") : str(v)).replace(/^\[\[|\]\]$/g, ""); };
+  return { file: f, name: f.basename, city: get("city"), country: get("country"), category: get("category"),
+    price: get("price"), loc: readLoc(fm[propKey(s, "location", fm)]) };
 }
 export function allPlaces(app: App, s: Settings): PlaceInfo[] {
   return app.vault.getMarkdownFiles().filter(f => isPlaceFile(app, s, f)).map(f => placeInfo(app, s, f));

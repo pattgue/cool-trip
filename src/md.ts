@@ -4,8 +4,9 @@ import { parseYaml, stringifyYaml } from "obsidian";
 import { MD, vocab } from "./i18n";
 import type { Vocab } from "./i18n";
 import { addDays, dayLabel, diffDays, isIso, iso, isTime, normTime, range, readDay } from "./dates";
-import type { Day, Dest, Doc, Field, Item, Kind, Settings, Task, Trip, Where } from "./types";
+import type { Day, Dest, Doc, Field, Item, Kind, PropNames, Settings, Task, Trip, Where } from "./types";
 import { isTransport } from "./types";
+import { propKey, twinRecog } from "./settings";
 
 export const MARKER = "%% cool-trip v1 %%";
 /* las sugerencias de «Por hacer» que se han quitado: «%% cool-trip · ocultas: Mapas sin conexión de Roma | … %%» */
@@ -352,8 +353,11 @@ export function citiesOfDay(t: Trip, date: string): Dest[] {
 }
 export const tripDates = (t: Trip) => range(t.start, t.end);
 
+/* los nombres de las propiedades del viaje tal y como los usa esta nota */
+const props = (s: Settings, fm: Record<string, unknown>) =>
+  Object.fromEntries((["start", "end", "destinations", "travelers", "cover"] as const).map(k => [k, propKey(s, k, fm)])) as Pick<PropNames, "start" | "end" | "destinations" | "travelers" | "cover">;
+
 export function parseTrip(text: string, name: string, s: Settings): Trip {
-  const P = s.props;
   const t: Trip = { fm: {}, name, start: "", end: "", dests: [], travelers: [], cover: "", accent: "", mochila: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
   let body = text;
   const m = fmRe.exec(text);
@@ -361,6 +365,7 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
     try { t.fm = (parseYaml(m[1]) as Record<string, unknown>) || {}; } catch { t.fm = {}; }
     body = text.slice(m[0].length);
   }
+  const P = props(s, t.fm);
   t.start = toIso(t.fm[P.start]);
   t.end = toIso(t.fm[P.end]) || t.start;
   t.travelers = toList(t.fm[P.travelers]);
@@ -456,9 +461,9 @@ export function dayHeading(t: Trip, date: string): string {
 }
 
 export function serializeTrip(t: Trip, s: Settings): string {
-  const P = s.props, v = vocab();
-  const fm = t.fm;
-  if (s.trips.mode === "property" && s.trips.key && fm[s.trips.key] == null) fm[s.trips.key] = s.trips.value;
+  const v = vocab();
+  const fm = t.fm, P = props(s, fm), twin = twinRecog(s.trips, "trip");
+  if (s.trips.mode === "property" && s.trips.key && fm[s.trips.key] == null && !(twin && fm[twin.key] != null)) fm[s.trips.key] = s.trips.value;
   if (s.trips.mode === "tag" && s.trips.value) {
     const tags = toList(fm.tags);
     if (!tags.some(x => low(x.replace(/^#/, "")) === low(s.trips.value.replace(/^#/, "")))) fm.tags = [...tags, s.trips.value.replace(/^#/, "")];

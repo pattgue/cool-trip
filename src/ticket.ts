@@ -1,4 +1,5 @@
 /* La portada del viaje: la tarjeta de embarque. La misma en «Nuevo viaje» (create) y arriba de la nota (note). */
+import { Platform } from "obsidian";
 import { append, h } from "./dom";
 import { t } from "./i18n";
 import { dayNum, diffDays, isIso, longDate, spanLabel, todayIso, weekday, dayLabel } from "./dates";
@@ -100,8 +101,12 @@ function setDates(ctx: TicketCtx, start: string, end: string) {
 /* un campo de fecha: se ve el texto bonito y encima, invisible, el selector de fecha del sistema */
 function dateField(ctx: TicketCtx, lbl: string, value: string, set: (v: string) => void, size: "lg" | "md" | "sm"): HTMLElement {
   if (!editable(ctx)) return staticField(lbl, value ? (size === "lg" ? longDate(value) : dayLabel(value)) : "—", size);
-  const input = h("input", { cls: "ct-date-input", attr: { type: "date", value, tabindex: "-1", "aria-hidden": "true" } });
-  input.addEventListener("change", () => set(input.value));
+  const tap = Platform.isMobile;
+  const input = h("input", { cls: "ct-date-input" + (tap ? " is-tap" : ""), attr: tap ? { type: "date", value, "aria-label": lbl } : { type: "date", value, tabindex: "-1", "aria-hidden": "true" } });
+  let last = value;
+  const pick = () => { if (input.value && input.value !== last) { last = input.value; set(input.value); } };
+  input.addEventListener("change", pick);
+  input.addEventListener("blur", pick);
   const text = value ? (size === "lg" ? longDate(value) : dayLabel(value)) : "—";
   const open = () => {
     try { input.showPicker(); } catch { input.focus(); input.click(); }
@@ -311,6 +316,7 @@ function phone(ctx: TicketCtx): HTMLElement {
         staticField(t("new.days"), days ? String(days) : "—", "md"),
         staticField(t("new.nights"), days ? String(nightsTotal(tr)) : "—", "md")));
     editor.appendChild(barcode(plain(tr.name).replace(/\W/g, "").toUpperCase() || "COOLTRIP", "CT · " + (tr.start.slice(0, 4) || "")));
+    editor.appendChild(button([h("span", null, t("new.create")), icon("arrow-right")], "ct-btn-primary ct-btn-create", () => ctx.create?.()));
     return h("div", { cls: "ct-ticket ct-ticket-phone is-create" }, header, body, notchH(), editor);
   }
   /* nota: compacta; el lápiz despliega lo mismo que en «Nuevo viaje» */

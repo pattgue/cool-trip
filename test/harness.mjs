@@ -22,9 +22,10 @@ button{background:#363636;border:0;border-radius:4px;height:30px}</style></head>
 <script src="harness.js"></script></body></html>`;
 writeFileSync(join(out, "view.html"), page("view"));
 writeFileSync(join(out, "modal.html"), page("modal"));
+writeFileSync(join(out, "bar.html"), page("bar"));
 for (let i = 1; i <= 7; i++) writeFileSync(join(out, `settings${i}.html`), page("settings" + i));
 const b = await chromium.launch();
-for (const [name, w, mode, phone] of [...[1, 2, 3, 4, 5, 6, 7].map(i => ["settings" + i, 1100, "settings" + i, false]), ["desk", 1440, "view", false], ["phone", 390, "view", true], ["modal", 1440, "modal", false], ["modal-img", 1440, "modal.html#img", false], ["modal-phone", 390, "modal", true]]) {
+for (const [name, w, mode, phone] of [...[1, 2, 3, 4, 5, 6, 7].map(i => ["settings" + i, 1100, "settings" + i, false]), ["desk", 1440, "view", false], ["phone", 390, "view", true], ["modal", 1440, "modal", false], ["modal-img", 1440, "modal.html#img", false], ["modal-phone", 390, "modal", true], ["bar-phone", 390, "bar", true]]) {
   const p = await b.newPage({ viewport: { width: w, height: 900 } });
   const errs = [];
   p.on("pageerror", e => errs.push(e.message));
@@ -38,6 +39,33 @@ for (const [name, w, mode, phone] of [...[1, 2, 3, 4, 5, 6, 7].map(i => ["settin
   await p.close();
 }
 await b.close();
+/* Nuevo viaje en el móvil, como lo vio Patt: una sola ✕, las fechas se tocan, los nombres no se meten bajo los botones y hace scroll */
+{
+  const b2 = await chromium.launch();
+  const p = await b2.newPage({ viewport: { width: 390, height: 844 } });
+  const errs = [];
+  p.on("pageerror", e => errs.push(e.message));
+  await p.addInitScript(() => { window.__phone = true; });
+  await p.goto(pathToFileURL(join(out, "modal.html")).href + "#patt");
+  await p.waitForTimeout(300);
+  await p.screenshot({ path: join(out, `modal-patt-${theme}.png`) });
+  const ok = (what, cond) => console.log(what + ":", cond ? "ok" : "FALLA");
+  ok("una sola ✕", await p.evaluate(() => [...document.querySelectorAll(".modal-close-button, [aria-label='Cerrar']")].filter(e => e.offsetParent).length === 1));
+  ok("la fecha se toca", await p.evaluate(() => [...document.querySelectorAll(".ct-field-wrap")].every(w => {
+    const i = w.querySelector(".ct-date-input"), a = i.getBoundingClientRect(), f = w.getBoundingClientRect();
+    return getComputedStyle(i).pointerEvents !== "none" && a.height >= f.height - 1 && document.elementFromPoint(a.left + a.width / 2, a.top + a.height / 2) === i;
+  })));
+  ok("nombres sin pisar los botones", await p.evaluate(() => [...document.querySelectorAll(".ct-dest-top")].every(r => {
+    const c = r.querySelector(".ct-dest-city").getBoundingClientRect(), s = r.querySelector(".ct-stepper, .ct-step-n").getBoundingClientRect();
+    return c.right <= s.left + 1;
+  })));
+  const sc = await p.evaluate(() => { const c = document.querySelector(".modal-content"); c.scrollTop = 99999; return [c.scrollHeight > c.clientHeight, c.scrollTop > 0]; });
+  ok("hace scroll", sc[0] && sc[1]);
+  ok("botón Crear viaje a la vista al final", await p.evaluate(() => { const r = document.querySelector(".ct-btn-create")?.getBoundingClientRect(); return !!r && r.bottom <= innerHeight && r.top >= 0; }));
+  await p.screenshot({ path: join(out, `modal-patt-end-${theme}.png`) });
+  console.log(errs.length ? "ERRORES: " + errs.join(" | ") : "sin errores");
+  await b2.close();
+}
 /* formularios: añadir un lugar, un alojamiento (el hueco de Kioto) y un transporte */
 {
   const b2 = await chromium.launch();
