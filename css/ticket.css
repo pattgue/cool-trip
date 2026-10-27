@@ -89,7 +89,10 @@
 .ct-note-name.is-editable { cursor: text; border-bottom: 1px dashed transparent; align-self: flex-start; }
 .ct-note-name.is-editable:hover { border-bottom-color: var(--ct-line); }
 .ct-note-path { font-size: 12px; color: var(--ct-faint); }
-.ct-swatches { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; min-height: 40px; }
+/* los colores: siete columnas que reparten el ancho; cada círculo crece con su hueco hasta un tope */
+.ct-swatches { display: grid !important; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; justify-items: center; max-width: 360px; width: 100%; }
+.ct-ticket-phone .ct-swatches { margin: 0 auto; }
+.ct-root .ct-swatch { width: 100% !important; max-width: 40px; height: auto !important; aspect-ratio: 1; }
 .ct-swatch { width: 28px; height: 28px; padding: 0; border: 0 !important; border-radius: 50%; background: var(--ct-swatch) !important; }
 .ct-swatch.is-on { box-shadow: 0 0 0 2px var(--ct-ticket), 0 0 0 4px var(--ct-strong) !important; }
 .ct-swatch-img { background: #3D3D3D !important; color: var(--ct-cream); display: inline-grid; place-items: center; }
@@ -109,7 +112,7 @@
 /* la portada de la nota: más estrecha (los datos juntos, sin huecos de sobra) */
 .ct-view:not(.is-phone) .ct-ticket { width: 100%; }
 .ct-view:not(.is-phone) .ct-ticket .ct-fields { grid-template-columns: repeat(4, max-content); column-gap: 44px; align-items: start; }
-.ct-view:not(.is-phone) .ct-ticket .ct-strip-day { max-width: 66px; }
+.ct-view:not(.is-phone) .ct-ticket .ct-strip-day { max-width: 120px; }       /* el calendario llena el ancho de la tarjeta */
 
 /* móvil */
 .ct-ticket-phone { flex-direction: column; border-radius: 24px; }
@@ -117,7 +120,9 @@
 .ct-city-stack { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
 .ct-cover-phone .ct-city-name { font-size: var(--ct-city-size, 64px); letter-spacing: -.045em; line-height: .85; }
 .ct-cover-phone .ct-city-sub { width: 100%; text-align: center; font-size: 12px; font-weight: 800; letter-spacing: .72px; }
-.ct-bar-row { display: flex; align-items: center; justify-content: center; gap: 22px; height: 30px; width: 100%; padding: 5px 0 5px 106px; }
+/* la raya entre destinos, siempre en el centro; «+ Destino» a su derecha sin moverla */
+.ct-bar-row { position: relative; display: flex; align-items: center; justify-content: center; height: 30px; width: 100%; }
+.ct-bar-row > :not(.ct-bar-line) { position: absolute; left: calc(50% + 22px); top: 50%; transform: translateY(-50%); }
 .ct-bar-line { flex: none; width: 3px; height: 40px; background: var(--ct-ink); }
 .ct-dest-add.is-small { height: 26px; min-width: 0; padding: 4px 10px; }
 .ct-cover-phone .ct-dest-add.is-small span { font-size: 11px; }
@@ -140,7 +145,6 @@
 .ct-phone-count .ct-countdown-t { font-size: 20px; }
 .ct-phone-count .ct-barcode { width: 100%; }
 .ct-phone-count .ct-barcode-cap { letter-spacing: .9em; }
-.ct-ticket-phone .ct-swatch { width: 34px; height: 34px; }
 
 /* el modal de Nuevo viaje */
 .ct-modal { --ct-page: var(--modal-background, var(--background-primary)); width: min(1240px, 96vw); max-width: none; border-radius: 28px; padding: 18px 24px 24px; }

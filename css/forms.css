@@ -9,6 +9,12 @@
 .ct-input { box-sizing: border-box; height: 44px; width: 100%; border-radius: 10px; border: 1.5px solid var(--ct-line) !important; background: var(--ct-field) !important;
   color: var(--ct-strong) !important; padding: 0 12px; font: inherit; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .ct-input:focus { border-color: var(--ct-strong) !important; box-shadow: none !important; }
+/* Obsidian (sobre todo en el móvil) da a los campos su alto, radio, relleno y letra: aquí mandan los nuestros, iguales en todos */
+.ct-root .ct-input { height: 44px !important; min-width: 0; max-width: 100%; border-radius: 10px !important; padding: 0 12px !important; font-size: 15px !important;
+  line-height: normal !important; text-align: left !important; }
+.ct-root input.ct-input:is([type=date], [type=time]) { -webkit-appearance: none; appearance: none; display: flex; align-items: center; }
+.ct-root .ct-input::-webkit-date-and-time-value { text-align: left; }
+.ct-view.is-phone .ct-input { font-size: 16px !important; }      /* 16px: así iOS no hace zoom al escribir */
 .ct-select { appearance: auto; }
 .ct-input-num { width: 64px; flex: none; text-align: center; }
 .ct-inline { display: flex; gap: 6px; }

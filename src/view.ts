@@ -17,7 +17,7 @@ import { coste, mochila, porHacer } from "./side";
 import type { SideCtx } from "./side";
 import { ticket } from "./ticket";
 import { promptText } from "./prompt";
-import { button } from "./ui";
+import { button, coverHex } from "./ui";
 import type { Doc, Trip } from "./types";
 import { isTransport } from "./types";
 import { field, splitWhen } from "./md";
@@ -82,6 +82,7 @@ export class TripView extends TextFileView {
       return;
     }
     const ctx = this.ctx(file, phone);
+    el.setCssProps({ "--ct-acc": coverHex(this.trip.cover, this.trip.accent) });      /* los detalles (progreso, hechas, coste) van del color de la portada */
     const page = h("div", { cls: "ct-page" });
     page.appendChild(ticket({
       mode: "note", phone, trip: this.trip, expanded: this.editing, locked: !this.editing,
@@ -98,7 +99,6 @@ export class TripView extends TextFileView {
     if (phone) page.append(mochila(ctx), porHacer(ctx), plan(ctx), coste(ctx));
     else page.appendChild(h("div", { cls: "ct-columns" }, plan(ctx), aside = h("aside", { cls: "ct-aside" }, mochila(ctx), porHacer(ctx), coste(ctx))));
     el.appendChild(page);
-    if (phone) this.clearHeader(page);
     fitRoutes(page);
     this.lastWidth = el.clientWidth;
     this.watchWidth();
@@ -106,16 +106,6 @@ export class TripView extends TextFileView {
     this.watchAside(aside);
   }
 
-  /* móvil con la cabecera flotante (y la Cool Bar a su altura): la portada empieza debajo de sus botones, no tapada por ellos */
-  private clearHeader(page: HTMLElement) {
-    const btns = [":scope > .view-header", ":scope > .cool-bar"].flatMap(sel => {
-      const box = this.containerEl.querySelector<HTMLElement>(sel);
-      return box ? Array.from(box.querySelectorAll<HTMLElement>("button, .clickable-icon")) : [];
-    }).map(b => b.getBoundingClientRect()).filter(r => r.height > 20 && r.height <= 72 && r.width <= 160);
-    const top = page.getBoundingClientRect().top + this.contentEl.scrollTop;
-    const covered = btns.filter(r => r.top < top + 40).map(r => r.bottom);
-    page.setCssProps({ "--ct-head-gap": (covered.length ? Math.max(0, Math.ceil(Math.max(...covered) + 8 - (top + 14))) : 0) + "px" });
-  }
 
   /* el lateral acompaña al plan: si no cabe en la pantalla, baja con el scroll hasta que se ve su final y ahí se queda */
   private asideObs: ResizeObserver | null = null;

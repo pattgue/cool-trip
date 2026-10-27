@@ -20,7 +20,7 @@
 .ct-task + .ct-task { border-top: 1px solid var(--ct-line); }
 .ct-task-check { flex: none; width: 18px; height: 18px; margin-top: 1px; padding: 0; border-radius: 50%; border: 1.5px solid var(--ct-muted) !important; background: transparent !important;
   display: grid; place-items: center; color: var(--ct-ticket); }
-.ct-task-check.is-done { border: 0 !important; background-color: var(--ct-berm) !important; }
+.ct-task-check.is-done { border: 0 !important; background-color: var(--ct-acc, var(--ct-berm)) !important; }
 .ct-task-check .ct-ico svg { width: 11px; height: 11px; stroke-width: 3.4; }
 .ct-task-check:disabled { cursor: default; opacity: 1; }
 .ct-task-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }

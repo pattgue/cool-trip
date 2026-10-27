@@ -14,7 +14,7 @@ import { accentOf, button, destHex, faces, icon, iconButton, label, notchH, notc
 
 /* un formulario abierto: en qué día, qué paso (o -1 si es nuevo) y en qué hueco se abrió («at») */
 export interface FormState { day: number; index: number; draft: Item; isNew: boolean; at?: string; target?: number }
-export interface DocAdd { key: string; draft: Doc }
+export interface DocAdd { key: string; draft: Doc; index?: number }            // index: el documento que se edita (sin él, uno nuevo)
 export interface PlanCtx {
   app: App; s: Settings; trip: Trip; file: TFile; phone: boolean;
   form: FormState | null;
@@ -202,9 +202,17 @@ const peopleLabel = (ctx: PlanCtx, it: Item) => it.para.length ? it.para : ctx.t
 /* los documentos de una reserva; «+ Documento» abre una ventanita solo para eso */
 function docsBlock(ctx: PlanCtx, it: Item, key: string, inline: boolean): HTMLElement {
   const adding = ctx.docAdd?.key === key ? ctx.docAdd : null;
+  const editing = adding?.index;
   return h("div", { cls: "ct-docs" + (inline ? " is-inline" : "") },
-    it.docs.map(d => docButton(ctx, d, ctx.trip.travelers)),
-    adding ? docForm({
+    it.docs.map((d, i) => editing === i && adding ? docForm({
+      s: ctx.s, travelers: ctx.trip.travelers, draft: adding.draft, small: true,
+      onCancel: () => ctx.setDocAdd(null),
+      onSave: nd => { it.docs[i] = nd; ctx.setDocAdd(null, false); ctx.commit(); },
+    }) : h("div", { cls: "ct-doc-edit-row" }, docButton(ctx, d, ctx.trip.travelers),
+      h("span", { cls: "ct-doc-acts ct-hover" },
+        iconButton("pencil", t("edit"), () => ctx.setDocAdd({ key, index: i, draft: { ...d, also: [...d.also], para: [...d.para] } }), "ct-ibtn ct-ibtn-sm"),
+        iconButton("x", t("remove"), () => { it.docs.splice(i, 1); ctx.commit(); }, "ct-ibtn ct-ibtn-sm")))),
+    adding && editing === undefined ? docForm({
       s: ctx.s, travelers: ctx.trip.travelers, draft: adding.draft, small: true, title: t("doc.new"),
       bag: ctx.trip.mochila.filter(m => !it.docs.some(x => x.name === m.name)),
       onCancel: () => ctx.setDocAdd(null),

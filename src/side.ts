@@ -9,7 +9,7 @@ import { lodgings } from "./plan";
 import { blankDoc, docButton, docForm, docWheres, firstWhere } from "./docs";
 import type { Doc, Item, Task, Where } from "./types";
 import { isTransport } from "./types";
-import { PALETTE, avatar, button, icon, iconButton, label, plain } from "./ui";
+import { avatar, button, icon, iconButton, label, plain } from "./ui";
 
 export interface SideCtx extends PlanCtx {
   folded: Set<string>;            // cajas contraídas (en el móvil)
@@ -122,7 +122,7 @@ export function porHacer(ctx: SideCtx): HTMLElement {
   const pending = tr.tasks.filter(x => !x.done), done = tr.tasks.filter(x => x.done);
   const total = tr.tasks.length + sugg.length, ndone = done.length + auto.length;
   const bar = h("div", { cls: "ct-progress", attr: { role: "progressbar", "aria-valuenow": String(ndone), "aria-valuemax": String(total) } }, h("span", null));
-  (bar.firstChild as HTMLElement).setCssProps({ "--ct-p": total ? `${(ndone / total) * 100}%` : "0%", "--ct-accent-fill": PALETTE[0].hex });
+  (bar.firstChild as HTMLElement).setCssProps({ "--ct-p": total ? `${(ndone / total) * 100}%` : "0%", "--ct-accent-fill": "var(--ct-acc)" });
   const right = h("span", { cls: "ct-count" }, `${ndone}/${total}`);
   const add = h("input", { cls: "ct-input", attr: { type: "text", placeholder: t("todo.add") } });
   add.addEventListener("keydown", ev => {
@@ -155,7 +155,6 @@ export function porHacer(ctx: SideCtx): HTMLElement {
 
 /* ---------- coste ---------- */
 const CAT = (it: Item): string => isTransport(it.kind) ? "transport" : it.kind === "lodging" ? "lodging" : it.kind === "meal" ? "meals" : it.kind === "ticket" ? "tickets" : it.kind === "place" ? "places" : "other";
-const CAT_COLOR: Record<string, string> = { transport: "#E8613C", lodging: "#9CC9F0", meals: "#EDC14B", tickets: "#B5D69A", places: "#C2B3F5", other: "#F5AFC0" };
 export function coste(ctx: SideCtx): HTMLElement {
   const tr = ctx.trip;
   const items = tr.days.flatMap(d => d.items).filter(i => i.price);
@@ -178,7 +177,7 @@ export function coste(ctx: SideCtx): HTMLElement {
     if (dest.nights && !Array.from({ length: dest.nights }, (_, i) => addDays(first, i)).some(n => spans.some(l => l.from <= n && n < l.to))) missing.push(t("slot.lodging", { c: dest.city }));
   }
   const rows = Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([k, v]) => {
-    const fill = h("span", null); fill.setCssProps({ "--ct-p": total ? `${Math.max(2, (v / total) * 100)}%` : "0%", "--ct-accent-fill": CAT_COLOR[k] });
+    const fill = h("span", null); fill.setCssProps({ "--ct-p": total ? `${Math.max(2, (v / total) * 100)}%` : "0%", "--ct-accent-fill": "var(--ct-acc)" });
     return h("div", { cls: "ct-cost-row" }, h("span", { cls: "ct-cost-line" }, h("span", null, t("cost." + k)), h("span", { cls: "ct-num" }, fmtMoney(v, cur))),
       h("span", { cls: "ct-progress is-thin" }, fill));
   });
