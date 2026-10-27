@@ -7,7 +7,7 @@ import { h } from "./dom";
 import { t } from "./i18n";
 import { isIso } from "./dates";
 import { parseTrip, serializeTrip } from "./md";
-import { allPlaces, createPlace, isTripFile, resolve, walletUrl } from "./places";
+import { allPlaces, createPlace, resolve, walletUrl } from "./places";
 import type { PlaceInfo } from "./places";
 import { plan } from "./plan";
 import type { DocAdd, FormState } from "./plan";
@@ -76,7 +76,7 @@ export class TripView extends TextFileView {
     this.placesCache = null;
     const file = this.file;
     if (!file || !this.trip) return;
-    if (!isTripFile(this.app, this.plugin.settings, file) && !this.data.includes("[!cool-trip]")) {
+    if (!this.plugin.isTrip(file) && !/^>\s*\[!cool-trip/im.test(this.data)) {
       el.appendChild(h("div", { cls: "ct-empty" }, h("p", null, t("notTrip")),
         button(t("cmd.toggle"), "ct-btn-ghost", () => void this.plugin.toggleLeaf(this.leaf))));
       return;
@@ -108,7 +108,7 @@ export class TripView extends TextFileView {
     const btns = [":scope > .view-header", ":scope > .cool-bar"].flatMap(sel => {
       const box = this.containerEl.querySelector<HTMLElement>(sel);
       return box ? Array.from(box.querySelectorAll<HTMLElement>("button, .clickable-icon")) : [];
-    }).map(b => b.getBoundingClientRect()).filter(r => r.height > 0);
+    }).map(b => b.getBoundingClientRect()).filter(r => r.height > 20 && r.height <= 72 && r.width <= 160);
     const top = page.getBoundingClientRect().top + this.contentEl.scrollTop;
     const covered = btns.filter(r => r.top < top + 40).map(r => r.bottom);
     page.setCssProps({ "--ct-head-gap": (covered.length ? Math.max(0, Math.ceil(Math.max(...covered) + 8 - (top + 14))) : 0) + "px" });

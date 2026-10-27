@@ -70,6 +70,7 @@
 .ct-dest-rows.is-big .ct-dest-city { font-size: 17px; }
 /* el nombre baja de línea si no cabe, en vez de meterse debajo de los botones */
 .ct-dest-city { max-width: 100%; white-space: normal; overflow-wrap: anywhere; line-height: 1.15; }
+.ct-dest-rows.is-big .ct-dest-city { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ct-dest-top > .ct-stepper, .ct-dest-top > .ct-ibtn { flex: none; }
 .ct-dest-rows.is-big .ct-stepbtn { width: 40px; height: 40px; }
 .ct-dest-rows.is-big .ct-dest-people { padding-left: 0; gap: 8px; }
@@ -141,12 +142,11 @@
 
 /* el modal de Nuevo viaje */
 .ct-modal { --ct-page: var(--modal-background, var(--background-primary)); width: min(1240px, 96vw); max-width: none; border-radius: 28px; padding: 22px 24px 24px; }
-.ct-modal .modal-close-button, .ct-modal .ct-hidden, .modal-container:has(.ct-modal) :is(.modal-close-button, .modal-header, .ct-hidden) { display: none !important; }
 .ct-modal .modal-content { display: flex; flex-direction: column; gap: 16px; }
 .ct-modal .modal-content > * { flex-shrink: 0; }
-.ct-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+.ct-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 48px 0 4px; }    /* a la derecha, la ✕ de Obsidian */
 .ct-h-modal { font-weight: 900; font-size: 30px; letter-spacing: -.03em; text-transform: uppercase; color: var(--ct-strong); white-space: pre; }
-.ct-modal.is-phone { width: 100vw; height: 100%; max-height: none; border-radius: 0; padding: 16px 12px 0; display: flex; flex-direction: column; overflow: hidden; }
+.ct-modal.is-phone { width: 100vw; height: 100%; max-height: none; border-radius: 0; padding: calc(16px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) 12px 0; display: flex; flex-direction: column; overflow: hidden; }
 /* en el móvil, el contenido hace scroll (con hueco abajo para la barra del sistema) */
 .ct-modal.is-phone .modal-content { flex: 1 1 auto; min-height: 0; overflow-y: auto !important; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
   padding-bottom: calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); }

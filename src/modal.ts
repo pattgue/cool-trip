@@ -11,7 +11,7 @@ import { ticket } from "./ticket";
 import { promptText } from "./prompt";
 import type { Trip } from "./types";
 import { VIEW_TYPE } from "./view";
-import { iconButton, paletteId } from "./ui";
+import { paletteId } from "./ui";
 
 export class NewTripModal extends Modal {
   plugin: CoolTripPlugin;
@@ -26,12 +26,6 @@ export class NewTripModal extends Modal {
     this.modalEl.addClass("ct-root", "ct-modal");
     this.modalEl.toggleClass("is-phone", Platform.isPhone);
     this.draw();
-    /* ya hay una ✕ junto al título: fuera la de Obsidian (según la versión, dentro del modal o en su contenedor) */
-    const hideClose = () => this.containerEl.querySelectorAll<HTMLElement>(".modal-close-button, .modal-header").forEach(el => {
-      if (!this.contentEl.contains(el)) el.addClass("ct-hidden");
-    });
-    hideClose();
-    window.setTimeout(hideClose, 0);
   }
   /* «2026 - Italia», «2026 - Italia y Grecia» o, sin país, «2026 - Roma y Palermo» */
   private autoName() {
@@ -49,8 +43,7 @@ export class NewTripModal extends Modal {
     el.empty();
     const folder = tripFolder(this.plugin.settings);
     el.appendChild(h("div", { cls: "ct-modal-head" },
-      h("span", { cls: "ct-h-modal" }, Platform.isPhone ? t("new.title") : `COOL TRIP  ·  ${t("new.title")}`),
-      iconButton("x", t("close"), () => this.close(), "ct-ibtn")));
+      h("span", { cls: "ct-h-modal" }, Platform.isPhone ? t("new.title") : `COOL TRIP  ·  ${t("new.title")}`)));
     el.appendChild(ticket({
       mode: "create", phone: Platform.isPhone, trip: this.trip,
       path: [folder, (this.trip.name || "…") + ".md"].filter(Boolean).join(" / "),

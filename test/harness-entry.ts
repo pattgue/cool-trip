@@ -24,7 +24,7 @@ const app = {
   workspace: { openLinkText: () => {}, getLeaf: () => ({ openFile: () => {} }) },
   fileManager: {},
 };
-const plugin = { settings: defaultSettings("es"), app,
+const plugin = { settings: defaultSettings("es"), app, isTrip: () => true,
   coverSrc: (c: string) => /^(https?|data):/.test(c) ? c : null,
   askDest: async () => ({ city: "Roma", country: "Italia" }) };
 if (window.__mode.startsWith("settings")) {

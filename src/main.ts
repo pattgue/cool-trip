@@ -30,7 +30,7 @@ export default class CoolTripPlugin extends Plugin {
       checkCallback: checking => {
         const leaf = this.app.workspace.getMostRecentLeaf();
         const v = leaf?.view;
-        const ok = v instanceof TripView || (v instanceof MarkdownView && isTripFile(this.app, this.settings, v.file));
+        const ok = v instanceof TripView || (v instanceof MarkdownView && !!v.file);
         if (ok && !checking && leaf) void this.toggleLeaf(leaf);
         return ok;
       },
@@ -46,7 +46,7 @@ export default class CoolTripPlugin extends Plugin {
       kind: "view",
       toggle: leaf => {
         const v = leaf.view;
-        if (v instanceof TripView || (v instanceof MarkdownView && isTripFile(this.app, this.settings, v.file))) void this.toggleLeaf(leaf);
+        if (v instanceof TripView || (v instanceof MarkdownView && this.isTrip(v.file))) void this.toggleLeaf(leaf);
         else new NewTripModal(this).open();
       },
       saveShared: async data => { this.settings.coolBar = data; await this.saveData(this.settings); },
@@ -55,7 +55,7 @@ export default class CoolTripPlugin extends Plugin {
 
     /* las notas de viaje se abren pintadas */
     this.registerEvent(this.app.workspace.on("file-open", () => this.syncLeaves()));
-    this.registerEvent(this.app.metadataCache.on("changed", file => { if (isTripFile(this.app, this.settings, file)) this.syncLeaves(); }));
+    this.registerEvent(this.app.metadataCache.on("changed", file => { this.marked.delete(file.path); this.syncLeaves(); }));
     this.app.workspace.onLayoutReady(() => { void this.adapt(); this.syncLeaves(); });
     this.registerEvent(this.app.metadataCache.on("resolved", () => { void this.adapt(); }));
   }
@@ -102,13 +102,27 @@ export default class CoolTripPlugin extends Plugin {
     return f instanceof TFile ? this.app.vault.getResourcePath(f) : null;
   }
 
+  /* una nota de viaje: la reconocen los ajustes o lleva el bloque del plugin (> [!cool-trip…]), aunque los ajustes no la reconozcan */
+  marked = new Map<string, boolean>();
+  isTrip(f: TFile | null | undefined): f is TFile {
+    return !!f && f.extension === "md" && (this.marked.get(f.path) === true || isTripFile(this.app, this.settings, f));
+  }
+  private async checkMarker(f: TFile) {
+    const has = /^>\s*\[!cool-trip/im.test(await this.app.vault.cachedRead(f));
+    const before = this.marked.get(f.path);
+    this.marked.set(f.path, has);
+    if (has && !before) this.syncLeaves();
+  }
+
   syncLeaves() {
     const ws = this.app.workspace;
     ws.iterateAllLeaves(leaf => {
       const root = leaf.getRoot();
       if (root === ws.leftSplit || root === ws.rightSplit) return;
       const v = leaf.view;
-      if (v instanceof MarkdownView && v.file && !this.asMarkdown.has(v.file.path) && isTripFile(this.app, this.settings, v.file)) {
+      if (!(v instanceof MarkdownView) || !v.file || this.asMarkdown.has(v.file.path)) return;
+      if (!this.marked.has(v.file.path)) void this.checkMarker(v.file);
+      if (this.isTrip(v.file)) {
         void leaf.setViewState({ type: VIEW_TYPE, state: { file: v.file.path }, active: leaf === ws.getMostRecentLeaf() });
       }
     });

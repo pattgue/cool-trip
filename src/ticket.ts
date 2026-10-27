@@ -186,7 +186,7 @@ function destRows(ctx: TicketCtx, big: boolean): HTMLElement {
     const people = edit ? tr.travelers.map((p, k) => big ? personChip(p, k, d.travelers.includes(p), () => toggleDestTraveler(ctx, i, p))
       : miniPerson(p, k, d.travelers.includes(p), () => toggleDestTraveler(ctx, i, p)))
       : d.travelers.map(p => h("span", { cls: "ct-mini-person is-on is-static" }, avatar(p, Math.max(0, tr.travelers.indexOf(p)), "ct-avatar ct-avatar-xs"), h("span", null, p)));
-    const cityText = d.country ? `${d.city} · ${d.country}` : d.city;
+    const cityText = d.country && !big ? `${d.city} · ${d.country}` : d.city;      /* en el móvil, como en el diseño: solo la ciudad */
     box.appendChild(h("div", { cls: "ct-dest-row" },
       h("div", { cls: "ct-dest-top" }, sw,
         h("span", { cls: "ct-dest-name" }, edit ? button(cityText, "ct-dest-city", () => editDest(ctx, i), { "aria-label": `${t("edit")} ${d.city}` }) : h("span", { cls: "ct-dest-city" }, cityText),
@@ -315,7 +315,8 @@ function phone(ctx: TicketCtx): HTMLElement {
         dateField(ctx, t("new.return"), tr.end, v => setDates(ctx, tr.start, v), "md"),
         staticField(t("new.days"), days ? String(days) : "—", "md"),
         staticField(t("new.nights"), days ? String(nightsTotal(tr)) : "—", "md")));
-    editor.appendChild(barcode(plain(tr.name).replace(/\W/g, "").toUpperCase() || "COOLTRIP", "CT · " + (tr.start.slice(0, 4) || "")));
+    editor.appendChild(barcode(plain(tr.name).replace(/\W/g, "").toUpperCase() || "COOLTRIP",
+      ["CT", isIso(tr.start) ? tr.start.slice(0, 4) : "", ...tr.dests.slice(0, 3).map(d => plain(d.city).slice(0, 3).toUpperCase())].filter(Boolean).join(" · ")));
     editor.appendChild(button([h("span", null, t("new.create")), icon("arrow-right")], "ct-btn-primary ct-btn-create", () => ctx.create?.()));
     return h("div", { cls: "ct-ticket ct-ticket-phone is-create" }, header, body, notchH(), editor);
   }

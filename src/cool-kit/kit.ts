@@ -233,7 +233,10 @@ class BarPainter {
     bar.toggleClass("is-overlay", on);
     if (!on || !head) return;
     const hr = host.getBoundingClientRect(), mid = hr.left + hr.width / 2;
-    const btns = Array.from(head.querySelectorAll<HTMLElement>("button, .clickable-icon")).map(b => b.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0);
+    /* solo los botones de la cabecera (pequeños y arriba); si no se encuentran, valen los valores del CSS */
+    const btns = Array.from(head.querySelectorAll<HTMLElement>("button, .clickable-icon")).map(b => b.getBoundingClientRect())
+      .filter(r => r.width > 20 && r.height > 20 && r.width <= 72 && r.height <= 72 && r.top - hr.top < 160);
+    bar.setCssProps({ "--cool-top": "", "--cool-h": "", "--cool-l": "", "--cool-r": "" });
     if (!btns.length) return;
     const left = btns.filter(r => r.left + r.width / 2 < mid), right = btns.filter(r => r.left + r.width / 2 >= mid);
     const top = Math.min(...btns.map(r => r.top)), bottom = Math.max(...btns.map(r => r.bottom)), gap = 8;
