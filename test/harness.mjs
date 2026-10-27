@@ -22,8 +22,9 @@ button{background:#363636;border:0;border-radius:4px;height:30px}</style></head>
 <script src="harness.js"></script></body></html>`;
 writeFileSync(join(out, "view.html"), page("view"));
 writeFileSync(join(out, "modal.html"), page("modal"));
+for (let i = 1; i <= 7; i++) writeFileSync(join(out, `settings${i}.html`), page("settings" + i));
 const b = await chromium.launch();
-for (const [name, w, mode, phone] of [["desk", 1440, "view", false], ["phone", 390, "view", true], ["modal", 1440, "modal", false], ["modal-phone", 390, "modal", true]]) {
+for (const [name, w, mode, phone] of [...[1, 2, 3, 4, 5, 6, 7].map(i => ["settings" + i, 1100, "settings" + i, false]), ["desk", 1440, "view", false], ["phone", 390, "view", true], ["modal", 1440, "modal", false], ["modal-phone", 390, "modal", true]]) {
   const p = await b.newPage({ viewport: { width: w, height: 900 } });
   const errs = [];
   p.on("pageerror", e => errs.push(e.message));

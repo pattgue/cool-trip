@@ -2,6 +2,7 @@
 import { TripView } from "../src/view";
 import { NewTripModal } from "../src/modal";
 import { defaultSettings } from "../src/settings";
+import { CoolTripSettingTab } from "../src/settings-tab";
 import { TFile } from "obsidian";
 declare const window: Window & { __sample: string; __phone: boolean; __mode: string };
 
@@ -18,12 +19,18 @@ const app = {
     getFirstLinkpathDest: (l: string) => files.find(f => f.basename === l) || null,
     getFileCache: (f: TFile & { fm: Record<string, unknown> }) => ({ frontmatter: f.fm }),
   },
-  vault: { getMarkdownFiles: () => [...files, trip], getAbstractFileByPath: () => null, getResourcePath: () => "" },
+  vault: { getMarkdownFiles: () => [...files, trip], getAbstractFileByPath: () => null, getResourcePath: () => "", getAllLoadedFiles: () => [] },
   workspace: { openLinkText: () => {}, getLeaf: () => ({ openFile: () => {} }) },
   fileManager: {},
 };
 const plugin = { settings: defaultSettings("es"), app };
-if (window.__mode === "modal") {
+if (window.__mode.startsWith("settings")) {
+  const tab = new CoolTripSettingTab(app as never, plugin as never);
+  tab.step = Number(window.__mode.slice(8)) || 1;
+  document.body.appendChild(tab.containerEl);
+  (plugin as unknown as { saveSettings: () => Promise<void> }).saveSettings = async () => {};
+  tab.display();
+} else if (window.__mode === "modal") {
   const m = new NewTripModal(plugin as never);
   (m as unknown as { trip: { dests: unknown[]; start: string; end: string; travelers: string[] } }).trip.dests.push(
     { city: "Tokio", country: "Japón", nights: 6, travelers: ["Ana", "Leo"] }, { city: "Kioto", country: "Japón", nights: 5, travelers: ["Ana", "Leo"] });
