@@ -147,6 +147,15 @@ Lo esencial de cada reserva (localizador, horas, asiento, puerta) es **texto den
   - **Añadir:** un nodo «+» al final de cada día que continúa la línea: Lugar, Transporte, Alojamiento, Entrada o Nota. Los lugares siempre a una nota existente o nueva.
   - **Sin tramos:** los tiempos entre paradas no se pueden saber; el mapa da la ruta.
 
+**Ronda 5 (27-10-2026), afinado sobre las ediciones de Patt:**
+- **Billete:** los ajustes de Patt pasan a todos los billetes. Ciudades centradas con su subtítulo, botón «Destino» pequeño, sombra suave, banda con más espacio entre letras y código de barras a todo el ancho con su leyenda centrada. «Crear viaje» con esquinas de 18 px. En el móvil, la cabecera es TOKIO / barra con «Destino» / KIOTO, también en la nota. El tirador del reparto se quita en el móvil (ya están los − / +). La imagen de portada es una burbuja más y se quita el grafito.
+- **La tarjeta de embarque es solo para el transporte.** El alojamiento es una llave de hotel: etiqueta de color con agujero, las noches en grande, check-in y check-out. La entrada es una entrada de toda la vida, con franja de color y muescas.
+- **Comidas y vueltas al alojamiento son pasos de la línea:** «Desayuno · Hotel Kaminarimon · incluido», «Cena · Omoide Yokocho · 60 €», «21:30 Vuelta al hotel». Las que faltan son huecos discontinuos con Restaurante, En casa o Picar algo. En los días sin planes siguen como una fila de pastillas.
+- **Documentos:** botones finos de una línea. Los de papel llevan un borde mostaza fino y la etiqueta EN PAPEL.
+- **Por hacer:** pendientes y hechas por separado, con filas separadas. El progreso y las hechas van en bermellón.
+- **Formulario de alojamiento:** Check-in y Check-out; desplegables para Habitación y «Camas de la habitación».
+- **Flechas de plegar:** como en Obsidian. Contraído › y desplegado ⌄.
+
 **Markdown (ronda 4, a Patt le cuadra):**
 - **Portada:** frontmatter (`tipo`, `inicio`, `fin`, `destinos`, `viajeros`, `portada`) y un callout `[!cool-trip]` con una línea por destino (noches y viajeros).
 - **Secciones:** `## Mochila` (enlace o «en papel») y `## Por hacer` (tareas `- [ ]`).
