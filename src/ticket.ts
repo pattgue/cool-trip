@@ -4,7 +4,7 @@ import { t } from "./i18n";
 import { dayNum, diffDays, isIso, longDate, spanLabel, todayIso, weekday, dayLabel } from "./dates";
 import { balanceNights, citiesOfDay, nightsTotal, redate, tripDates } from "./md";
 import type { Trip } from "./types";
-import { PALETTE, avatar, barcode, button, coverHex, destHex, icon, iconButton, kicker, label, miniPerson, notchH, notchV, paletteId, personChip, plain } from "./ui";
+import { PALETTE, accentOf, avatar, barcode, button, coverHex, destHex, icon, iconButton, imageAccent, kicker, label, miniPerson, notchH, notchV, paletteId, personChip, plain, useAccent } from "./ui";
 
 export interface TicketCtx {
   mode: "create" | "note";
@@ -14,6 +14,7 @@ export interface TicketCtx {
   expanded?: boolean;                            // en el móvil, la portada de la nota desplegada para editarla
   changed(): void;                               // tras cada cambio: repintar (y guardar, en la nota)
   prompt(title: string, placeholder: string, value?: string): Promise<string | null>;
+  promptDest(city: string, country: string, fallbackCountry: string): Promise<{ city: string; country: string } | null>;
   rename?(name: string): void;                   // cambiar el nombre de la nota
   create?(): void;
   toggleExpanded?(): void;
@@ -29,17 +30,23 @@ const fit = (names: string[], width: number, max: number) => {
 
 /* ---------- acciones sobre el viaje (las comparten escritorio y móvil) ---------- */
 function addDest(ctx: TicketCtx) {
-  void ctx.prompt(t("addDest"), t("dest.ph")).then(v => {
+  const tr = ctx.trip;
+  void ctx.promptDest("", "", tr.dests[tr.dests.length - 1]?.country || "").then(v => {
     if (!v) return;
-    const [city, ...country] = v.split(",").map(s => s.trim());
-    if (!city) return;
-    const tr = ctx.trip;
-    tr.dests.push({ city, country: country.join(", "), nights: 0, travelers: [...tr.travelers] });
+    tr.dests.push({ city: v.city, country: v.country, nights: 0, travelers: [...tr.travelers] });
     if (tr.dests.length > 1) {                                  // el nuevo se queda con la mitad de las noches del anterior
       const prev = tr.dests[tr.dests.length - 2], half = Math.floor(prev.nights / 2);
       prev.nights -= half; tr.dests[tr.dests.length - 1].nights = half;
     }
     balanceNights(tr);
+    ctx.changed();
+  });
+}
+function editDest(ctx: TicketCtx, i: number) {
+  const d = ctx.trip.dests[i];
+  void ctx.promptDest(d.city, d.country, d.country).then(v => {
+    if (!v) return;
+    d.city = v.city; d.country = v.country;
     ctx.changed();
   });
 }
@@ -89,11 +96,15 @@ function setDates(ctx: TicketCtx, start: string, end: string) {
 
 /* un campo de fecha: se ve el texto bonito y encima, invisible, el selector de fecha del sistema */
 function dateField(ctx: TicketCtx, lbl: string, value: string, set: (v: string) => void, size: "lg" | "md" | "sm"): HTMLElement {
-  const input = h("input", { cls: "ct-date-input", attr: { type: "date", value, "aria-label": lbl } });
+  const input = h("input", { cls: "ct-date-input", attr: { type: "date", value, tabindex: "-1", "aria-hidden": "true" } });
   input.addEventListener("change", () => set(input.value));
   const text = value ? (size === "lg" ? longDate(value) : dayLabel(value)) : "—";
-  return h("label", { cls: `ct-field ct-field-${size}` + (ctx.mode === "create" ? " is-input" : "") },
-    label(lbl), h("span", { cls: "ct-field-value" }, text, ctx.mode === "create" ? icon("calendar") : null), input);
+  const open = () => {
+    try { input.showPicker(); } catch { input.focus(); input.click(); }
+  };
+  const field = button([label(lbl), h("span", { cls: "ct-field-value" }, text, ctx.mode === "create" ? icon("calendar") : null)],
+    `ct-field ct-field-btn ct-field-${size}` + (ctx.mode === "create" ? " is-input" : ""), open, { "aria-label": `${lbl}: ${text}` });
+  return h("span", { cls: "ct-field-wrap" }, field, input);
 }
 const staticField = (lbl: string, value: string | Node, size: "lg" | "md" | "sm") =>
   h("span", { cls: `ct-field ct-field-${size}` }, label(lbl), h("span", { cls: "ct-field-value" }, value));
@@ -110,17 +121,27 @@ function countdown(tr: Trip, big: boolean): HTMLElement {
 }
 
 function swatches(ctx: TicketCtx): HTMLElement {
-  const cur = paletteId(ctx.trip.cover);
+  const tr = ctx.trip, cur = paletteId(tr.cover);
   const box = h("div", { cls: "ct-swatches", attr: { role: "radiogroup", "aria-label": t("new.cover") } });
   for (const p of PALETTE) {
-    const b = button(null, "ct-swatch" + (cur === p.id ? " is-on" : ""), () => { ctx.trip.cover = t("palette." + p.id).toLowerCase(); ctx.changed(); },
+    const b = button(null, "ct-swatch" + (cur === p.id ? " is-on" : ""), () => { tr.cover = t("palette." + p.id).toLowerCase(); tr.accent = ""; ctx.changed(); },
       { role: "radio", "aria-checked": String(cur === p.id), "aria-label": t("palette." + p.id) });
     b.setCssProps({ "--ct-swatch": p.hex });
     box.appendChild(b);
   }
-  box.appendChild(button(icon("image"), "ct-swatch ct-swatch-img" + (cur ? "" : " is-on"), () => {
-    void ctx.prompt(t("coverImage"), t("new.imagePh"), cur ? "" : ctx.trip.cover).then(v => { if (v) { ctx.trip.cover = v.trim(); ctx.changed(); } });
-  }, { role: "radio", "aria-checked": String(!cur), "aria-label": t("coverImage") }));
+  const img = button(icon("image"), "ct-swatch ct-swatch-img" + (cur ? "" : " is-on"), () => {
+    void ctx.prompt(t("coverImage"), t("new.imagePh"), cur ? "" : tr.cover).then(v => {
+      if (!v) return;
+      tr.accent = accentOf(tr.cover, tr.accent);                 // si la imagen no deja leer su color, se queda el último
+      tr.cover = v.trim();
+      ctx.changed();
+      const src = ctx.coverSrc?.(tr.cover);
+      if (src) void imageAccent(src).then(id => { if (id && id !== tr.accent && tr.cover === v.trim()) { tr.accent = id; ctx.changed(); } });
+    });
+  }, { role: "radio", "aria-checked": String(!cur), "aria-label": t("coverImage") });
+  const src = !cur ? ctx.coverSrc?.(tr.cover) : null;
+  if (src) { img.addClass("has-image"); img.setCssProps({ "--ct-cover-img": `url("${src.replace(/"/g, "%22")}")` }); }
+  box.appendChild(img);
   return box;
 }
 
@@ -156,7 +177,7 @@ function destRows(ctx: TicketCtx, big: boolean): HTMLElement {
       : miniPerson(p, k, d.travelers.includes(p), () => toggleDestTraveler(ctx, i, p)));
     box.appendChild(h("div", { cls: "ct-dest-row" },
       h("div", { cls: "ct-dest-top" }, sw,
-        h("span", { cls: "ct-dest-name" }, h("span", { cls: "ct-dest-city" }, d.city), h("span", { cls: "ct-dest-dates" }, [a && b ? spanLabel(a, b) : "", t("nights")].filter(Boolean).join(" · "))),
+        h("span", { cls: "ct-dest-name" }, button(d.country ? `${d.city} · ${d.country}` : d.city, "ct-dest-city", () => editDest(ctx, i), { "aria-label": `${t("edit")} ${d.city}` }), h("span", { cls: "ct-dest-dates" }, [a && b ? spanLabel(a, b) : "", t("nights")].filter(Boolean).join(" · "))),
         tr.dests.length > 1 ? stepper(ctx, i) : h("span", { cls: "ct-step-n" }, String(d.nights)),
         iconButton("x", t("removeDest"), () => removeDest(ctx, i), "ct-ibtn ct-ibtn-sm")),
       people.length ? h("div", { cls: "ct-dest-people" }, people) : null));
@@ -187,10 +208,9 @@ function noteName(ctx: TicketCtx, big: boolean): HTMLElement {
   return el;
 }
 function coverStyle(ctx: TicketCtx, el: HTMLElement) {
-  const id = paletteId(ctx.trip.cover);
-  if (id) { el.setCssProps({ "--ct-cover": coverHex(ctx.trip.cover) }); return; }
+  el.setCssProps({ "--ct-cover": coverHex(ctx.trip.cover, ctx.trip.accent) });
+  if (paletteId(ctx.trip.cover)) return;
   const src = ctx.coverSrc?.(ctx.trip.cover);
-  el.setCssProps({ "--ct-cover": coverHex("") });
   if (src) { el.addClass("has-image"); el.setCssProps({ "--ct-cover-img": `url("${src.replace(/"/g, "%22")}")` }); }
 }
 const destBtn = (ctx: TicketCtx, small: boolean) =>
@@ -293,5 +313,8 @@ function phone(ctx: TicketCtx): HTMLElement {
   return h("div", { cls: "ct-ticket ct-ticket-phone" }, header, cells, ctx.expanded ? h("div", { cls: "ct-phone-edit" }, noteName(ctx, true), editor) : null, notchH(), stub);
 }
 
-export function ticket(ctx: TicketCtx): HTMLElement { return ctx.phone ? phone(ctx) : desktop(ctx); }
+export function ticket(ctx: TicketCtx): HTMLElement {
+  useAccent(accentOf(ctx.trip.cover, ctx.trip.accent));
+  return ctx.phone ? phone(ctx) : desktop(ctx);
+}
 export { INK };

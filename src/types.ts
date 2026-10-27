@@ -21,6 +21,7 @@ export interface Settings {
   maps: { app: MapsApp; modes: string[] };
   bases: { folder: string };
   visited: number[];           // pasos de los ajustes ya revisados (número en verde)
+  countries: Record<string, string>;   // el país de cada ciudad que ya has usado (para ponerlo solo)
   language: "es" | "en";       // el idioma con el que se crearon las sugerencias
   coolBar?: BarSettings;
 }
@@ -63,6 +64,7 @@ export interface Trip {
   dests: Dest[];
   travelers: string[];
   cover: string;               // nombre de la paleta, o ruta / URL de una imagen
+  accent: string;              // id de la paleta del viaje (si la portada es una imagen, el último color elegido)
   mochila: Doc[];
   tasks: Task[];
   days: Day[];                 // uno por fecha, más los que quedaron fuera de las fechas

@@ -9,7 +9,7 @@ import { cloudName, iconFor, mapsUrl, placeInfo, resolve } from "./places";
 import type { PlaceInfo } from "./places";
 import type { Day, Doc, Item, Kind, Settings, Trip } from "./types";
 import { isTransport } from "./types";
-import { button, destHex, faces, icon, iconButton, label, notchH, notchV } from "./ui";
+import { accentOf, button, destHex, faces, icon, iconButton, label, notchH, notchV, useAccent } from "./ui";
 
 export interface FormState { day: number; index: number; draft: Item; isNew: boolean }
 export interface PlanCtx {
@@ -405,6 +405,7 @@ function dayEl(ctx: PlanCtx, di: number, spans: LodgingSpan[]): HTMLElement {
 
 export function plan(ctx: PlanCtx): HTMLElement {
   const tr = ctx.trip, spans = lodgings(tr);
+  useAccent(accentOf(tr.cover, tr.accent));
   const total = range(tr.start, tr.end).length;
   return h("div", { cls: "ct-plan" },
     h("div", { cls: "ct-plan-head" }, h("h2", { cls: "ct-h-big" }, t("plan")),

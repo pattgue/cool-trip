@@ -21,6 +21,7 @@ export function defaultSettings(lang: "es" | "en"): Settings {
     maps: { app: "google", modes: ["walk", "transit"] },
     bases: { folder: "" },
     visited: [],
+    countries: {},
     language: lang,
   };
 }
@@ -35,6 +36,7 @@ export function mergeSettings(saved: Partial<Settings> | null | undefined, lang:
     props: { ...d.props, ...saved.props }, files: { ...d.files, ...saved.files },
     maps: { ...d.maps, ...saved.maps }, bases: { ...d.bases, ...saved.bases },
     visited: Array.isArray(saved.visited) ? saved.visited : [],
+    countries: saved.countries && typeof saved.countries === "object" ? saved.countries : {},
   };
 }
 

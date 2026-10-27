@@ -305,7 +305,7 @@ export const tripDates = (t: Trip) => range(t.start, t.end);
 
 export function parseTrip(text: string, name: string, s: Settings): Trip {
   const P = s.props;
-  const t: Trip = { fm: {}, name, start: "", end: "", dests: [], travelers: [], cover: "", mochila: [], tasks: [], days: [], intro: [], outro: [] };
+  const t: Trip = { fm: {}, name, start: "", end: "", dests: [], travelers: [], cover: "", accent: "", mochila: [], tasks: [], days: [], intro: [], outro: [] };
   let body = text;
   const m = fmRe.exec(text);
   if (m) {
@@ -326,7 +326,9 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.trim() === MARKER) continue;
-    if (/^>\s*\[!cool-trip\]/i.test(line)) {
+    const callout = /^>\s*\[!cool-trip(?:\|([^\]]*))?\]/i.exec(line);
+    if (callout) {
+      t.accent = (callout[1] || "").trim();
       while (i + 1 < lines.length && /^>/.test(lines[i + 1])) {
         const segs = splitSeg(lines[++i].replace(/^>\s?/, ""));
         const ni = segs.findIndex(x => /^\d+\s+\S+$/.test(x) && BOTH.some(v => [v.nights, v.night].includes(low(x.split(/\s+/)[1]))));
@@ -416,7 +418,7 @@ export function serializeTrip(t: Trip, s: Settings): string {
   if (P.travelers) fm[P.travelers] = [...t.travelers];
   if (P.cover) { if (t.cover) fm[P.cover] = t.cover; else delete fm[P.cover]; }
   const out: string[] = ["---", stringifyYaml(fm).trimEnd(), "---"];
-  out.push(`> [!cool-trip] ${t.name}`);
+  out.push(`> [!cool-trip${t.accent ? "|" + t.accent : ""}] ${t.name}`);
   for (const d of t.dests) {
     out.push("> " + [d.city, d.country, `${d.nights} ${d.nights === 1 ? v.night : v.nights}`, joinNames(d.travelers)].filter(Boolean).join(" · "));
   }
@@ -437,8 +439,8 @@ export function serializeTrip(t: Trip, s: Settings): string {
 }
 
 /* un viaje nuevo (Nuevo viaje) */
-export function blankTrip(name: string, start: string, end: string, dests: Dest[], travelers: string[], cover: string): Trip {
-  const t: Trip = { fm: {}, name, start, end, dests, travelers, cover, mochila: [], tasks: [], days: [], intro: [], outro: [] };
+export function blankTrip(name: string, start: string, end: string, dests: Dest[], travelers: string[], cover: string, accent = ""): Trip {
+  const t: Trip = { fm: {}, name, start, end, dests, travelers, cover, accent, mochila: [], tasks: [], days: [], intro: [], outro: [] };
   balanceNights(t);
   t.days = tripDates(t).map(date => ({ date, items: [], raw: [] }));
   return t;

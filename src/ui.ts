@@ -9,7 +9,19 @@ export const PALETTE: { id: string; hex: string }[] = [
   { id: "bermellon", hex: "#E8613C" }, { id: "mostaza", hex: "#EDC14B" }, { id: "pistacho", hex: "#B5D69A" },
   { id: "cielo", hex: "#9CC9F0" }, { id: "lavanda", hex: "#C2B3F5" }, { id: "rosa", hex: "#F5AFC0" },
 ];
-const DEST_ORDER = ["bermellon", "cielo", "pistacho", "lavanda", "mostaza", "rosa"];
+/* el primer destino lleva el color de la portada; los siguientes, sus compañeros (complementarios y armónicos) */
+const SCHEMES: Record<string, string[]> = {
+  bermellon: ["bermellon", "cielo", "mostaza", "lavanda", "pistacho", "rosa"],
+  mostaza: ["mostaza", "lavanda", "bermellon", "cielo", "rosa", "pistacho"],
+  pistacho: ["pistacho", "rosa", "lavanda", "mostaza", "cielo", "bermellon"],
+  cielo: ["cielo", "bermellon", "mostaza", "rosa", "pistacho", "lavanda"],
+  lavanda: ["lavanda", "mostaza", "pistacho", "rosa", "bermellon", "cielo"],
+  rosa: ["rosa", "pistacho", "cielo", "mostaza", "lavanda", "bermellon"],
+};
+let scheme = SCHEMES.bermellon;
+/* el color de un viaje: el de la portada o, si la portada es una imagen, el último elegido (accent) */
+export const accentOf = (cover: string, accent: string) => paletteId(cover) || (SCHEMES[accent] ? accent : "bermellon");
+export function useAccent(id: string) { scheme = SCHEMES[id] || SCHEMES.bermellon; }
 const PEOPLE_ORDER = ["lavanda", "pistacho", "rosa", "mostaza", "cielo", "bermellon"];
 const hexOf = (id: string) => PALETTE.find(p => p.id === id)!.hex;
 export const plain = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
@@ -21,8 +33,18 @@ export function paletteId(cover: string): string | null {
   if (PALETTE.some(p => p.id === c)) return c;
   return en[c] || null;
 }
-export const coverHex = (cover: string) => hexOf(paletteId(cover) || "bermellon");
-export const destHex = (i: number) => hexOf(DEST_ORDER[i % DEST_ORDER.length]);
+export const coverHex = (cover: string, accent = "bermellon") => hexOf(accentOf(cover, accent));
+/* el color de la paleta más cercano a un color cualquiera (para una portada con imagen) */
+export function nearestPalette(r: number, g: number, b: number): string {
+  let best = "bermellon", d = Infinity;
+  for (const p of PALETTE) {
+    const n = parseInt(p.hex.slice(1), 16), dr = (n >> 16) - r, dg = ((n >> 8) & 255) - g, db = (n & 255) - b;
+    const x = 2 * dr * dr + 4 * dg * dg + 3 * db * db;
+    if (x < d) { d = x; best = p.id; }
+  }
+  return best;
+}
+export const destHex = (i: number) => hexOf(scheme[i % scheme.length]);
 export const personHex = (i: number) => hexOf(PEOPLE_ORDER[i % PEOPLE_ORDER.length]);
 
 export function icon(name: string, cls = "ct-ico"): HTMLElement {
@@ -76,6 +98,31 @@ export function barcode(seed: string, caption: string | null, height = 38): HTML
     gap.setCssProps({ "--ct-grow": String(1 + (c * 7 + i) % 3) });
   }
   return h("div", { cls: "ct-barcode" }, bars, caption ? h("span", { cls: "ct-barcode-cap" }, caption) : null);
+}
+/* el color de una imagen (los píxeles más vivos) → el color de la paleta más cercano; null si la imagen no deja leerse */
+export function imageAccent(src: string): Promise<string | null> {
+  return new Promise(res => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const c = createEl("canvas"); c.width = 32; c.height = 32;
+        const g = c.getContext("2d");
+        if (!g) { res(null); return; }
+        g.drawImage(img, 0, 0, 32, 32);
+        const d = g.getImageData(0, 0, 32, 32).data;
+        let r = 0, gr = 0, b = 0, w = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]);
+          const k = (mx - mn) / 255 * (mx / 255) + 0.02;                // más peso a lo vivo y luminoso
+          r += d[i] * k; gr += d[i + 1] * k; b += d[i + 2] * k; w += k;
+        }
+        res(w ? nearestPalette(r / w, gr / w, b / w) : null);
+      } catch { res(null); }
+    };
+    img.onerror = () => res(null);
+    img.src = src;
+  });
 }
 export const notchV = () => h("div", { cls: "ct-notch-v", attr: { "aria-hidden": "true" } });
 export const notchH = () => h("div", { cls: "ct-notch-h", attr: { "aria-hidden": "true" } });

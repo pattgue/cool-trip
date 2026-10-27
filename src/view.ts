@@ -87,10 +87,11 @@ export class TripView extends TextFileView {
       path: [file.parent && file.parent.path !== "/" ? file.parent.path : "", file.name].filter(Boolean).join(" / "),
       changed: () => this.commit(),
       prompt: (title, ph, value) => promptText(this.app, title, ph, value),
+      promptDest: (city, country, fb) => this.plugin.askDest(city, country, fb),
       rename: name => void this.rename(name),
       toggleExpanded: () => { this.expanded = !this.expanded; this.render(); },
       jump: date => this.jump(date),
-      coverSrc: cover => this.coverSrc(cover),
+      coverSrc: cover => this.plugin.coverSrc(cover, file.path),
     }));
     if (phone) page.append(mochila(ctx), porHacer(ctx), plan(ctx), coste(ctx));
     else page.appendChild(h("div", { cls: "ct-columns" }, plan(ctx), h("aside", { cls: "ct-aside" }, mochila(ctx), porHacer(ctx), coste(ctx))));
@@ -166,14 +167,6 @@ export class TripView extends TextFileView {
   private jump(date: string) {
     if (!isIso(date)) return;
     this.contentEl.querySelector(`.ct-day[data-date="${date}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  coverSrc(cover: string): string | null {
-    const c = cover.trim().replace(/^!?\[\[|\]\]$/g, "");
-    if (!c) return null;
-    if (/^https?:\/\//i.test(c)) return c;
-    const f = this.file ? resolve(this.app, c, this.file.path) : null;
-    return f instanceof TFile ? this.app.vault.getResourcePath(f) : null;
   }
 }
 

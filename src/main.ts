@@ -1,11 +1,12 @@
 /* Cool Trip: cada viaje en una nota, pintada como una tarjeta de embarque con su plan día a día.
    Se abre desde el botón COOL TRIP de la Cool Bar (Cool Kit) o con los comandos. */
-import { MarkdownView, Plugin } from "obsidian";
+import { MarkdownView, Plugin, TFile } from "obsidian";
 import type { WorkspaceLeaf } from "obsidian";
 import { joinCoolKit } from "./cool-kit/kit";
 import type { CoolKitHandle } from "./cool-kit/kit";
 import { locale, t } from "./i18n";
-import { isTripFile } from "./places";
+import { allPlaces, isTripFile, resolve } from "./places";
+import { promptDest } from "./prompt";
 import { mergeSettings } from "./settings";
 import { CoolTripSettingTab } from "./settings-tab";
 import { NewTripModal } from "./modal";
@@ -66,6 +67,28 @@ export default class CoolTripPlugin extends Plugin {
   }
 
   async saveSettings() { await this.saveData(this.settings); this.bar?.refresh(); }
+
+  /* el país de una ciudad: el que ya usaste, o el de tus notas de lugar de esa ciudad */
+  guessCountry(city: string): string {
+    const c = city.trim().toLowerCase();
+    if (!c) return "";
+    if (this.settings.countries[c]) return this.settings.countries[c];
+    return allPlaces(this.app, this.settings).find(p => p.city.toLowerCase() === c && p.country)?.country || "";
+  }
+  async askDest(city: string, country: string, fallback: string): Promise<{ city: string; country: string } | null> {
+    const v = await promptDest(this.app, t("addDest"), locale(), city, country || this.guessCountry(city) || fallback,
+      c => this.guessCountry(c) || fallback);
+    if (v?.country) { this.settings.countries[v.city.toLowerCase()] = v.country; await this.saveSettings(); }
+    return v;
+  }
+  /* la URL de una portada con imagen: un enlace o un archivo del vault */
+  coverSrc(cover: string, from: string): string | null {
+    const c = cover.trim().replace(/^!?\[\[|\]\]$/g, "").replace(/^!?\[[^\]]*\]\((.*)\)$/, "$1");
+    if (!c) return null;
+    if (/^(https?|app|file|data):/i.test(c)) return c;
+    const f = resolve(this.app, c, from);
+    return f instanceof TFile ? this.app.vault.getResourcePath(f) : null;
+  }
 
   syncLeaves() {
     const ws = this.app.workspace;
