@@ -71,6 +71,7 @@ for (const bd of BOARDS) {
 <link rel="stylesheet" href="./cool-trip.css">${bd.mode.startsWith("settings") ? '\n<link rel="stylesheet" href="./obsidian-settings.css">' : ""}
 <style>
 body{margin:0}
+html,body{overflow:hidden}
 button{background:var(--background-modifier-border);border:0;border-radius:4px;height:30px;color:var(--text-normal);font:inherit}
 </style>
 </helmet>
