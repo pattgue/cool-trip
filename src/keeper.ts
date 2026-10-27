@@ -57,16 +57,38 @@ export class BaseKeeper {
   }
 
   /* lo que falta en una base que ya existe: la vista Mapa (si está Maps) y las tarjetas de Cool Bases (si está) */
-  async missing(kind: BaseKind): Promise<{ map: boolean; cool: boolean }> {
+  /* lo que falta en una base que ya existe: todo el diseño (una base de antes de la 0.2, con una sola tabla), la vista Mapa
+     (si está Maps) o las tarjetas de Cool Bases (si está) */
+  async missing(kind: BaseKind): Promise<{ old: boolean; map: boolean; cool: boolean }> {
     const doc = await this.read(kind), env = this.env(), s = this.plugin.settings;
-    if (!doc) return { map: false, cool: false };
+    if (!doc) return { old: false, map: false, cool: false };
+    const fresh = kind === "trips" ? tripsBase(s, env) : placesBase(s, env, []);
+    const old = !doc.views.some(v => fresh.views.some(f => f.type !== "map" && f.name === v.name));
+    if (old) return { old, map: false, cool: false };
     const map = env.maps && !doc.views.some(v => v.type === "map");
-    const ours = kind === "trips" ? [tripsBase(s, env).views[0].name, tripsBase(s, env).views[1].name] : [placesBase(s, env, []).views[0].name];
+    const ours = kind === "trips" ? [fresh.views[0].name, fresh.views[1].name] : [fresh.views[0].name];
     const cool = env.cool && doc.views.some(v => (v.type === "cards" || v.type === "table") && (ours.includes(v.name) || (kind === "places" && v.type === "cards" && s.baseCities.includes(v.name.toLowerCase()))));
-    return { map, cool };
+    return { old, map, cool };
   }
   async upgrade(kind: BaseKind, what: { addMap?: boolean; useCool?: boolean }): Promise<void> {
     await this.edit(kind, async doc => syncBase(doc, kind, this.plugin.settings, this.env(), { ...what, colors: kind === "trips" ? await this.colors() : undefined }));
+  }
+  /* una base de antes: sus vistas pasan a ser las del diseño (con Cool Bases y Maps si están); se quedan las vistas que
+     añadiste tú, y se quita solo la tabla que creaba Cool Trip (con el nombre de la base) */
+  async rebuild(kind: BaseKind, oldName: string): Promise<void> {
+    const s = this.plugin.settings, env = this.env(), cities = kind === "places" ? this.cities() : [];
+    const colors = kind === "trips" ? await this.colors() : undefined;
+    await this.edit(kind, doc => {
+      const fresh = kind === "trips" ? tripsBase(s, env) : placesBase(s, env, cities);
+      const keep = doc.views.filter(v => !(v.type === "table" && v.name === oldName) && !fresh.views.some(f => f.name === v.name));
+      doc.filters = fresh.filters;
+      doc.formulas = { ...doc.formulas, ...fresh.formulas };
+      doc.properties = { ...fresh.properties, ...doc.properties };
+      doc.views = [...fresh.views, ...keep];
+      if (colors != null) syncBase(doc, kind, s, env, { colors });
+      return true;
+    });
+    if (kind === "places") { s.baseCities = [...new Set([...s.baseCities, ...cities.map(c => c.toLowerCase())])]; await this.plugin.saveSettings(); }
   }
 
   private async read(kind: BaseKind): Promise<BaseDoc | null> {
