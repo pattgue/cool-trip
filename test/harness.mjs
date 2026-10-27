@@ -14,7 +14,7 @@ const theme = process.argv[2] || "dark";
 const vars = theme === "dark"
   ? "--background-primary:#1e1e1e;--background-secondary:#262626;--background-modifier-border:#363636;--text-normal:#dcddde;--text-muted:#a8a8a8;--text-faint:#6d6d6d;--interactive-accent:#7f6df2;--text-on-accent:#fff;color-scheme:dark"
   : "--background-primary:#ffffff;--background-secondary:#f6f6f6;--background-modifier-border:#e0e0e0;--text-normal:#222;--text-muted:#5c5c5c;--text-faint:#ababab;--interactive-accent:#8a5cf5;--text-on-accent:#fff;color-scheme:light";
-const css = readFileSync(join(here, "..", "styles.css"), "utf8");
+const css = readFileSync(join(here, "..", "styles.css"), "utf8") + readFileSync(join(here, "obsidian-settings.css"), "utf8");
 const page = mode => `<!doctype html><html><head><meta charset="utf-8"><style>${css}
 body{margin:0;${vars};background:var(--background-primary);color:var(--text-normal);font-family:Inter,system-ui,sans-serif}
 button{background:#363636;border:0;border-radius:4px;height:30px}</style></head>

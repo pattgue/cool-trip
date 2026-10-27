@@ -89,5 +89,53 @@ const tOld = md.parseTrip("---\ntype: trip\nstart: 2026-12-01\nend: 2026-12-02\n
 ok("«DNI · patt» pasa a burbuja", tOld.mochila[0]?.name === "DNI" && tOld.mochila[0].para.join() === "patt", JSON.stringify(tOld.mochila));
 ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md.showPrice("$5", "€") === "$5" && md.showPrice("", "€") === "");
 
+/* ---------- las bases (src/bases.ts): cada fórmula se lee y da lo del canvas ---------- */
+{
+  const { evaluate } = await import("./bases-eval.mjs");
+  const X = await import("./bases-sample.mjs");
+  const yaml = (await import("js-yaml")).default;
+  md.setLocaleForTests("es");
+  const env = { cool: true, maps: true, iconSvg: () => "<path d='M0 0'/>" };
+  /* lo que se escribe en el .base y se vuelve a leer (las comillas de las fórmulas sobreviven al YAML) */
+  const round = o => yaml.load(yaml.dump(o, { lineWidth: -1 }));
+  const tb = round(md.tripsBase(S, env)), pb = round(md.placesBase(S, env, ["Tokio", "Kioto"]));
+  const run = (doc, n, k) => evaluate(doc.formulas[k], { fm: n.fm, file: n, formulas: doc.formulas, today: X.TODAY, notes: X.NOTES, backlinks: X.backlinks, _cache: (n._c ||= {})[doc === tb ? "t" : "p"] ||= {} });
+  const all = (doc, notes) => { const bad = []; for (const n of notes) for (const k of Object.keys(doc.formulas)) { try { run(doc, n, k); } catch (e) { bad.push(`${n.basename} · ${k}: ${e.message}`); } } return bad; };
+  const tbad = all(tb, X.TRIPS), pbad = all(pb, X.PLACES);
+  ok("fórmulas de viajes: todas se leen", !tbad.length, tbad.slice(0, 3).join(" | "));
+  ok("fórmulas de lugares: todas se leen", !pbad.length, pbad.slice(0, 3).join(" | "));
+  const T = name => X.TRIPS.find(x => x.basename === name), F = (name, k) => run(tb, T(name), k);
+  ok("cuándo", ["2026 - Alemania", "2026 - Portugal", "2026 - Italia y Grecia", "2025 - México", "2025 - Islandia", "2024 - Marruecos"].map(n => F(n, "when")).join(" / ")
+    === "Día 4 de 7 / Faltan 38 días / Hace 4 meses / Hace 1 año / Hace 1 año / Hace 2 años", ["2026 - Alemania", "2026 - Portugal", "2026 - Italia y Grecia", "2025 - México", "2025 - Islandia", "2024 - Marruecos"].map(n => F(n, "when")).join(" / "));
+  ok("pastilla", [F("2026 - Alemania", "pill"), F("2026 - Portugal", "pill"), F("2026 - Italia y Grecia", "pill")].join(" / ") === "En curso / En 38 días / Hace 4 meses");
+  ok("matriz", [F("2027 - Reino Unido", "stubN"), F("2027 - Reino Unido", "stubUnit"), F("2026 - Italia y Grecia", "stubTop"), F("2026 - Italia y Grecia", "stubN"), F("2026 - Italia y Grecia", "stubUnit"), F("2026 - Alemania", "stubNow")].join(" ")
+    === "289 días Hace 4 meses En curso");
+  ok("días, noches, título y ruta", [F("2026 - Alemania", "daysLabel"), F("2026 - Alemania", "nightsLabel"), F("2026 - Italia y Grecia", "title"), F("2026 - Portugal", "route")].join(" | ")
+    === "7 días | 6 noches | Italia y Grecia | Lisboa → Oporto", [F("2026 - Alemania", "daysLabel"), F("2026 - Alemania", "nightsLabel"), F("2026 - Italia y Grecia", "title"), F("2026 - Portugal", "route")].join(" | "));
+  ok("fechas", [F("2026 - Alemania", "dates"), F("2026 - Portugal", "datesNights"), F("2027 - Japón", "yearRoute")].join(" | ") === "24 – 30 oct | 4 – 9 dic 2026 · 5 noches | 2027 · Tokio → Kioto",
+    [F("2026 - Alemania", "dates"), F("2026 - Portugal", "datesNights"), F("2027 - Japón", "yearRoute")].join(" | "));
+  ok("color y portada", [F("2027 - Japón", "color"), F("2026 - Portugal", "cover"), F("2027 - Reino Unido", "photo"), F("2026 - Portugal", "photo")].join(" ") === "#E8613C #C2B3F5 [[highlands.jpg]] ");
+  const Pl = name => X.PLACES.find(x => x.basename === name), G = (name, k) => run(pb, Pl(name), k);
+  ok("lugares: icono, color y familia", [G("Senso-ji", "icon"), G("Senso-ji", "color"), G("Omoide Yokocho", "family"), G("Shibuya Crossing", "family")].join(" ") === "landmark #C2B3F5 Comer Pasear");
+  ok("lugares: categoría y precio, estrellas, viajes", [G("Senso-ji", "catPrice"), G("Da Enzo al 29", "stars"), G("Senso-ji", "tripNames"), G("Pastéis de Belém", "cityCountry")].join(" | ")
+    === "Templo · Gratis | ★★★★☆ | 2027 - Japón | Lisboa · Portugal", [G("Senso-ji", "catPrice"), G("Da Enzo al 29", "stars"), G("Senso-ji", "tripNames"), G("Pastéis de Belém", "cityCountry")].join(" | "));
+  ok("lugares: la foto o el icono", String(G("Senso-ji", "photo")) === "[[senso-ji.jpg]]" && String(G("Meiji Jingu", "photo")).startsWith("data:image/svg+xml"));
+  ok("vistas de viajes", tb.views.map(v => v.type + ":" + v.name).join(", ") === "cool-bases:Próximos, cool-bases:Viajados, table:Todos, map:Mapa");
+  ok("vistas de lugares", pb.views.map(v => v.type + ":" + v.name).join(", ") === "cool-bases:Guía por ciudad, map:Mapa, cool-bases:Tokio, cool-bases:Kioto");
+  const nat = round(md.tripsBase(S, { ...env, cool: false, maps: false }));
+  ok("sin Cool Bases ni Maps", nat.views.map(v => v.type).join() === "cards,cards,table" && nat.views[0].image === "formula.cover");
+  /* lo que se vuelve a tocar: el bloque de colores (y solo ese) y las ciudades nuevas */
+  const doc = round(md.tripsBase(S, env));
+  doc.views[0].coolbases.css = "/* mío */\n" + doc.views[0].coolbases.css;
+  const ch = md.syncBase(doc, "trips", S, env, { colors: md.tripColorsCss([{ path: "Viajes/2026 - Portugal.md", color: "#C2B3F5" }]) });
+  ok("colores de los billetes", ch && doc.views[0].coolbases.css.startsWith("/* mío */") && doc.views[0].coolbases.css.includes('[data-path="Viajes/2026 - Portugal.md"] { --ct: #C2B3F5; }'));
+  ok("colores: sin cambios, no reescribe", !md.syncBase(doc, "trips", S, env, { colors: md.tripColorsCss([{ path: "Viajes/2026 - Portugal.md", color: "#C2B3F5" }]) }));
+  const pdoc = round(md.placesBase(S, env, ["Tokio"]));
+  ok("ciudad nueva", md.syncBase(pdoc, "places", S, env, { newCities: ["Tokio", "Lisboa"] }) && pdoc.views.filter(v => v.name === "Tokio").length === 1 && pdoc.views.at(-1).name === "Lisboa");
+  const ndoc = round(md.placesBase(S, { ...env, cool: false, maps: false }, ["Tokio"]));
+  const S2 = { ...S, baseCities: ["tokio"] };
+  ok("pasar a Cool Bases y añadir el mapa", md.syncBase(ndoc, "places", S2, env, { useCool: true, addMap: true }) && ndoc.views.map(v => v.type).join() === "cool-bases,map,cool-bases");
+}
+
 console.log(fails ? `\n${fails} fallos` : "\nTodo bien");
 process.exit(fails ? 1 : 0);

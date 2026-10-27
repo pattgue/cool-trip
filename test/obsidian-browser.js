@@ -1,4 +1,5 @@
 // Un Obsidian de mentira para pintar la vista de Cool Trip en Chromium (test/harness.mjs). Solo lo que usa el plugin.
+import ICONS from "./lucide-icons.json";
 import yaml from "js-yaml";
 const P = HTMLElement.prototype;
 function opts(el, o) {
@@ -39,7 +40,8 @@ const PATHS = { plane: "M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 
   "train-front": "M7 3h10a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zM4 10h16", wallet: "M3 7a2 2 0 0 1 2-2h13v4M3 7v10a2 2 0 0 0 2 2h16V9H5a2 2 0 0 1-2-2z",
   "file-text": "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5", calendar: "M4 5h16v16H4zM3 10h18M8 3v4M16 3v4",
   image: "M4 4h16v16H4zM3 16l5-5 4 4 3-3 6 6", home: "M3 11l9-7 9 7v9H4z", landmark: "M3 21h18M5 21V10M19 21V10M9 21V10M15 21V10M2 10l10-6 10 6z" };
-export function setIcon(el, name) { el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${PATHS[name] || "M12 4a8 8 0 1 0 0 16a8 8 0 1 0 0-16"}"/></svg>`; }
+/* los iconos Lucide que usa el plugin, sacados de Obsidian 1.14.5 (test/lucide-icons.json); si falta alguno, el trazo de PATHS o un círculo */
+export function setIcon(el, name) { el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-${name}">${ICONS[name] || `<path d="${PATHS[name] || "M12 4a8 8 0 1 0 0 16a8 8 0 1 0 0-16"}"/>`}</svg>`; }
 export class Notice { constructor(m) { console.log("Notice:", m); } }
 export class TFile { constructor(path, fm) { this.path = path; this.name = path.split("/").pop(); this.basename = this.name.replace(/\.md$/, ""); this.extension = "md"; this.fm = fm || {};
   const parts = path.split("/"); parts.pop(); this.parent = { path: parts.join("/") || "/" }; } }

@@ -3,9 +3,9 @@ import type { PropNames, Recog, Settings } from "./types";
 
 const PROPS: Record<"es" | "en", PropNames> = {
   es: { start: "inicio", end: "fin", destinations: "destinos", travelers: "viajeros", cover: "portada",
-    location: "ubicación", city: "ciudad", country: "país", category: "categoría", price: "precio", rating: "valoración", visited: "visitado" },
+    location: "ubicación", city: "ciudad", country: "país", category: "categoría", price: "precio", rating: "valoración", visited: "visitado", photo: "portada" },
   en: { start: "start", end: "end", destinations: "destinations", travelers: "travelers", cover: "cover",
-    location: "location", city: "city", country: "country", category: "category", price: "price", rating: "rating", visited: "visited" },
+    location: "location", city: "city", country: "country", category: "category", price: "price", rating: "rating", visited: "visited", photo: "cover" },
 };
 export const suggestedProps = (lang: "es" | "en"): PropNames => ({ ...PROPS[lang] });
 export const AUTO_FOLDERS = { es: { trips: "Viajes", places: "Lugares" }, en: { trips: "Trips", places: "Places" } };
@@ -22,6 +22,8 @@ export function defaultSettings(lang: "es" | "en"): Settings {
     files: { cloud: true, wallet: true, device: false, vault: false, vaultFolder: lang === "es" ? "Archivos" : "Files" },
     maps: { app: "google", modes: ["walk", "transit"] },
     bases: { trips: "", places: "" },
+    basesMade: { trips: "", places: "" },
+    baseCities: [],
     done: [],
     countries: {},
     language: lang,
@@ -42,6 +44,8 @@ export function mergeSettings(saved: Partial<Settings> | null | undefined, lang:
     trips: { ...d.trips, ...saved.trips }, places: { ...d.places, ...saved.places },
     props: { ...d.props, ...saved.props }, files: { ...d.files, ...saved.files },
     maps: { ...d.maps, ...saved.maps }, bases: mergeBases(d.bases, saved.bases),
+    basesMade: { ...d.basesMade, ...saved.basesMade },
+    baseCities: Array.isArray(saved.baseCities) ? saved.baseCities : [],
     done: Array.isArray(saved.done) ? saved.done : [],
     countries: saved.countries && typeof saved.countries === "object" ? saved.countries : {},
   };

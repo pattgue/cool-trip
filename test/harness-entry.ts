@@ -14,19 +14,21 @@ const places: Record<string, Record<string, unknown>> = {
   "Hotel Kaminarimon": { tipo: "lugar", ciudad: "Tokio", "categoría": "Hotel" }, "Tsukiji Outer Market": { tipo: "lugar", ciudad: "Tokio", "categoría": "Mercado" },
 };
 const files = Object.entries(places).map(([n, fm]) => new TFile(`Lugares/Tokio/${n}.md`, fm));
-const trip = new TFile("Viajes/2027 - Japón.md", { tipo: "viaje" });
+const trip = new TFile("Viajes/2027 - Japón.md", { tipo: "viaje", inicio: "2027-04-03", fin: "2027-04-14", destinos: ["Tokio", "Kioto"], viajeros: ["Ana", "Leo"], portada: "bermellón" });
+const trip2 = new TFile("Viajes/2026 - Portugal.md", { tipo: "viaje", inicio: "2026-12-04", fin: "2026-12-09", destinos: ["Lisboa", "Oporto"], viajeros: ["Ana", "Leo"], portada: "lavanda" });
 const app = {
   metadataCache: {
     getFirstLinkpathDest: (l: string) => files.find(f => f.basename === l) || null,
     getFileCache: (f: TFile & { fm: Record<string, unknown> }) => ({ frontmatter: f.fm }),
   },
-  vault: { getName: () => "Mi vault", getMarkdownFiles: () => [...files, trip], getAbstractFileByPath: () => null, getResourcePath: () => "", getAllLoadedFiles: () => [] },
+  vault: { getName: () => "Mi vault", getMarkdownFiles: () => [...files, trip, trip2], getAbstractFileByPath: () => null, getResourcePath: () => "", getAllLoadedFiles: () => [] },
   workspace: { openLinkText: () => {}, getLeaf: () => ({ openFile: () => {} }) },
   fileManager: {},
 };
 const plugin = { settings: defaultSettings("es"), app, isTrip: () => true, manifest: { id: "cool-trip" },
   coverSrc: (c: string) => /^(https?|data):/.test(c) ? c : null,
-  askDest: async () => ({ city: "Roma", country: "Italia" }) };
+  askDest: async () => ({ city: "Roma", country: "Italia" }),
+  keeper: { env: () => ({ cool: false, maps: false, iconSvg: () => "" }), missing: async () => ({ map: false, cool: false }), create: async () => {}, upgrade: async () => {} } };
 if (window.__mode.startsWith("settings")) {
   /* la Cool Bar con dos plugins Cool, para el paso 6 */
   const reg = registry();
@@ -35,7 +37,21 @@ if (window.__mode.startsWith("settings")) {
   reg.tools["cool-bases"] = tool("cool-bases", "Cool Bases", 20);
   const tab = new CoolTripSettingTab(app as never, plugin as never);
   tab.step = Number(window.__mode.slice(8)) || 1;
-  document.body.appendChild(tab.containerEl);
+  /* el marco de Ajustes de Obsidian (test/obsidian-settings.css): barra lateral y pestaña; en el móvil, su cabecera */
+  const el = (cls: string, text = "") => { const d = document.createElement("div"); d.className = cls; d.textContent = text; return d; };
+  const modal = el("modal mod-settings" + (window.__phone ? " is-phone-frame" : ""));
+  if (window.__phone) modal.appendChild(el("modal-header", "‹  Cool Trip"));
+  else {
+    const side = el("vertical-tab-header");
+    side.append(el("vertical-tab-header-group-title", "Opciones"), ...["General", "Editor", "Archivos y enlaces", "Apariencia"].map(x => el("vertical-tab-nav-item", x)),
+      el("vertical-tab-header-group-title", "Complementos de la comunidad"), el("vertical-tab-nav-item", "Cool Bases"), el("vertical-tab-nav-item is-active", "Cool Trip"));
+    modal.appendChild(side);
+  }
+  const cont = el("vertical-tab-content-container");
+  tab.containerEl.classList.add("vertical-tab-content");
+  cont.appendChild(tab.containerEl);
+  modal.appendChild(cont);
+  document.body.appendChild(modal);
   (plugin as unknown as { saveSettings: () => Promise<void> }).saveSettings = async () => {};
   tab.display();
 } else if (window.__mode === "modal") {
