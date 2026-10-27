@@ -1,0 +1,121 @@
+/* ===== la portada: tarjeta de embarque ===== */
+.ct-ticket { display: flex; border-radius: 20px; overflow: hidden; background: var(--ct-ticket); box-shadow: 0 2px 8px 0 #00000033; position: relative; }
+.ct-band { flex: none; width: 46px; background: var(--ct-graphite); color: var(--ct-cream); display: flex; align-items: center; justify-content: center; }
+.ct-band span { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; font-weight: 800; letter-spacing: .6em; text-transform: uppercase; white-space: nowrap; }
+.ct-ticket-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ct-cover { background: var(--ct-cover); color: var(--ct-ink); padding: 25px 28px 35px; display: flex; flex-direction: column; gap: 7px; position: relative; }
+.ct-cover.has-image { background: linear-gradient(0deg, var(--ct-cover) 0%, color-mix(in srgb, var(--ct-cover) 55%, transparent) 60%), var(--ct-cover-img) center / cover; }
+.ct-cover-top { display: flex; align-items: flex-end; justify-content: space-between; }
+.ct-cities { display: flex; align-items: flex-end; gap: 0; }
+.ct-city { display: flex; flex-direction: column; gap: 8px; text-align: center; min-width: 0; }
+.ct-city-name { font-weight: 900; font-size: var(--ct-city-size, 92px); line-height: .82; letter-spacing: -.045em; text-transform: uppercase; white-space: nowrap; }
+.ct-city-sub { font-size: 14px; font-weight: 700; }
+.ct-route { flex: 1; min-width: 50px; height: 50px; margin: 0 22px 34px; display: flex; align-items: center; gap: 10px; }
+.ct-route-line { flex: 1; border-top: 3px dashed var(--ct-ink); }
+.ct-route-plane { box-sizing: border-box; display: flex; align-items: center; width: 32px; padding-right: 8px; }
+.ct-route-plane .ct-ico, .ct-route-plane .ct-ico svg { width: 34px; height: 34px; stroke-width: 2; }
+.ct-route-plane .ct-ico { transform: rotate(45deg); }
+.ct-dest-add { height: 28px; width: auto; min-width: 98px; padding: 0 12px; border-radius: 999px; border: 2px solid var(--ct-ink) !important; background: transparent !important;
+  color: var(--ct-ink); font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.ct-dest-add .ct-ico svg { stroke-width: 3; width: 14px; height: 14px; }
+.ct-ticket-body { padding: 24px 28px 26px; display: flex; flex-direction: column; gap: 26px; }
+.ct-fields { display: grid; grid-template-columns: 1.3fr 1.3fr .6fr .6fr; gap: 28px; }
+.ct-field { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ct-field-value { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-weight: 800; color: var(--ct-strong); letter-spacing: -.01em;
+  white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ct-field-lg .ct-field-value { font-size: 24px; }
+.ct-field-md .ct-field-value { font-size: 19px; }
+.ct-field-sm .ct-field-value { font-size: 16px; }
+.ct-field.is-input .ct-field-value { border-bottom: 2px solid var(--ct-line); padding-bottom: 6px; }
+.ct-field .ct-field-value .ct-ico { color: var(--ct-muted); }
+.ct-date-input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.ct-date-input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+.ct-reparto { display: flex; flex-direction: column; gap: 14px; }
+.ct-strip { display: flex; gap: 5px; }
+.ct-strip-day { flex: 1; min-width: 0; height: 62px; padding: 0; border: 0 !important; border-radius: 10px; color: var(--ct-ink);
+  background: linear-gradient(135deg, var(--ct-day-a) 50%, var(--ct-day-b) 50%) !important; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.ct-strip-wd { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.ct-strip-n { font-size: 22px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+.ct-dest-rows { display: flex; flex-wrap: wrap; gap: 14px 32px; }
+.ct-dest-row { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.ct-dest-top { display: flex; align-items: center; gap: 10px; }
+.ct-dest-sw { flex: none; width: 14px; height: 14px; border-radius: 4px; background: var(--ct-sw); }
+.ct-dest-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ct-dest-city { font-size: 16px; font-weight: 900; text-transform: uppercase; }
+.ct-dest-dates { font-size: 12px; color: var(--ct-muted); }
+.ct-dest-people { display: flex; gap: 4px; flex-wrap: wrap; padding-left: 24px; }
+.ct-stepper { display: inline-flex; align-items: center; gap: 8px; }
+.ct-stepbtn { width: 32px; height: 32px; padding: 0; border-radius: 999px; border: 1.5px solid var(--ct-line) !important; background: transparent !important; color: var(--ct-strong);
+  display: inline-grid; place-items: center; }
+.ct-step-n { min-width: 22px; text-align: center; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.ct-dest-rows.is-big .ct-dest-row { flex-basis: 100%; padding: 14px 0; border-top: 1px solid var(--ct-line); }
+.ct-dest-rows.is-big .ct-dest-city { font-size: 17px; }
+.ct-dest-rows.is-big .ct-stepbtn { width: 40px; height: 40px; }
+.ct-dest-rows.is-big .ct-dest-people { padding-left: 0; gap: 8px; }
+/* talón */
+.ct-notch-v { flex: none; width: 0; position: relative; border-left: 2px dashed var(--ct-line); margin: 19px 0; }
+.ct-notch-v::before, .ct-notch-v::after { content: ""; position: absolute; left: -14px; width: 26px; height: 26px; border-radius: 50%; background: var(--ct-page); }
+.ct-notch-v::before { top: -32px; } .ct-notch-v::after { bottom: -32px; }
+.ct-notch-h { flex: none; height: 0; position: relative; border-top: 2px dashed var(--ct-line); margin: 0 17px; }
+.ct-notch-h::before, .ct-notch-h::after { content: ""; position: absolute; top: -12px; width: 22px; height: 22px; border-radius: 50%; background: var(--ct-page); }
+.ct-notch-h::before { left: -28px; } .ct-notch-h::after { right: -28px; }
+.ct-stub { flex: none; width: 300px; padding: 22px 24px; display: flex; flex-direction: column; gap: 22px; }
+.ct-stub-block { display: flex; flex-direction: column; gap: 8px; }
+.ct-note { display: flex; flex-direction: column; gap: 6px; }
+.ct-note-name { font-size: 20px; font-weight: 900; letter-spacing: -.02em; color: var(--ct-strong); }
+.ct-note-name.is-big { font-size: 22px; }
+.ct-note-name.is-editable { cursor: text; border-bottom: 1px dashed transparent; align-self: flex-start; }
+.ct-note-name.is-editable:hover { border-bottom-color: var(--ct-line); }
+.ct-note-path { font-size: 12px; color: var(--ct-faint); }
+.ct-swatches { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; min-height: 40px; }
+.ct-swatch { width: 28px; height: 28px; padding: 0; border: 0 !important; border-radius: 50%; background: var(--ct-swatch) !important; }
+.ct-swatch.is-on { box-shadow: 0 0 0 2px var(--ct-ticket), 0 0 0 4px var(--ct-strong) !important; }
+.ct-swatch-img { background: #3D3D3D !important; color: var(--ct-cream); display: inline-grid; place-items: center; }
+.ct-swatch-img .ct-ico, .ct-swatch-img .ct-ico svg { width: 14px; height: 14px; }
+.ct-barcode { display: flex; flex-direction: column; gap: 6px; }
+.ct-barcode-bars { display: flex; height: var(--ct-bar-h, 38px); overflow: hidden; width: 100%; }
+.ct-bar { flex: var(--ct-grow) 1 0; background: var(--ct-strong); }
+.ct-gap { flex: var(--ct-grow) 1 0; }
+.ct-barcode-cap { font-size: 10px; font-weight: 700; letter-spacing: .6em; color: var(--ct-faint); text-align: center; }
+.ct-countdown { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.ct-countdown-n { font-weight: 900; font-size: 64px; line-height: .9; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+.ct-countdown-t { font-size: 15px; font-weight: 700; line-height: 1.2; }
+.ct-btn-create { height: 52px; width: 100%; font-size: 16px; border-radius: 18px; }
+
+/* móvil */
+.ct-ticket-phone { flex-direction: column; border-radius: 24px; }
+.ct-cover-phone { padding: 30px 18px; align-items: center; gap: 12px; border-radius: 34px; box-shadow: 0 2px 8px 0 #00000033; }
+.ct-city-stack { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
+.ct-cover-phone .ct-city-name { font-size: var(--ct-city-size, 64px); letter-spacing: -.045em; line-height: .85; }
+.ct-cover-phone .ct-city-sub { width: 100%; text-align: center; font-size: 12px; font-weight: 800; letter-spacing: .72px; }
+.ct-bar-row { display: flex; align-items: center; justify-content: center; gap: 22px; height: 30px; width: 100%; padding: 5px 0 5px 106px; }
+.ct-bar-line { flex: none; width: 3px; height: 40px; background: var(--ct-ink); }
+.ct-dest-add.is-small { height: 26px; min-width: 0; padding: 4px 10px; }
+.ct-cover-phone .ct-dest-add.is-small span { font-size: 11px; }
+.ct-cover-phone .ct-dest-add .ct-ico svg { width: 10px; height: 10px; }
+.ct-phone-body { padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 18px; }
+.ct-fields-2 { grid-template-columns: 1fr 1fr; gap: 16px 18px; }
+.ct-phone-stub { padding: 20px 18px 18px; display: flex; flex-direction: column; gap: 18px; }
+.ct-split-bar { display: flex; gap: 4px; height: 56px; }
+.ct-split-seg { flex: var(--ct-grow) 1 0; min-width: 0; border-radius: 12px; background: var(--ct-seg); color: var(--ct-ink); display: flex; flex-direction: column;
+  justify-content: center; padding: 0 12px; overflow: hidden; }
+.ct-split-seg b { font-size: 15px; font-weight: 900; } .ct-split-seg span { font-size: 12px; font-weight: 700; }
+.ct-phone-cells { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr auto auto auto; gap: 12px; align-items: end; }
+.ct-phone-edit { border-top: 1px solid var(--ct-line); padding: 14px 0 0; }
+.ct-phone-edit > .ct-note { padding: 0 18px; }
+.ct-phone-count { padding: 18px 20px; display: flex; flex-direction: column; align-items: center; gap: 21px; }
+.ct-phone-count .ct-countdown { gap: 12px; }
+.ct-phone-count .ct-countdown-n { font-size: 75px; }
+.ct-phone-count .ct-countdown-t { font-size: 20px; }
+.ct-phone-count .ct-barcode { width: 100%; }
+.ct-phone-count .ct-barcode-cap { letter-spacing: .9em; }
+.ct-ticket-phone .ct-swatch { width: 34px; height: 34px; }
+
+/* el modal de Nuevo viaje */
+.ct-modal { --ct-page: var(--modal-background, var(--background-primary)); width: min(1240px, 96vw); max-width: none; border-radius: 28px; padding: 22px 24px 24px; }
+.ct-modal .modal-close-button { display: none; }
+.ct-modal .modal-content { display: flex; flex-direction: column; gap: 16px; }
+.ct-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+.ct-h-modal { font-weight: 900; font-size: 30px; letter-spacing: -.03em; text-transform: uppercase; color: var(--ct-strong); white-space: pre; }
+.ct-modal.is-phone { width: 100vw; height: 100%; max-height: none; border-radius: 0; padding: 16px 12px; }
+.ct-modal.is-phone .ct-h-modal { font-size: 26px; }

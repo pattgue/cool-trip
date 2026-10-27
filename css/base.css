@@ -1,0 +1,87 @@
+/* ===== Cool Trip: lo común =====
+   Lo que rodea al billete sale del tema de Obsidian (sirve con cualquier tema, claro u oscuro).
+   El billete lleva su paleta sólida con tinta negra encima, igual en los dos temas. */
+.ct-root {
+  --ct-font: "Cool Trip Inter", "Inter", var(--font-interface);
+  --ct-strong: var(--text-normal);
+  --ct-muted: var(--text-muted);
+  --ct-faint: var(--text-faint);
+  --ct-page: var(--background-primary);
+  --ct-ticket: color-mix(in srgb, var(--text-normal) 6%, var(--background-primary));
+  --ct-line: color-mix(in srgb, var(--text-normal) 16%, var(--background-primary));
+  --ct-field: var(--background-primary);
+  --ct-ink: #141414; --ct-cream: #F4F1EA; --ct-graphite: #2E2E33; --ct-mustard: #EDC14B; --ct-berm: #E8613C;
+  font-family: var(--ct-font);
+  color: var(--ct-strong);
+}
+:where(.ct-root) *, :where(.ct-root) *::before, :where(.ct-root) *::after { box-sizing: border-box; }
+:where(.ct-root) button { box-shadow: none; margin: 0; font-family: inherit; font-size: inherit; font-weight: inherit; letter-spacing: inherit; cursor: pointer; }
+.ct-root button:focus-visible, .ct-root a:focus-visible, .ct-root input:focus-visible, .ct-root select:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 2px; }
+.ct-root .ct-ico, .ct-root .ct-ico svg { display: inline-flex; width: 16px; height: 16px; flex: none; }
+.ct-root .ct-ico svg { stroke-width: 2.2; }
+.ct-root .ct-ico-sm, .ct-root .ct-ico-sm svg { width: 13px; height: 13px; }
+.ct-root .ct-ico-xs, .ct-root .ct-ico-xs svg { width: 12px; height: 12px; }
+.ct-grow { flex: 1; }
+.ct-label { font-size: 12px; font-weight: 500; color: var(--ct-muted); }
+.ct-kicker { font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.ct-sub { font-size: 12px; font-weight: 500; color: var(--ct-muted); line-height: 1.35; }
+.ct-num { font-variant-numeric: tabular-nums; }
+
+/* la vista de la nota */
+.ct-view { padding: 0 !important; container-type: inline-size; }
+.ct-page { padding: 32px 44px 60px; display: flex; flex-direction: column; gap: 44px; max-width: 1400px; margin: 0 auto; }
+.ct-columns { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 48px; align-items: start; }
+.ct-aside { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 16px; }
+.ct-view.is-phone .ct-page { padding: 14px 12px 40px; gap: 12px; }
+.ct-empty { padding: 40px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; color: var(--ct-muted); }
+
+/* botones */
+.ct-btn-primary { height: 44px; padding: 0 22px; border: 0 !important; border-radius: 999px; background: var(--ct-strong) !important; color: var(--background-primary) !important;
+  font-size: 14px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.ct-btn-primary.is-small { height: 36px; padding: 0 16px; font-size: 13px; }
+.ct-btn-ghost { height: 44px; padding: 0 18px; border: 1.5px solid var(--ct-line) !important; border-radius: 999px; background: transparent !important;
+  color: var(--ct-strong); font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.ct-btn-ghost.is-wide { width: 100%; height: 40px; }
+.ct-ibtn { flex: none; width: 32px; height: 32px; padding: 0; border: 0 !important; border-radius: 999px; background: transparent !important; color: var(--ct-muted);
+  display: inline-grid; place-items: center; }
+.ct-ibtn:hover { color: var(--ct-strong); background: var(--ct-ticket) !important; }
+.ct-ibtn.ct-ibtn-sm { width: 30px; height: 30px; }
+.ct-ibtn.ct-ibtn-sm .ct-ico, .ct-ibtn.ct-ibtn-sm .ct-ico svg { width: 14px; height: 14px; }
+.ct-link-btn { height: 34px; padding: 0 4px; border: 0 !important; background: transparent !important; color: var(--ct-muted); font-size: 13px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 6px; }
+.ct-link-btn:hover { color: var(--ct-strong); }
+.ct-pill { height: 34px; padding: 0 14px; border: 1.5px solid var(--ct-line) !important; border-radius: 999px; background: transparent !important; color: var(--ct-strong);
+  font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ct-pill.is-solid { background: var(--ct-strong) !important; border-color: var(--ct-strong) !important; color: var(--background-primary); }
+.ct-pill.is-dashed { border-style: dashed !important; color: var(--ct-muted); }
+.ct-pill.is-on { border-color: var(--ct-strong) !important; }
+.ct-pill.is-small { height: 30px; padding: 0 12px; font-size: 12px; }
+.ct-row-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.ct-seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.ct-view.is-phone .ct-pill { height: 40px; }
+.ct-hover { opacity: 0; transition: opacity .15s; }
+:is(.ct-doc-edit-row, .ct-task):hover .ct-hover, .ct-hover:focus-visible { opacity: 1; }
+.ct-view.is-phone .ct-hover { opacity: 1; }
+
+/* viajeros */
+.ct-avatar { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--ct-person); color: var(--ct-ink); display: inline-grid; place-items: center;
+  font-size: 12px; font-weight: 800; }
+.ct-avatar-xs { width: 18px; height: 18px; font-size: 9px; }
+.ct-avatar-face { width: 22px; height: 22px; font-size: 11px; box-shadow: 0 0 0 2px var(--ct-ticket); }
+.ct-avatar-lg { width: 30px; height: 30px; font-size: 15px; }
+.ct-faces { display: inline-flex; }
+.ct-faces > * + * { margin-left: -6px; }
+.ct-person { height: 34px; padding: 0 12px 0 5px; border-radius: 999px; border: 1.5px dashed var(--ct-line) !important; background: transparent !important;
+  color: var(--ct-muted); font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 7px; }
+.ct-person.is-on { border-style: solid !important; border-color: var(--ct-strong) !important; color: var(--ct-strong); }
+.ct-person-add { width: 34px; height: 34px; padding: 0; border-radius: 999px; border: 1.5px dashed var(--ct-line) !important; background: transparent !important;
+  color: var(--ct-muted); display: inline-grid; place-items: center; }
+.ct-mini-person { height: 24px; padding: 0 8px 0 3px; border-radius: 999px; border: 1px solid var(--ct-line) !important; background: transparent !important;
+  color: var(--ct-muted); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; opacity: .55; }
+.ct-mini-person.is-on { opacity: 1; }
+.ct-people { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.ct-view.is-phone .ct-person, .ct-modal.is-phone .ct-person { height: 40px; }
+
+/* ventanita de texto */
+.ct-prompt .ct-input { width: 100%; }
+.ct-prompt .ct-form-foot { margin-top: 14px; border-top: 0; padding-top: 0; }

@@ -1,0 +1,25 @@
+{
+  "name": "cool-trip",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plan each trip in one note: a boarding-pass cover, a day-by-day route with bookings, documents and costs.",
+  "license": "UNLICENSED",
+  "author": "Patt",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "check": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "node test/unit.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@eslint/json": "0.14.0",
+    "esbuild": "0.24.0",
+    "eslint": "9.39.5",
+    "eslint-plugin-obsidianmd": "0.4.2",
+    "obsidian": "1.13.1",
+    "typescript": "5.6.3",
+    "typescript-eslint": "8.71.2"
+  }
+}

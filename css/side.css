@@ -1,0 +1,30 @@
+/* ===== el lateral: mochila, por hacer y coste ===== */
+.ct-box { border-radius: 20px; background: var(--ct-ticket); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.ct-view.is-phone .ct-box { padding: 16px; }
+.ct-box-head { display: flex; align-items: center; gap: 10px; }
+.ct-h-box { margin: 0; font-weight: 900; font-size: 24px; line-height: .9; letter-spacing: -.02em; text-transform: uppercase; color: var(--ct-strong); }
+.ct-view.is-phone .ct-h-box { font-size: 22px; }
+.ct-count { font-size: 15px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.ct-suggest { display: flex; flex-direction: column; gap: 8px; }
+.ct-progress { display: block; height: 8px; border-radius: 999px; background: var(--ct-line); overflow: hidden; }
+.ct-progress > span { display: block; width: var(--ct-p); height: 100%; border-radius: 999px; background: var(--ct-accent-fill); }
+.ct-folded { display: flex; flex-direction: column; gap: 10px; }
+.ct-group { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--ct-muted); }
+.ct-task-list { display: flex; flex-direction: column; padding: 2px 14px; border-radius: 14px; background: var(--ct-page); }
+.ct-task { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 0; }
+.ct-task + .ct-task { border-top: 1px solid var(--ct-line); }
+.ct-view.is-phone .ct-task { min-height: 52px; }
+.ct-task-check { flex: none; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid var(--ct-muted) !important; background: transparent !important;
+  display: grid; place-items: center; color: var(--ct-ticket); }
+.ct-task-check.is-done { border: 0 !important; background-color: var(--ct-berm) !important; }
+.ct-task-check .ct-ico svg { width: 12px; height: 12px; stroke-width: 3.4; }
+.ct-task-text { flex: 1; min-width: 0; font-size: 14px; line-height: 1.3; font-weight: 700; }
+.ct-task.is-done .ct-task-text { font-weight: 500; color: var(--ct-muted); text-decoration: line-through; }
+.ct-cost-total { display: flex; flex-direction: column; gap: 4px; }
+.ct-h-total { font-weight: 900; font-size: 52px; line-height: .9; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.ct-cost-people { display: flex; gap: 8px; }
+.ct-cost-person { flex: 1; display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: var(--ct-page); }
+.ct-cost-person b { font-size: 18px; font-weight: 900; }
+.ct-cost-row { display: flex; flex-direction: column; gap: 6px; }
+.ct-cost-line { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; }
+.ct-missing { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; border: 2px dashed var(--ct-line); font-size: 13px; font-weight: 700; color: var(--ct-muted); }

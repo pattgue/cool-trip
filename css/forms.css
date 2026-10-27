@@ -1,0 +1,35 @@
+/* ===== formularios en su sitio ===== */
+.ct-form { margin: 6px 0 10px; border-radius: 18px; border: 2px solid var(--ct-strong); background: var(--ct-ticket); padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.ct-form-small { margin: 0; border-width: 1.5px; padding: 14px; }
+.ct-view.is-phone .ct-form { padding: 14px; }
+.ct-form-head { display: flex; align-items: center; gap: 8px; }
+.ct-form-title { font-size: 13px; font-weight: 800; }
+.ct-kinds { display: flex; gap: 6px; flex-wrap: wrap; }
+.ct-f { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ct-input { box-sizing: border-box; height: 44px; width: 100%; border-radius: 10px; border: 1.5px solid var(--ct-line) !important; background: var(--ct-field) !important;
+  color: var(--ct-strong) !important; padding: 0 12px; font: inherit; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ct-input:focus { border-color: var(--ct-strong) !important; box-shadow: none !important; }
+.ct-select { appearance: auto; }
+.ct-input-num { width: 64px; flex: none; text-align: center; }
+.ct-inline { display: flex; gap: 6px; }
+.ct-grid { display: grid; gap: 12px; }
+.ct-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ct-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ct-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ct-grid-time { grid-template-columns: 130px minmax(0, 1fr); }
+.ct-grid-price { grid-template-columns: 200px minmax(0, 1fr); }
+.ct-view.is-phone :is(.ct-grid-3, .ct-grid-time, .ct-grid-price) { grid-template-columns: 1fr; }
+.ct-view.is-phone .ct-grid-4 { grid-template-columns: 1fr 1fr; }
+.ct-picker { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.ct-picker-list { display: flex; flex-direction: column; border-radius: 12px; border: 1.5px solid var(--ct-line); background: var(--ct-page); overflow: hidden; }
+.ct-picker-list[hidden] { display: none; }
+.ct-option { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border: 0 !important; border-radius: 0; background: transparent !important; color: var(--ct-strong);
+  text-align: left; font-size: 14px; font-weight: 700; height: auto; }
+.ct-option + .ct-option { border-top: 1px solid var(--ct-line) !important; }
+.ct-option:hover { background: var(--ct-ticket) !important; }
+.ct-option b { font-weight: 800; }
+.ct-newdoc { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; background: var(--ct-page); }
+.ct-newdoc[hidden], .ct-bag-menu[hidden] { display: none; }
+.ct-bag-menu { display: flex; flex-direction: column; border-radius: 12px; border: 1.5px solid var(--ct-line); overflow: hidden; background: var(--ct-page); }
+.ct-form-actions { display: flex; justify-content: flex-end; }
+.ct-form-foot { display: flex; align-items: center; gap: 8px; padding-top: 14px; border-top: 1px solid var(--ct-line); }
