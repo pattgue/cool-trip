@@ -130,6 +130,8 @@ Lo esencial de cada reserva (localizador, horas, asiento, puerta) es **texto den
 - **B · Tiles:** modal ancho. Una portada viva en color con flor y avatares a la izquierda; a la derecha, cuatro tiles grandes (Destinos\*, Fechas\*, Viajeros, Portada) con su número verde al rellenarse, y debajo el reparto como pastillas de día.
 - **C · Pregunta a pregunta:** se abre como pestaña. Una pregunta enorme cada vez (Destinos → Fechas → Viajeros → Portada), con los números de los ajustes como pasos; en Fechas, un calendario pintado por ciudad con el reparto. A la derecha, la portada se va montando sola.
 
+**Elegida: A · Billete** (27-10-2026). Patt la ve bien como resumen de lo básico del viaje (las propiedades), pero insuficiente por sí sola: faltan los lugares, las reservas y sus archivos, los documentos y el horario de cada día. *Por decidir con Patt:* si eso se añade después, desde la vista del viaje (propuesta), o como pasos opcionales al crear.
+
 Después, por orden: los detalles de la dirección elegida, el móvil y la estructura Markdown de la nota.
 
 **Datos que recoge** (sin cambios): destinos\* (lista de ciudades del plugin), empieza\* y termina\* (fecha), reparto de noches por destino si hay dos o más, quién viaja, portada (color o imagen) y el nombre de la nota, sugerido con el año delante («2027 Japón») en la carpeta del paso 1 de los ajustes. Solo salen los campos cuya propiedad esté en uso en el paso 2, y la nota se marca como viaje según el paso 1.
