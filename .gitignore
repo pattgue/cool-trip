@@ -13,3 +13,7 @@ css/font.css
 # arnés de pruebas
 test/node_modules/
 test/out/
+
+# tableros de las bases (design/bases)
+design/bases/out/
+design/bases/shots/
