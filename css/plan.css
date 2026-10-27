@@ -130,14 +130,12 @@
 /* tarjeta de embarque (solo transporte) */
 .ct-pass { display: flex; }
 .ct-route-big { display: flex; align-items: flex-start; gap: 12px; }
-.ct-end { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+/* dos mitades iguales con el icono en medio; los códigos encogen para caber en su mitad (fitRoutes, en plan.ts) */
+.ct-end { flex: 1 1 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .ct-end.is-right { align-items: flex-end; text-align: right; }
-/* los códigos encogen para caber (siempre queda sitio para el avión): --ct-chars es el nombre más largo */
-.ct-route-big { container-type: inline-size; }
-.ct-end-code { --ct-code-max: 50px; font-weight: 900; font-size: clamp(18px, calc((100cqw - 76px) / (var(--ct-chars, 3) * 1.24)), var(--ct-code-max)); line-height: .9;
-  letter-spacing: -.03em; text-transform: uppercase; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.ct-end-code { font-weight: 900; font-size: var(--ct-code-size, 50px); line-height: .9; letter-spacing: -.03em; text-transform: uppercase; white-space: nowrap; }
 .ct-end-time { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.ct-route-mid { flex: 1; min-width: 40px; display: flex; align-items: center; gap: 6px; margin-top: calc(min(16px, .32 * var(--ct-code-size, 50px))); }
+.ct-route-mid { flex: 0 0 clamp(56px, 16%, 120px); display: flex; align-items: center; gap: 6px; margin-top: calc(.32 * var(--ct-code-size, 50px)); }
 .ct-route-dash { flex: 1; border-top: 2px dashed var(--ct-line); }
 .ct-card-stub { flex: none; width: 268px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
 .ct-stub-price { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -151,9 +149,10 @@
 .ct-doc { height: 34px; max-width: 100%; padding: 0 10px; border-radius: 10px; border: 1px solid var(--ct-line) !important; background: var(--ct-page) !important;
   color: var(--ct-strong); display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; text-align: left; }
 .ct-doc.is-paper { border-color: var(--ct-mustard) !important; }
-.ct-doc-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ct-doc-name { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ct-doc-where { flex: none; font-size: 11px; font-weight: 600; color: var(--ct-muted); }
-.ct-doc-para { flex: none; display: inline-flex; }
+.ct-doc-para { flex: none; display: inline-flex; margin-left: 2px; }
+.ct-doc-para .ct-avatar-tag { width: 15px; height: 15px; font-size: 8px; }
 .ct-doc-para > * + * { margin-left: -4px; box-shadow: 0 0 0 1.5px var(--ct-page); }
 .ct-doc > .ct-ico-xs { color: var(--ct-muted); }
 .ct-paper-tag { flex: none; height: 18px; padding: 0 7px; border-radius: 999px; background: var(--ct-mustard); color: var(--ct-ink); font-size: 10px; font-weight: 800;
@@ -161,7 +160,12 @@
 .ct-paper-tag .ct-ico svg { width: 11px; height: 11px; }
 .ct-view.is-phone .ct-doc { height: 40px; width: 100%; }
 .ct-doc-edit-row { display: flex; align-items: center; gap: 4px; }
-.ct-doc-edit-row .ct-doc { flex: 1; }
+.ct-doc-edit-row .ct-doc { flex: 1 1 auto; min-width: 0; }
+/* editar y quitar: en el ordenador salen encima del final del documento al pasar el ratón (así el nombre no se recorta) */
+.ct-doc-acts { flex: none; display: inline-flex; }
+.ct-view:not(.is-phone) .ct-doc-edit-row { position: relative; }
+.ct-view:not(.is-phone) .ct-doc-acts { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); border-radius: 8px; background: var(--ct-page); }
+.ct-doc-acts:focus-within { opacity: 1; }
 .ct-docs-row { display: flex; gap: 18px; align-items: center; padding-top: 14px; border-top: 1px solid var(--ct-line); }
 .ct-docs-price { flex: none; display: flex; flex-direction: column; gap: 2px; min-width: 96px; }
 .ct-docs-price .ct-price-big { font-size: 26px; }

@@ -57,6 +57,15 @@ export const currencyOf = (p: string): string => {
   const m = /R\$|[€$£¥₩฿]|\bkr\b|zł|\b[A-Z]{3}\b/.exec(p);
   return m ? CODE_SYM[m[0]] || m[0] : "€";
 };
+const CUR_RE = /R\$|[€$£¥₩฿]|\bkr\b|zł|\b[A-Z]{3}\b/;
+/* la moneda del viaje: la más usada en sus precios (si no hay ninguna escrita, el euro) */
+export function tripCurrency(t: Trip): string {
+  const n = new Map<string, number>();
+  for (const d of t.days) for (const it of d.items) if (CUR_RE.test(it.price)) { const c = currencyOf(it.price); n.set(c, (n.get(c) || 0) + 1); }
+  return [...n].sort((a, b) => b[1] - a[1])[0]?.[0] || "€";
+}
+/* un precio para enseñar: siempre con su moneda (la del viaje si no la lleva) */
+export const showPrice = (price: string, cur: string): string => !price.trim() ? "" : CUR_RE.test(price) ? price : withCurrency(price, cur);
 /* el número tal cual se escribió («30,98»), sin la moneda */
 export const priceNumber = (p: string) => p.replace(/R\$|[€$£¥₩฿]|\bkr\b|zł|\b[A-Z]{3}\b/g, "").trim();
 /* un precio con su moneda: «60 €», «$60», «45 CHF» */
@@ -452,6 +461,13 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
   t.days = dates.map(date => byDate.get(date) || { date, items: [], raw: [] });
   for (const [date, d] of byDate) if (!dates.includes(date) && (d.items.length || d.raw.length)) leftovers.push(d);
   t.days.push(...leftovers.filter(d => d.items.length || d.raw.length));
+  /* «DNI · patt» (formato antiguo): el viajero del final pasa a «para» */
+  const who = new Map(t.travelers.map(p => [low(p), p]));
+  for (const d of [...t.mochila, ...t.days.flatMap(x => x.items.flatMap(it => it.docs))]) {
+    const m = /^(.+?)\s+·\s+(.+)$/.exec(d.name);
+    const names = m ? m[2].split(/\s*,\s*|\s+(?:y|and)\s+/) : [];
+    if (m && !d.para.length && names.every(n => who.has(low(n)))) { d.name = m[1]; d.para = names.map(n => who.get(low(n))!); }
+  }
   return t;
 }
 

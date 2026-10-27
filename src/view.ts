@@ -9,7 +9,7 @@ import { isIso } from "./dates";
 import { parseTrip, serializeTrip } from "./md";
 import { allPlaces, createPlace, resolve, walletUrl } from "./places";
 import type { PlaceInfo } from "./places";
-import { plan } from "./plan";
+import { fitRoutes, plan } from "./plan";
 import type { DocAdd, FormState } from "./plan";
 import { renderForm } from "./forms";
 import type { FormCtx, FormExtra } from "./forms";
@@ -99,6 +99,9 @@ export class TripView extends TextFileView {
     else page.appendChild(h("div", { cls: "ct-columns" }, plan(ctx), aside = h("aside", { cls: "ct-aside" }, mochila(ctx), porHacer(ctx), coste(ctx))));
     el.appendChild(page);
     if (phone) this.clearHeader(page);
+    fitRoutes(page);
+    this.lastWidth = el.clientWidth;
+    this.watchWidth();
     el.scrollTop = scroll;
     this.watchAside(aside);
   }
@@ -129,7 +132,18 @@ export class TripView extends TextFileView {
     this.asideObs.observe(aside);
     this.asideObs.observe(this.contentEl);
   }
-  async onClose() { this.asideObs?.disconnect(); await super.onClose(); }
+  async onClose() { this.asideObs?.disconnect(); this.widthObs?.disconnect(); await super.onClose(); }
+  /* al cambiar el ancho de la pestaña, los códigos de los transportes vuelven a ajustarse */
+  private widthObs: ResizeObserver | null = null;
+  private lastWidth = 0;
+  private watchWidth() {
+    if (this.widthObs) return;
+    this.widthObs = new ResizeObserver(() => {
+      const w = this.contentEl.clientWidth;
+      if (Math.abs(w - this.lastWidth) > 24) { this.lastWidth = w; fitRoutes(this.contentEl); }     // la barra de scroll no cuenta
+    });
+    this.widthObs.observe(this.contentEl);
+  }
 
   private ctx(file: TFile, phone: boolean): FormCtx & SideCtx {
     const ctx: FormCtx & SideCtx = {

@@ -86,15 +86,14 @@
 /* móvil con la cabecera flotante: entre los botones de la cabecera, a su altura y con su forma (kit.ts mide dónde están) */
 .cool-has-bar:has(> .cool-bar[data-ck="2"].is-overlay) { position: relative; }
 .cool-bar[data-ck="2"].is-overlay {
-  position: absolute; z-index: 40; min-height: 0; padding: 0; gap: 6px; background: transparent;
-  top: var(--cool-top, calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 6px));
-  left: var(--cool-l, 64px); right: var(--cool-r, 64px); height: var(--cool-h, 44px); max-height: 72px;
+  position: absolute; z-index: 40; min-height: 0; height: 44px; padding: 0; gap: 6px; background: transparent;
+  top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 6px); left: 64px; right: 64px;
 }
-.cool-bar[data-ck="2"].is-overlay .cool-tools { height: 100%; }
+.cool-bar[data-ck="2"].is-overlay .cool-tools { height: 44px; }
 .cool-bar[data-ck="2"].is-overlay .cool-tool, .cool-bar[data-ck="2"].is-overlay .cool-tool[data-state] {
-  height: 100%; margin: 0; padding: 0 16px; border-radius: 999px; align-self: auto; font-size: 14px; box-shadow: none;
+  height: 40px; margin: 0; padding: 0 16px; border-radius: 999px; align-self: center; font-size: 14px; box-shadow: none;
 }
-.cool-bar[data-ck="2"].is-overlay .cool-fold { width: var(--cool-h, 44px); height: 100%; max-width: 72px; border-radius: 999px; }
+.cool-bar[data-ck="2"].is-overlay .cool-fold { width: 40px; height: 40px; border-radius: 999px; }
 .cool-bar[data-ck="2"].is-overlay .cool-fold svg { width: 18px; height: 18px; }
 /* la pestaña: el contenido ocupa lo que deja la barra (sin desbordarse) */
 .cool-has-bar > .view-content { flex: 1 1 0; min-height: 0; }

@@ -2,7 +2,7 @@
 import { h } from "./dom";
 import { t } from "./i18n";
 import { addDays } from "./dates";
-import { currencyOf, fmtMoney, newItem, priceValue } from "./md";
+import { fmtMoney, newItem, priceValue, tripCurrency } from "./md";
 import { mapsUrl } from "./places";
 import type { PlanCtx } from "./plan";
 import { lodgings } from "./plan";
@@ -50,17 +50,31 @@ function bagSuggestions(ctx: SideCtx): BagSugg[] {
   });
   return out.filter(sg => !covered(sg)).slice(0, 4);
 }
+/* el documento de la mochila que se está editando (su ventanita sale en su sitio) */
+let editingBag: { index: number; draft: Doc } | null = null;
 export function mochila(ctx: SideCtx): HTMLElement {
   const docs = ctx.trip.mochila, paper = docs.filter(d => docWheres(d).includes("paper")).length;
   const right = paper ? t("bag.count", { n: docs.length, p: paper }) : String(docs.length);
   const sugg = bagSuggestions(ctx);
   return box(ctx, "bag", t("bag"), right, () => [
-    docs.length ? h("div", { cls: "ct-docs" }, docs.map((d, i) => h("div", { cls: "ct-doc-edit-row" }, docButton(ctx, d, ctx.trip.travelers),
-      iconButton("x", t("remove"), () => { docs.splice(i, 1); ctx.commit(); }, "ct-ibtn ct-ibtn-sm ct-hover")))) : null,
+    docs.length ? h("div", { cls: "ct-docs" }, docs.map((d, i) => editingBag?.index === i && editingBag.draft === ctx.bagDraft
+      ? docForm({
+        s: ctx.s, travelers: ctx.trip.travelers, draft: ctx.bagDraft,
+        onCancel: () => { editingBag = null; ctx.setBagDraft(null); },
+        onSave: nd => { docs[i] = nd; editingBag = null; ctx.setBagDraft(null, false); ctx.commit(); },
+      })
+      : h("div", { cls: "ct-doc-edit-row" }, docButton(ctx, d, ctx.trip.travelers),
+        h("span", { cls: "ct-doc-acts ct-hover" },
+          iconButton("pencil", t("edit"), () => {
+            const draft: Doc = { ...d, also: [...d.also], para: [...d.para] };
+            editingBag = { index: i, draft };
+            ctx.setBagDraft(draft);
+          }, "ct-ibtn ct-ibtn-sm"),
+          iconButton("x", t("remove"), () => { docs.splice(i, 1); ctx.commit(); }, "ct-ibtn ct-ibtn-sm"))))) : null,
     sugg.length ? h("div", { cls: "ct-suggest" }, label(t("bag.suggest")), h("div", { cls: "ct-row-btns" },
       sugg.map(sg => button([icon("plus"), h("span", null, sg.name), sg.person ? avatar(sg.person, Math.max(0, ctx.trip.travelers.indexOf(sg.person)), "ct-avatar ct-avatar-tag") : null],
         "ct-pill is-dashed is-small", () => ctx.setBagDraft(blankDoc(sg.where, { name: sg.name, para: [...sg.para] })))))) : null,
-    ctx.bagDraft ? docForm({
+    ctx.bagDraft && editingBag?.draft !== ctx.bagDraft ? docForm({
       s: ctx.s, travelers: ctx.trip.travelers, draft: ctx.bagDraft,
       onCancel: () => ctx.setBagDraft(null),
       onSave: d => { ctx.trip.mochila.push(d); ctx.setBagDraft(null, false); ctx.commit(); },
@@ -145,7 +159,7 @@ const CAT_COLOR: Record<string, string> = { transport: "#E8613C", lodging: "#9CC
 export function coste(ctx: SideCtx): HTMLElement {
   const tr = ctx.trip;
   const items = tr.days.flatMap(d => d.items).filter(i => i.price);
-  const cur = items.length ? currencyOf(items[0].price) : "€";
+  const cur = tripCurrency(tr);
   const total = items.reduce((a, i) => a + priceValue(i.price), 0);
   const per: Record<string, number> = {};
   for (const p of tr.travelers) per[p] = 0;

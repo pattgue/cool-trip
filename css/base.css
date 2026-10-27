@@ -93,3 +93,7 @@
 /* ventanita de texto */
 .ct-prompt .ct-input { width: 100%; }
 .ct-prompt .ct-form-foot { margin-top: 14px; border-top: 0; padding-top: 0; }
+
+/* los datos escritos a mano se enseñan con mayúscula inicial (el Markdown queda tal cual) */
+:is(.ct-person, .ct-mini-person) > span:not(.ct-avatar)::first-letter,
+:is(.ct-doc-name, .ct-task-text, .ct-detail-v, .ct-sub, .ct-step-title, .ct-mini-title, .ct-collapsed-title, .ct-slot-title, .ct-day-title, .ct-note-name)::first-letter { text-transform: uppercase; }

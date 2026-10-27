@@ -25,6 +25,9 @@ export class NewTripModal extends Modal {
   onOpen() {
     this.modalEl.addClass("ct-root", "ct-modal");
     this.modalEl.toggleClass("is-phone", Platform.isPhone);
+    /* el título va en la cabecera de Obsidian, a la altura de su ✕ (sin hueco de más arriba) */
+    this.titleEl.setText(Platform.isPhone ? t("new.title") : `COOL TRIP  ·  ${t("new.title")}`);
+    this.titleEl.addClass("ct-h-modal");
     this.draw();
   }
   /* «2026 - Italia», «2026 - Italia y Grecia» o, sin país, «2026 - Roma y Palermo» */
@@ -42,8 +45,6 @@ export class NewTripModal extends Modal {
     const el = this.contentEl;
     el.empty();
     const folder = tripFolder(this.plugin.settings);
-    el.appendChild(h("div", { cls: "ct-modal-head" },
-      h("span", { cls: "ct-h-modal" }, Platform.isPhone ? t("new.title") : `COOL TRIP  ·  ${t("new.title")}`)));
     el.appendChild(ticket({
       mode: "create", phone: Platform.isPhone, trip: this.trip,
       path: [folder, (this.trip.name || "…") + ".md"].filter(Boolean).join(" / "),

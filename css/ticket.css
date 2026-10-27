@@ -1,14 +1,14 @@
 /* ===== la portada: tarjeta de embarque ===== */
 .ct-ticket { display: flex; border-radius: 20px; overflow: hidden; background: var(--ct-ticket); box-shadow: 0 2px 8px 0 #00000033; position: relative; }
 .ct-band { flex: none; width: 46px; background: var(--ct-graphite); color: var(--ct-cream); display: flex; align-items: center; justify-content: center; position: relative; }
-.ct-ticket:not(.is-create) .ct-band { padding-top: 48px; }
 .ct-band-text { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; font-weight: 800; letter-spacing: .6em; text-transform: uppercase; white-space: nowrap; }
-/* el lápiz que desbloquea la portada de la nota */
-.ct-band-btn { position: absolute; top: 12px; left: 7px; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--ct-cream) 45%, transparent) !important;
-  background: transparent !important; color: var(--ct-cream); display: grid; place-items: center; }
-.ct-band-btn:hover { border-color: var(--ct-cream) !important; }
-.ct-band-btn.is-on { background: var(--ct-cream) !important; border-color: var(--ct-cream) !important; color: var(--ct-graphite); }
-.ct-band-btn .ct-ico svg { width: 15px; height: 15px; }
+/* el lápiz que desbloquea la portada de la nota: arriba a la derecha */
+.ct-lock-btn { position: absolute; top: 14px; right: 14px; z-index: 2; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 1.5px solid var(--ct-line) !important;
+  background: transparent !important; color: var(--ct-strong); display: grid; place-items: center; }
+.ct-lock-btn:hover { border-color: var(--ct-strong) !important; }
+.ct-lock-btn.is-on { background: var(--ct-strong) !important; border-color: var(--ct-strong) !important; color: var(--ct-ticket); }
+.ct-lock-btn .ct-ico svg { width: 15px; height: 15px; }
+.ct-ticket:not(.is-create) .ct-stub > :first-child { padding-right: 34px; }
 .ct-ticket-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .ct-cover { background: var(--ct-cover); color: var(--ct-ink); padding: 25px 28px 35px; display: flex; flex-direction: column; gap: 7px; position: relative; }
 .ct-cover.has-image { background: linear-gradient(0deg, color-mix(in srgb, var(--ct-cover) 85%, transparent) 0%, color-mix(in srgb, var(--ct-cover) 35%, transparent) 55%, transparent 100%), var(--ct-cover-img) center / cover; }
@@ -55,7 +55,7 @@
 .ct-dest-rows { display: flex; flex-wrap: wrap; gap: 14px 32px; }
 .ct-dest-row { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .ct-dest-top { display: flex; align-items: center; gap: 10px; }
-.ct-dest-sw { flex: none; width: 14px; height: 14px; border-radius: 4px; background: var(--ct-sw); }
+.ct-dest-sw { flex: none; align-self: flex-start; margin-top: 3px; width: 14px; height: 14px; border-radius: 4px; background: var(--ct-sw); }       /* a la altura del nombre */
 .ct-dest-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ct-dest-city { align-self: flex-start; height: auto; padding: 0; border: 0 !important; background: transparent !important; color: var(--ct-strong);
   font-size: 16px; font-weight: 900; text-transform: uppercase; text-align: left; }
@@ -107,7 +107,7 @@
 .ct-btn-create { height: 52px; width: 100%; font-size: 16px; border-radius: 18px; }
 
 /* la portada de la nota: más estrecha (los datos juntos, sin huecos de sobra) */
-.ct-view:not(.is-phone) .ct-ticket { width: min(100%, 1060px); }
+.ct-view:not(.is-phone) .ct-ticket { width: 100%; }
 .ct-view:not(.is-phone) .ct-ticket .ct-fields { grid-template-columns: repeat(4, max-content); column-gap: 44px; align-items: start; }
 .ct-view:not(.is-phone) .ct-ticket .ct-strip-day { max-width: 66px; }
 
@@ -141,10 +141,10 @@
 .ct-ticket-phone .ct-swatch { width: 34px; height: 34px; }
 
 /* el modal de Nuevo viaje */
-.ct-modal { --ct-page: var(--modal-background, var(--background-primary)); width: min(1240px, 96vw); max-width: none; border-radius: 28px; padding: 22px 24px 24px; }
+.ct-modal { --ct-page: var(--modal-background, var(--background-primary)); width: min(1240px, 96vw); max-width: none; border-radius: 28px; padding: 18px 24px 24px; }
+.ct-modal .ct-h-modal { margin: 0 0 14px; padding: 0 48px 0 4px; line-height: 1.2; }      /* a la derecha, la ✕ de Obsidian */
 .ct-modal .modal-content { display: flex; flex-direction: column; gap: 16px; }
 .ct-modal .modal-content > * { flex-shrink: 0; }
-.ct-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 48px 0 4px; }    /* a la derecha, la ✕ de Obsidian */
 .ct-h-modal { font-weight: 900; font-size: 30px; letter-spacing: -.03em; text-transform: uppercase; color: var(--ct-strong); white-space: pre; }
 .ct-modal.is-phone { width: 100vw; height: 100%; max-height: none; border-radius: 0; padding: calc(16px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) 12px 0; display: flex; flex-direction: column; overflow: hidden; }
 /* en el móvil, el contenido hace scroll (con hueco abajo para la barra del sistema) */

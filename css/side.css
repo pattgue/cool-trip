@@ -15,17 +15,19 @@
 .ct-folded { display: flex; flex-direction: column; gap: 10px; }
 .ct-group { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--ct-muted); }
 .ct-task-list { display: flex; flex-direction: column; padding: 2px 14px; border-radius: 14px; background: var(--ct-page); }
-.ct-task { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 0; }
+.ct-task { display: flex; align-items: flex-start; gap: 10px; min-height: 40px; padding: 10px 0; }
 .ct-task + .ct-task { border-top: 1px solid var(--ct-line); }
-.ct-view.is-phone .ct-task { min-height: 52px; }
+.ct-view.is-phone .ct-task { min-height: 46px; }
 .ct-task-check { flex: none; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid var(--ct-muted) !important; background: transparent !important;
   display: grid; place-items: center; color: var(--ct-ticket); }
 .ct-task-check.is-done { border: 0 !important; background-color: var(--ct-berm) !important; }
 .ct-task-check .ct-ico svg { width: 12px; height: 12px; stroke-width: 3.4; }
-.ct-task-text { flex: 1; min-width: 0; font-size: 14px; line-height: 1.3; font-weight: 700; }
+.ct-task-text { flex: 1; min-width: 0; font-size: 13px; line-height: 20px; font-weight: 600; }
 .ct-task.is-done .ct-task-text { font-weight: 500; color: var(--ct-muted); text-decoration: line-through; }
 .ct-task-check:disabled { cursor: default; opacity: 1; }
-.ct-task-x { color: var(--ct-faint); margin-right: -8px; }
+.ct-task-x { flex: none; color: var(--ct-faint); margin: -4px -8px -4px 0; width: 28px !important; height: 28px !important; }
+.ct-task-check { width: 20px; height: 20px; }
+.ct-task > :not(.ct-task-check):not(.ct-task-text):not(.ct-task-x) { flex: none; align-self: center; }
 .ct-cost-total { display: flex; flex-direction: column; gap: 4px; }
 .ct-h-total { font-weight: 900; font-size: 52px; line-height: .9; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 .ct-cost-people { display: flex; gap: 8px; }

@@ -85,5 +85,9 @@ ok("se adapta al idioma de las notas", md.adaptToVault(Sad, [{ path: "a.md", fm:
 const Sno = md.defaultSettings("es");
 ok("no cambia si ya hay viajes suyos", !md.adaptToVault(Sno, [{ path: "a.md", fm: fmEn, tags: [] }, { path: "b.md", fm: { tipo: "viaje" }, tags: [] }]) && Sno.trips.key === "tipo");
 
+const tOld = md.parseTrip("---\ntype: trip\nstart: 2026-12-01\nend: 2026-12-02\ntravelers:\n  - patt\n---\n## Bag\n- DNI · patt (on paper)\n", "x", Ses);
+ok("«DNI · patt» pasa a burbuja", tOld.mochila[0]?.name === "DNI" && tOld.mochila[0].para.join() === "patt", JSON.stringify(tOld.mochila));
+ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md.showPrice("$5", "€") === "$5" && md.showPrice("", "€") === "");
+
 console.log(fails ? `\n${fails} fallos` : "\nTodo bien");
 process.exit(fails ? 1 : 0);

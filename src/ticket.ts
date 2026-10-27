@@ -130,11 +130,14 @@ function countdown(tr: Trip, big: boolean): HTMLElement {
 }
 
 function swatches(ctx: TicketCtx): HTMLElement {
-  const tr = ctx.trip, cur = paletteId(tr.cover);
+  const tr = ctx.trip, cur = paletteId(tr.cover), color = cur || accentOf(tr.cover, tr.accent);
   const box = h("div", { cls: "ct-swatches", attr: { role: "radiogroup", "aria-label": t("new.cover") } });
   for (const p of PALETTE) {
-    const b = button(null, "ct-swatch" + (cur === p.id ? " is-on" : ""), () => { tr.cover = t("palette." + p.id).toLowerCase(); tr.accent = ""; ctx.changed(); },
-      { role: "radio", "aria-checked": String(cur === p.id), "aria-label": t("palette." + p.id) });
+    /* con imagen de portada, el color cambia el acento y la imagen se queda */
+    const b = button(null, "ct-swatch" + (color === p.id ? " is-on" : ""), () => {
+      if (cur || !tr.cover.trim()) { tr.cover = t("palette." + p.id).toLowerCase(); tr.accent = ""; } else tr.accent = p.id;
+      ctx.changed();
+    }, { role: "radio", "aria-checked": String(color === p.id), "aria-label": t("palette." + p.id) });
     b.setCssProps({ "--ct-swatch": p.hex });
     box.appendChild(b);
   }
@@ -257,9 +260,9 @@ function desktop(ctx: TicketCtx): HTMLElement {
     staticField(t("new.nights"), days ? String(nights) : "—", "lg"));
   const reparto = tr.dests.length ? h("div", { cls: "ct-reparto" }, label(t("new.split")), days ? strip(ctx) : null, destRows(ctx, false)) : null;
   const main = h("div", { cls: "ct-ticket-main" }, header, h("div", { cls: "ct-ticket-body" }, fields, reparto));
-  /* en la nota, el lápiz de arriba a la izquierda desbloquea la portada (y el ✓ la vuelve a sellar) */
-  const lock = create ? null : iconButton(ctx.locked ? "pencil" : "check", t(ctx.locked ? "editCover" : "lockCover"), () => ctx.toggleExpanded?.(), "ct-band-btn" + (ctx.locked ? "" : " is-on"));
-  const band = h("div", { cls: "ct-band" }, lock,
+  /* en la nota, el lápiz de arriba a la derecha desbloquea la portada (y el ✓ la vuelve a sellar) */
+  const lock = create ? null : iconButton(ctx.locked ? "pencil" : "check", t(ctx.locked ? "editCover" : "lockCover"), () => ctx.toggleExpanded?.(), "ct-lock-btn" + (ctx.locked ? "" : " is-on"));
+  const band = h("div", { cls: "ct-band" },
     h("span", { cls: "ct-band-text", attr: { "aria-hidden": "true" } }, t("band", { y: isIso(tr.start) ? tr.start.slice(0, 4) : "" })));
   const code = barcode(plain(tr.name).replace(/\W/g, "").toUpperCase() || "COOLTRIP",
     ["CT", isIso(tr.start) ? tr.start.slice(0, 4) : "", ...tr.dests.slice(0, 3).map(d => plain(d.city).slice(0, 3).toUpperCase())].filter(Boolean).join(" · "));
@@ -269,9 +272,9 @@ function desktop(ctx: TicketCtx): HTMLElement {
   const stub = h("div", { cls: "ct-stub" },
     noteName(ctx, true),
     h("div", { cls: "ct-stub-block" }, label(t("new.travelers")), travelersBox(ctx)),
-    editable(ctx) ? h("div", { cls: "ct-stub-block" }, label(t("new.cover")), swatches(ctx)) : null,
+    h("div", { cls: "ct-stub-block" }, label(t("new.cover")), swatches(ctx)),       /* los colores se eligen siempre, también con la portada sellada */
     h("span", { cls: "ct-grow" }), end);
-  return h("div", { cls: "ct-ticket" + (create ? " is-create" : editable(ctx) ? " is-editing" : " is-locked") }, band, main, notchV(), stub);
+  return h("div", { cls: "ct-ticket" + (create ? " is-create" : editable(ctx) ? " is-editing" : " is-locked") }, band, main, notchV(), stub, lock);
 }
 
 /* ---------- móvil ---------- */

@@ -27,6 +27,7 @@ export function docButton(ctx: { openDoc(d: Doc): void }, d: Doc, travelers: str
     h("span", { cls: "ct-doc-name" }, d.name),
     d.para.length ? h("span", { cls: "ct-doc-para", attr: { "aria-label": d.para.join(", ") } },
       d.para.map(p => avatar(p, Math.max(0, travelers.indexOf(p)), "ct-avatar ct-avatar-tag"))) : null,
+    h("span", { cls: "ct-grow" }),
     others.length ? h("span", { cls: "ct-doc-where" }, others.map(whereText).join(" · ")) : null,
     paper ? h("span", { cls: "ct-paper-tag" }, icon("file-text"), t("paper")) : null,
     d.where !== "paper" ? icon("arrow-up-right", "ct-ico ct-ico-xs") : null,

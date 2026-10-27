@@ -88,6 +88,7 @@ await b.close();
   await p.click("text=Añadir al lun 5 abr");
   await p.fill(".ct-form input[type=time]", "11:00");
   await p.fill(".ct-form .ct-picker input", "Tsukiji");
+  await p.waitForTimeout(150);
   await p.click(".ct-option >> text=Tsukiji Outer Market");
   await p.click(".ct-form >> text=Guardar");
   const saved = await p.evaluate(() => window.__saved || "");
@@ -110,11 +111,11 @@ await b.close();
   let md = await p.evaluate(() => window.__saved || "");
   ok("alojamiento: moneda, incluye otro, sin hora", /- \*\*Machiya Gion\*\* · alojamiento · ¥640/.test(md) && /Incluye: toallas de playa|Incluye: Toallas de playa/.test(md));
   /* la portada: sellada; el lápiz la desbloquea */
-  ok("portada sellada", await p.evaluate(() => !document.querySelector(".ct-ticket .ct-dest-add") && !document.querySelector(".ct-ticket .ct-swatches")));
-  await p.click(".ct-band-btn");
+  ok("portada sellada (los colores, siempre)", await p.evaluate(() => !document.querySelector(".ct-ticket .ct-dest-add") && !!document.querySelector(".ct-ticket .ct-swatches")));
+  await p.click(".ct-lock-btn");
   ok("portada desbloqueada", await p.evaluate(() => !!document.querySelector(".ct-ticket .ct-dest-add") && !!document.querySelector(".ct-ticket .ct-swatches")));
   await p.locator(".ct-ticket").screenshot({ path: join(out, `ticket-edit-${theme}.png`) });
-  await p.click(".ct-band-btn");
+  await p.click(".ct-lock-btn");
   /* + Documento en una reserva: solo la ventanita del documento */
   await p.locator(".ct-pass .ct-link-btn >> text=Documento").first().click();
   ok("documento: ventanita sola", await p.evaluate(() => !!document.querySelector(".ct-pass .ct-docform") && !document.querySelector(".ct-form:not(.ct-docform)")));
