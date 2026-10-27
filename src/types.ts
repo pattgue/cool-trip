@@ -20,6 +20,7 @@ export interface Settings {
   files: { cloud: boolean; wallet: boolean; device: boolean; vault: boolean; vaultFolder: string };
   maps: { app: MapsApp; modes: string[] };
   bases: { trips: string; places: string };   // la carpeta de cada base («» = raíz)
+  basesMade: { trips: string; places: string };   // el archivo de cada base que ya creó Cool Trip («» = ninguno)
   done: number[];              // pasos de los ajustes ya hechos (con «Siguiente»: número en verde)
   countries: Record<string, string>;   // el país de cada ciudad que ya has usado (para ponerlo solo)
   language: "es" | "en";       // el idioma con el que se crearon las sugerencias

@@ -22,6 +22,7 @@ export function defaultSettings(lang: "es" | "en"): Settings {
     files: { cloud: true, wallet: true, device: false, vault: false, vaultFolder: lang === "es" ? "Archivos" : "Files" },
     maps: { app: "google", modes: ["walk", "transit"] },
     bases: { trips: "", places: "" },
+    basesMade: { trips: "", places: "" },
     done: [],
     countries: {},
     language: lang,
@@ -42,6 +43,7 @@ export function mergeSettings(saved: Partial<Settings> | null | undefined, lang:
     trips: { ...d.trips, ...saved.trips }, places: { ...d.places, ...saved.places },
     props: { ...d.props, ...saved.props }, files: { ...d.files, ...saved.files },
     maps: { ...d.maps, ...saved.maps }, bases: mergeBases(d.bases, saved.bases),
+    basesMade: { ...d.basesMade, ...saved.basesMade },
     done: Array.isArray(saved.done) ? saved.done : [],
     countries: saved.countries && typeof saved.countries === "object" ? saved.countries : {},
   };

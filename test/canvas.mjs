@@ -1,6 +1,6 @@
-// Genera los tableros del boceto (el canvas de diseño) desde el plugin real: la nota y «Nuevo viaje», en ordenador y móvil.
+// Genera los tableros del boceto (el canvas de diseño) desde el plugin real: los ajustes, la nota y «Nuevo viaje», en ordenador y móvil.
 // Uso: node test/harness.mjs && node test/canvas.mjs <carpeta>   → escribe <carpeta>/project/*.dc.html y cool-trip.css,
-// y actualiza el alto de esos tableros en <carpeta>/project/canvas.json si existe. El tema (oscuro o claro) se elige en el canvas.
+// obsidian-settings.css (el marco de Ajustes de Obsidian), y actualiza el alto de esos tableros en <carpeta>/project/canvas.json si existe. El tema (oscuro o claro) se elige en el canvas.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -14,7 +14,10 @@ mkdirSync(dest, { recursive: true });
 /* los colores del tema de Obsidian (los mismos que el harness), para el selector «tema» del canvas */
 const DARK = "--background-primary: #1e1e1e; --background-secondary: #262626; --background-modifier-border: #363636; --text-normal: #dcddde; --text-muted: #a8a8a8; --text-faint: #6d6d6d; --interactive-accent: #7f6df2; --text-on-accent: #fff; color-scheme: dark";
 const LIGHT = "--background-primary: #ffffff; --background-secondary: #f6f6f6; --background-modifier-border: #e0e0e0; --text-normal: #222; --text-muted: #5c5c5c; --text-faint: #ababab; --interactive-accent: #8a5cf5; --text-on-accent: #fff; color-scheme: light";
+const STEP_NAMES = ["Tus notas", "Propiedades", "Archivos", "Mapas", "Bases", "Cool Bar", "Listo"];
 const BOARDS = [
+  ...STEP_NAMES.map((n, i) => ({ file: `Plugin-Ajustes-${i + 1}.dc.html`, title: `Ajustes · ${i + 1} ${n}`, w: 1440, mode: "settings" + (i + 1), phone: false })),
+  ...STEP_NAMES.map((n, i) => ({ file: `Plugin-Ajustes-Movil-${i + 1}.dc.html`, title: `Ajustes móvil · ${i + 1} ${n}`, w: 390, mode: "settings" + (i + 1), phone: true })),
   { file: "NuevoViaje-A.dc.html", title: "Nuevo viaje", w: 1440, mode: "modal", phone: false },
   { file: "NuevoViaje-Movil.dc.html", title: "Nuevo viaje · móvil", w: 390, mode: "modal", phone: true },
   { file: "Nota-Plan.dc.html", title: "Nota del viaje", w: 1440, mode: "view", phone: false },
@@ -22,6 +25,7 @@ const BOARDS = [
 ];
 
 writeFileSync(join(dest, "cool-trip.css"), readFileSync(join(here, "..", "styles.css"), "utf8"));
+writeFileSync(join(dest, "obsidian-settings.css"), readFileSync(join(here, "obsidian-settings.css"), "utf8"));
 const b = await chromium.launch();
 const sizes = {};
 for (const bd of BOARDS) {
@@ -41,6 +45,9 @@ for (const bd of BOARDS) {
       }
       el.querySelector(".modal")?.style.setProperty("position", "relative");
       el.querySelector(".modal")?.style.setProperty("margin", "0 auto");
+    } else if (mode.startsWith("settings")) {
+      el = document.querySelector(".modal.mod-settings");
+      el.style.minHeight = "0";
     } else el = document.querySelector(".ct-view");
     return { html: el.outerHTML, h: Math.ceil(el.getBoundingClientRect().height) };
   }, bd.mode);
@@ -57,14 +64,14 @@ for (const bd of BOARDS) {
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="./cool-trip.css">
+<link rel="stylesheet" href="./cool-trip.css">${bd.mode.startsWith("settings") ? '\n<link rel="stylesheet" href="./obsidian-settings.css">' : ""}
 <style>
 body{margin:0}
 button{background:var(--background-modifier-border);border:0;border-radius:4px;height:30px;color:var(--text-normal);font:inherit}
 </style>
 </helmet>
 <div class="{{theme}}" style="width: ${bd.w}px; min-height: ${height}px; box-sizing: border-box; padding: ${pad}px 0; {{vars}}; background: var(--background-primary); color: var(--text-normal); font-family: Inter, system-ui, sans-serif">
-${html}
+${html.replace(/\u0000/g, "")}
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"tema":{"editor":"enum","options":["Oscuro","Claro"],"default":"Oscuro"},"$preview":{"width":${bd.w},"height":${height}}}'>

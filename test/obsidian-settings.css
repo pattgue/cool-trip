@@ -1,0 +1,18 @@
+/* El marco de Ajustes de Obsidian para el harness y los tableros del canvas: las reglas de app.css 1.14 que deciden el
+   ancho de la pestaña de un plugin (relleno centrado con --setting-group-max-width), con una barra lateral de ejemplo.
+   La pestaña crece con su contenido (en Obsidian hace scroll dentro) para poder hacer capturas enteras. */
+.modal.mod-settings { display: flex; min-height: 100vh; --size-4-4: 16px; --size-4-8: 32px; --size-4-12: 48px; --size-4-16: 64px;
+  --setting-group-max-width: 700px; --setting-group-center-offset: calc((100% - var(--setting-group-max-width)) / 2); }
+.vertical-tab-header { flex: none; width: 250px; box-sizing: border-box; padding: 12px; background: var(--background-secondary); font-size: 13px; color: var(--text-muted); }
+.vertical-tab-header-group-title { margin: 18px 8px 6px; font-size: 12px; color: var(--text-faint); }
+.vertical-tab-nav-item { padding: 5px 8px; border-radius: 5px; }
+.vertical-tab-nav-item.is-active { background: var(--background-modifier-border); color: var(--text-normal); }
+.vertical-tab-content-container { position: relative; overflow: hidden; flex-grow: 1; }
+.vertical-tab-content { box-sizing: border-box; background-color: var(--background-primary); padding-inline: var(--size-4-12); padding-top: var(--size-4-12);
+  padding-bottom: var(--size-4-16); container-type: inline-size; }
+.modal.mod-settings .vertical-tab-content:not(.setting-page) { padding-inline: max(var(--size-4-8), var(--setting-group-center-offset)); }
+/* móvil: la cabecera con «‹ Cool Trip» y el fondo y los márgenes de Obsidian */
+.modal.mod-settings.is-phone-frame { flex-direction: column; }
+.is-phone-frame .modal-header { display: flex; align-items: center; gap: 6px; height: 56px; padding: 0 12px; background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border); font-size: 17px; font-weight: 700; color: var(--text-normal); }
+.is-phone-frame .vertical-tab-content { background-color: var(--background-secondary); padding: 16px 16px 100px; }

@@ -14,8 +14,9 @@
   --ct-set-accent-text: color-mix(in srgb, var(--ct-accent) 30%, white); }
 .ct-settings.is-phone { --ct-set-page: var(--background-secondary); }
 .theme-light .ct-settings { --ct-set-card: color-mix(in srgb, var(--ct-set-page) 96%, black); --ct-set-accent-text: var(--ct-accent); }
-/* Obsidian centra los ajustes en una columna estrecha: el asistente usa el ancho de la ventana (hasta un tope) */
-.vertical-tab-content.ct-settings { max-width: 1180px; }
+/* Obsidian (1.14) centra sus ajustes con un relleno lateral de «(ancho − 700px) / 2»: con la ventana grande, ese relleno se
+   comía casi todo el hueco. El asistente usa el ancho de la pestaña, centrado y con un tope de 1100px. En el móvil, el de Obsidian. */
+.modal.mod-settings .vertical-tab-content.ct-settings:not(.setting-page):not(.is-phone) { padding-inline: max(var(--size-4-8, 32px), calc((100% - 1100px) / 2)); }
 
 /* ---------- la estructura: pasos + contenido ---------- */
 .ct-set { display: flex; gap: 32px; min-height: 620px; }
@@ -206,7 +207,7 @@
 /* ---------- 5 · Bases ---------- */
 .ct-set-promo { display: flex; gap: 16px; align-items: center; padding: 14px 18px; border-radius: 6px; background: color-mix(in srgb, var(--ct-accent) 24%, var(--ct-set-page)); }
 .ct-set-promo-icon { flex: none; width: 57px; height: 57px; border-radius: 10px; background: var(--ct-accent); color: #fff; display: grid; place-items: center; }
-.ct-set-promo-icon svg { width: 28px; height: 28px; }
+.ct-settings .ct-set-promo-icon .ct-ico svg { width: 34px; height: 34px; stroke-width: 2; }
 .ct-set-promo .ct-set-card-text b { font-size: 14px; }
 .ct-set-promo .ct-set-card-text > span { color: var(--ct-strong); }
 .ct-set-promo-btn { flex: none; height: 36px; padding: 0 14px; border-radius: 6px; border: 0 !important; box-shadow: none !important; background: #fff !important; color: #141414 !important; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
@@ -334,7 +335,7 @@
 /* Bases, estrecho (como en el móvil): icono pequeño junto al título; en cada base, «Guardar en» al final */
 .ct-settings[data-bw="s"] .ct-set-promo { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; align-items: center; padding: 16px; }
 .ct-settings[data-bw="s"] .ct-set-promo-icon { width: 32px; height: 32px; border-radius: 8px; }
-.ct-settings[data-bw="s"] .ct-set-promo-icon svg { width: 18px; height: 18px; }
+.ct-settings[data-bw="s"] .ct-set-promo-icon .ct-ico svg { width: 19px; height: 19px; }
 .ct-settings[data-bw="s"] .ct-set-promo .ct-set-card-text { display: contents; }
 .ct-settings[data-bw="s"] .ct-set-promo .ct-set-card-text > span, .ct-settings[data-bw="s"] .ct-set-promo-btn { grid-column: 1 / -1; }
 .ct-settings[data-bw="s"] .ct-set-base { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }

@@ -58,6 +58,20 @@ export default class CoolTripPlugin extends Plugin {
     this.registerEvent(this.app.metadataCache.on("changed", file => { this.marked.delete(file.path); this.syncLeaves(); }));
     this.app.workspace.onLayoutReady(() => { void this.adapt(); this.syncLeaves(); });
     this.registerEvent(this.app.metadataCache.on("resolved", () => { void this.adapt(); }));
+    /* las bases que creó Cool Trip siguen siendo suyas aunque se muevan o se renombren (y dejan de serlo si se borran) */
+    this.registerEvent(this.app.vault.on("rename", (f, old) => this.followBase(old, f.path)));
+    this.registerEvent(this.app.vault.on("delete", f => this.followBase(f.path, "")));
+  }
+  private followBase(from: string, to: string) {
+    const made = this.settings.basesMade;
+    let changed = false;
+    for (const k of ["trips", "places"] as const) {
+      const p = made[k];
+      if (!p || (p !== from && !p.startsWith(from + "/"))) continue;
+      made[k] = to ? to + p.slice(from.length) : "";
+      changed = true;
+    }
+    if (changed) void this.saveSettings();
   }
 
   /* si los ajustes por defecto son de otro idioma que las notas del vault, se pasan al de las notas (una vez) */

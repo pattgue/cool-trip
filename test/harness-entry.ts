@@ -35,7 +35,21 @@ if (window.__mode.startsWith("settings")) {
   reg.tools["cool-bases"] = tool("cool-bases", "Cool Bases", 20);
   const tab = new CoolTripSettingTab(app as never, plugin as never);
   tab.step = Number(window.__mode.slice(8)) || 1;
-  document.body.appendChild(tab.containerEl);
+  /* el marco de Ajustes de Obsidian (test/obsidian-settings.css): barra lateral y pestaña; en el móvil, su cabecera */
+  const el = (cls: string, text = "") => { const d = document.createElement("div"); d.className = cls; d.textContent = text; return d; };
+  const modal = el("modal mod-settings" + (window.__phone ? " is-phone-frame" : ""));
+  if (window.__phone) modal.appendChild(el("modal-header", "‹  Cool Trip"));
+  else {
+    const side = el("vertical-tab-header");
+    side.append(el("vertical-tab-header-group-title", "Opciones"), ...["General", "Editor", "Archivos y enlaces", "Apariencia"].map(x => el("vertical-tab-nav-item", x)),
+      el("vertical-tab-header-group-title", "Complementos de la comunidad"), el("vertical-tab-nav-item", "Cool Bases"), el("vertical-tab-nav-item is-active", "Cool Trip"));
+    modal.appendChild(side);
+  }
+  const cont = el("vertical-tab-content-container");
+  tab.containerEl.classList.add("vertical-tab-content");
+  cont.appendChild(tab.containerEl);
+  modal.appendChild(cont);
+  document.body.appendChild(modal);
   (plugin as unknown as { saveSettings: () => Promise<void> }).saveSettings = async () => {};
   tab.display();
 } else if (window.__mode === "modal") {

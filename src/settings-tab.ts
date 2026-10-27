@@ -3,7 +3,8 @@
    Con sitio, los pasos van a la izquierda; si es estrecho (o en el móvil), en una fila de números arriba. El ancho se mide
    con un ResizeObserver (no con container queries: Obsidian dimensiona esta pestaña por su contenido y una «container
    query» la encogería). Las vistas previas de la nota (la reserva del paso 3 y la portada del paso 7) son las piezas de
-   verdad de la vista del viaje, pintadas con un viaje de ejemplo que no se guarda en ninguna parte. */
+   verdad de la vista del viaje, pintadas con un viaje de ejemplo que no se guarda en ninguna parte: en el ordenador, su
+   versión de escritorio (escalada para que quepa); en el móvil, la del móvil. */
 import { App, Notice, Platform, PluginSettingTab, TFile, TFolder, normalizePath } from "obsidian";
 import type CoolTripPlugin from "./main";
 import { h } from "./dom";
@@ -24,7 +25,6 @@ import type { Doc, MapsApp, PropNames, Recog, RecogMode, Trip, Where } from "./t
 import { PALETTE, button, coverHex, icon } from "./ui";
 
 const STEPS = 7;
-const NOTE_PHONE = 760;             // como en la vista del viaje: por debajo de este ancho, la nota se pinta como en el móvil
 
 export class CoolTripSettingTab extends PluginSettingTab {
   plugin: CoolTripPlugin;
@@ -79,7 +79,8 @@ export class CoolTripSettingTab extends PluginSettingTab {
   hide(): void { this.ro?.disconnect(); this.ro = null; this.closePicker?.(); }
 
   /* el diseño según el ancho: estrecho (pasos arriba), medio (pasos más estrechos) o ancho; el ancho del contenido;
-     y las vistas previas de la nota, con la versión (ordenador o móvil) que tocaría a ese ancho */
+     y las vistas previas de la nota, escaladas para que quepan. El observador es el de la ventana de los ajustes
+     (pueden abrirse en una ventana aparte) */
   private watch(wrap: HTMLElement) {
     this.ro?.disconnect();
     const fit = () => {
@@ -93,7 +94,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
       for (const real of Array.from(el.querySelectorAll<HTMLElement>(".ct-set-real"))) {
         const cw = real.clientWidth;
         if (!cw) continue;
-        const desk = !Platform.isPhone && cw >= Number(real.dataset.break);
+        const desk = !Platform.isPhone;
         real.toggleClass("is-desk", desk);
         const box = real.querySelector<HTMLElement>(desk ? ".ct-set-scale.is-desk" : ".ct-set-scale.is-phone");
         const inner = box?.firstElementChild as HTMLElement | null;
@@ -106,7 +107,8 @@ export class CoolTripSettingTab extends PluginSettingTab {
       }
     };
     fit();
-    this.ro = new ResizeObserver(() => fit());
+    const RO = (wrap.win as (Window & typeof globalThis) | undefined)?.ResizeObserver ?? ResizeObserver;
+    this.ro = new RO(() => fit());
     this.ro.observe(wrap);
   }
 
@@ -175,10 +177,10 @@ export class CoolTripSettingTab extends PluginSettingTab {
       `### Dom 4 abr · ${c1}`, `- [ ] 09:00 [[${t("demo.p1")}]]`, `- [ ] 18:30 [[${t("demo.p2")}]]`, ""].join("\n");
     return parseTrip(md, t("demo.name"), defaultSettings("es"));
   }
-  /* una pieza de la nota en sus dos versiones (ordenador y móvil); watch() enseña la que toca al ancho que hay y la escala si no cabe */
-  private real(cls: string, breakAt: number, desk: [HTMLElement, number], phone: [HTMLElement, number], acc: string): HTMLElement {
+  /* una pieza de la nota en sus dos versiones (ordenador y móvil); watch() enseña la del dispositivo y la escala si no cabe */
+  private real(cls: string, desk: [HTMLElement, number], phone: [HTMLElement, number], acc: string): HTMLElement {
     const view = (el: HTMLElement, isPhone: boolean) => h("div", { cls: "ct-view" + (isPhone ? " is-phone" : ""), attr: { style: `--ct-acc: ${acc}` } }, el);
-    return h("div", { cls: "ct-set-real " + cls, attr: { "data-break": String(breakAt), "aria-hidden": "true" } },
+    return h("div", { cls: "ct-set-real " + cls, attr: { "aria-hidden": "true" } },
       h("div", { cls: "ct-set-scale is-desk", attr: { "data-min": String(desk[1]) } }, view(desk[0], false)),
       h("div", { cls: "ct-set-scale is-phone", attr: { "data-min": String(phone[1]) } }, view(phone[0], true)));
   }
@@ -303,7 +305,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
     const acc = coverHex(tr.cover);
     body.append(
       h("div", { cls: "ct-set-files-prev" }, this.label(t("s3.preview")),
-        this.real("ct-set-real-card", 560, [bookingCard(ctx(false), 0, 0), 560], [bookingCard(ctx(true), 0, 0), 320], acc)),
+        this.real("ct-set-real-card", [bookingCard(ctx(false), 0, 0), 560], [bookingCard(ctx(true), 0, 0), 320], acc)),
       h("div", { cls: "ct-set-files-opts" }, this.label(t("s3.where")),
         opt("cloud", t("s3.rec"), t("s3.cloudSub"), h("span", { cls: "ct-set-warn", attr: { role: "note" } }, icon("triangle-alert"), h("span", null, h("b", null, t("s3.careful")), " ", t("s3.cloudWarn")))),
         opt("wallet", t("s3.offline"), t("s3.walletSub"), null),
@@ -345,7 +347,17 @@ export class CoolTripSettingTab extends PluginSettingTab {
     const folder = this.baseFolder(kind);
     return normalizePath((folder ? folder + "/" : "") + t("s5." + kind) + ".base");
   }
-  private baseExists(kind: "trips" | "places") { return this.app.vault.getAbstractFileByPath(this.basePath(kind)) instanceof TFile; }
+  /* la base que ya creó Cool Trip: la guardada en los ajustes (main.ts la sigue si se mueve o se borra) o, de antes, la de su sitio */
+  private madeBase(kind: "trips" | "places"): TFile | null {
+    const s = this.plugin.settings;
+    for (const p of [s.basesMade[kind], this.basePath(kind)]) {
+      const f = p ? this.app.vault.getAbstractFileByPath(p) : null;
+      if (!(f instanceof TFile)) continue;
+      if (s.basesMade[kind] !== f.path) { s.basesMade[kind] = f.path; this.save(); }
+      return f;
+    }
+    return null;
+  }
   private s5(body: HTMLElement) {
     const s = this.plugin.settings;
     this.head(body, t("s5.h"), t("s5.p"));
@@ -355,19 +367,21 @@ export class CoolTripSettingTab extends PluginSettingTab {
       /* la ficha de Cool Bases en el buscador de plugins de la comunidad de Obsidian */
       button(t("s5.promoBtn"), "ct-set-promo-btn", () => { window.open("obsidian://show-plugin?id=cool-bases"); })));
     const card = (kind: "trips" | "places") => {
-      const exists = this.baseExists(kind), name = t("s5." + kind);
-      const open = () => { const f = this.app.vault.getAbstractFileByPath(this.basePath(kind)); if (f instanceof TFile) void this.app.workspace.getLeaf("tab").openFile(f); };
+      const made = this.madeBase(kind), exists = !!made, name = t("s5." + kind);
+      const open = () => { if (made) void this.app.workspace.getLeaf("tab").openFile(made); };
       const create = async () => {
         const folder = this.baseFolder(kind), p = this.basePath(kind);
         await ensureFolder(this.app, folder);
         if (!(this.app.vault.getAbstractFileByPath(p) instanceof TFile)) await this.app.vault.create(p, this.baseYaml(kind, name));
+        s.basesMade[kind] = p;
+        this.save();
         new Notice(t("s5.created", { p }));
         this.display();
       };
       const left = h("div", { cls: "ct-set-base-main" },
         h("label", { cls: "ct-set-base-on" }, this.check(exists, on => { if (on && !exists) void create(); }, exists ? { disabled: "" } : {}), h("b", { cls: "is-caps" }, name)),
         h("span", { cls: "ct-set-base-desc" }, t(`s5.${kind}D`)),
-        exists ? h("span", { cls: "ct-set-base-path" }, icon("table"), h("span", null, this.basePath(kind)), button(t("s5.open"), "ct-set-btn is-small", open))
+        made ? h("span", { cls: "ct-set-base-path" }, icon("table"), h("span", null, made.path), button(t("s5.open"), "ct-set-btn is-small", open))
           : h("div", { cls: "ct-f" }, h("span", { cls: "ct-label" }, t("s5.saveIn")),
             this.folderPicker(this.baseFolder(kind), v => { s.bases[kind] = v; this.save(); this.display(); }, t("s5.saveIn") + " · " + name)));
       return h("div", { cls: "ct-set-card ct-set-base" }, left,
@@ -488,7 +502,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
     body.appendChild(h("div", { cls: "ct-set-how-it" },
       h("div", { cls: "ct-set-card ct-set-md" }, this.label(t("s7.saved")), h("span", { cls: "ct-set-md-lines" }, lines)),
       h("span", { cls: "ct-set-how-arrow", attr: { "aria-hidden": "true" } }, icon("arrow-down")),
-      h("div", { cls: "ct-set-sees" }, this.label(t("s7.sees")), this.real("ct-set-real-ticket", NOTE_PHONE, [tk(false), 1000], [tk(true), 360], coverHex(tr.cover)))));
+      h("div", { cls: "ct-set-sees" }, this.label(t("s7.sees")), this.real("ct-set-real-ticket", [tk(false), 1000], [tk(true), 360], coverHex(tr.cover)))));
     const bar = h("span", { cls: "cool-bar ct-set-mini-bar", attr: { "data-ck": String(KIT_VERSION), "data-align": "right" } }, h("span", { cls: "cool-fold" }, icon("chevron-up")),
       h("span", { cls: "cool-tools" }, h("span", { cls: "cool-tool", attr: { "data-state": "available" } }, "Cool Trip")));
     const form = h("span", { cls: "ct-set-mini-form" }, h("span", null, "09:00"), h("span", { cls: "is-grow" }, icon("map-pin"), h("span", null, t("demo.p1"))), h("span", { cls: "is-add" }, t("s7.add")));
