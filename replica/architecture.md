@@ -125,32 +125,37 @@ Lo esencial de cada reserva (localizador, horas, asiento, puerta) es **texto den
 
 **Lo que se busca:** la sencillez y la accesibilidad de los ajustes (Inter, fondo de Obsidian, morado `#6b58e6` para la acción principal, números verdes `#47BE88` en lo hecho), con mucha más personalidad y un toque divertido. Referencias visuales de Patt: tiles grandes y redondeados en crema y negro, colores planos atrevidos (naranja, lila, rosa) con una forma orgánica tipo flor, pastillas de días y una cabecera de color con mucho tamaño de letra.
 
-**Elegida: A · Billete** (27-10-2026), con estética **moderna y brutalista** (petición de Patt: lo anterior era demasiado infantil):
-- **Formas:** papel crema `#F2EDE4` y tinta `#111111`, sin esquinas redondeadas, reglas de 2 px, el troquel como línea discontinua y campos numerados («01 · Destinos\*»).
-- **Tipografía:** Inter 900 muy grande y apretada para lo importante; etiquetas de 11 px en mayúsculas con mucho espaciado.
-- **Colores:** naranja `#FF5A1F` (Tokio, texto tinta) y cobalto `#2B45E0` (Kioto, texto blanco) como colores de ciudad, que se distinguen también por claridad. Portada: naranja, cobalto, lima `#D4F55C` o negro. El día de cambio de ciudad lleva las dos mitades.
-- **Fuera:** la flor, los círculos y las pastillas.
+**Elegida: A · Billete.** Ronda 3 (27-10-2026): el papel crema con tinta negra parecía «de 1930»; ahora usa la estética de los ajustes con un toque moderno y brutalista:
+- **Base:** fondos, bordes y texto de Obsidian. Tarjetas con borde fino y esquinas de 8–10 px, Inter, botón principal morado y números en círculo que se ponen verdes al rellenarse, como en los ajustes.
+- **Lo brutalista:** tipografía enorme en Inter 900 y mayúsculas para destinos, días, totales y títulos («NUEVO VIAJE», «PLAN», «2.870 €»), con los datos en rejilla.
+- **Colores sin dolor de ojos y con cualquier tema:** todo sale de las variables de Obsidian (`--background-primary`, `--text-muted`, `--interactive-accent`…). Los colores de ciudad y de portada son `--color-orange`, `--color-cyan`, etc., que cada tema define. Solo se usan como puntos, barras y fondos teñidos (`color-mix` al 13–24 %), nunca en el texto. Cada lámina tiene el ajuste «tema» (oscuro o claro) para comprobarlo.
+- **Siempre con móvil:** cada pantalla tiene su versión de 390 px, con objetivos táctiles de 44 px.
 
-Crear el viaje solo recoge lo básico (las propiedades). Todo lo demás se añade después, desde la nota del viaje pintada, que el plugin escribe en Markdown a cada cambio. **Nada depende de servicios de terceros:** el plugin es para el público general.
+**Nuevo viaje** recoge solo lo básico (destinos, ida y vuelta, reparto, nombre, viajeros y portada). Todo lo demás se añade en la nota del viaje, que el plugin escribe en Markdown a cada cambio. **Nada depende de servicios de terceros:** el plugin es para el público general.
 
-**La nota del viaje por dentro (propuesta, en revisión con Patt):**
-- **Cabecera:** el mismo billete, con cuenta atrás, destinos, fechas, viajeros y la tira de días, que sirve para saltar a cada día. En el talón va **«Antes del viaje»**: pasos calculados de los datos (vuelos, alojamiento, trayectos, documentos, mapas sin conexión, check-in), con el siguiente resaltado y su botón.
-- **Tres pestañas:** Plan, Reservas y documentos, y Lugares.
-- **Plan:** un bloque por día con el color de su ciudad.
-  - Las reservas se intercalan solas por hora, en papel.
-  - Las paradas llevan hora opcional, Maps, mover y hecho, y entre paradas van los tramos.
-  - «Añadir parada» se abre dentro del día: hora, lugar o actividad (busca en los lugares de esa ciudad, crea uno nuevo o queda como texto) y nota.
-  - A la derecha, «Lugares sin día» por ciudad, cada uno con «+ Día».
-- **Reservas y documentos:** juntos y ordenados por momento (ida, cada estancia, cada trayecto, vuelta).
-  - Cada reserva es una tarjeta de billete con su localizador y debajo «Lo que necesitas» ese día (tarjetas de embarque, pasaportes, confirmación).
-  - Los huecos sin reserva salen como pendientes, con su botón.
-  - En el lateral, «Siempre a mano» (documentos de todo el viaje) y «Añadir reserva».
-- **Añadir reserva:** modal en papel.
-  - Tipo, trayecto, cuándo (cada extremo con su hora local), detalles y viajeros.
-  - El archivo, según el paso 3 de los ajustes.
-  - «Lo que necesitas ese día», elegido de los documentos del viaje.
-- **Markdown:** frontmatter, callout `[!cool-trip]` con el resumen, `## Plan` (`### Sáb 3 abr · Tokio`, paradas `- [ ] 16:30 [[Senso-ji]]`, tramos en cursiva, reservas como `- 11:50 Vuelo MAD → NRT · [[#Vuelo MAD → NRT|reserva]]`), `## Reservas y documentos` (`### Siempre a mano` y un `###` por reserva con `- **Campo:** valor` y `**Necesitas:**`), `## Lugares` (`###` por ciudad) y `%% cool-trip v1 · … %%`. Cada sección del Markdown es una pestaña o una parte de la vista.
-- *Por decidir:* el formato de los encabezados de día (legible, con el año sacado de `inicio`), la pestaña Lugares en detalle, equipaje y el móvil.
+**La nota del viaje por dentro (ronda 3):** una sola página cronológica, sin pestañas.
+- **Portada:** el mismo billete que en Nuevo viaje, editable en el sitio, con los días que faltan. La tira de días lleva a cada día.
+- **Lateral (en móvil, debajo de la portada):**
+  - **Mochila:** los documentos que hacen falta en cualquier momento (pasaportes, seguro), con sugerencias según el viaje («Carné de conducir internacional» para Japón) y «Añadir documento».
+  - **Por hacer:** tareas con progreso. Unas son sugeridas y se calculan de lo que falta (alojamiento en Kioto, mapas sin conexión, check-in); el resto las añade cada uno.
+- **Plan:** un bloque por día, con su número en un círculo del color de la ciudad y el gasto del día.
+  - **Reservas dentro del plan** (vuelo, tren, bus, coche, alojamiento, entrada): tarjeta con los datos esenciales, el precio y los botones de «Lo que necesitas» (archivos según el paso 3 de los ajustes: nube, cartera, dispositivo o vault). Se editan desplegando la propia tarjeta, sin ventana flotante.
+  - **Plantillas vacías:** si falta el vuelo de ida o de vuelta o el alojamiento de un destino, sale su hueco con su botón. Cada día tiene sus huecos de comida y cena (restaurante o en casa).
+  - **Lugares:** se añaden en el día, eligiendo una nota de lugar existente de esa ciudad o creando una nueva en su carpeta (con ciudad y país ya puestos). Nunca son texto suelto.
+  - **Tramos** entre paradas: con el modo de los ajustes de Mapas; si no se indican, «aprox.».
+- **Coste del viaje,** al final: total, por persona y por categoría (transporte, alojamiento, comidas, lugares), con lo que aún no tiene precio.
+
+**Markdown (ronda 3):**
+- **Portada:** frontmatter (`tipo`, `inicio`, `fin`, `destinos`, `viajeros`, `portada`) y un callout `[!cool-trip]` con el resumen.
+- **Secciones:** `## Mochila` (enlaces a los archivos) y `## Por hacer` (tareas `- [ ]`).
+- **`## Plan`:** un `### Sáb 3 abr · Tokio` por día.
+  - Paradas `- [ ] 16:30 [[Senso-ji]]`, solo a notas de lugar.
+  - Tramos indicados a mano, `- *Metro · 10 min*`.
+  - Cada reserva como `- 11:50 **Vuelo MAD → NRT** · 920 €`, con subelementos `- Clave: valor` (llegada, localizador, archivo, «Necesitas»).
+- **No se escribe** lo que el plugin calcula: llegadas, check-outs, tramos aproximados, huecos vacíos, tareas sugeridas sin marcar ni el coste total.
+- **Al final:** `%% cool-trip v1 %%`.
+- Ya no hay enlaces `[[#…]]` a encabezados.
+- *Por decidir:* encabezados de día legibles o ISO, equipaje y la vista «Hoy».
 
 ## Referencias de diseño de Patt y lo que aportan
 
