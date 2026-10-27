@@ -39,7 +39,7 @@
 .ct-aside { display: flex; flex-direction: column; gap: 18px; position: sticky; top: var(--ct-aside-top, 16px); }
 .ct-nowrap { white-space: nowrap; }
 /* móvil: arriba, el hueco de la barra del sistema y algo de aire bajo la cabecera flotante de Obsidian (sin llegar a dejarla debajo) */
-.ct-view.is-phone .ct-page { padding: calc(max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px), 20px) + 26px) 12px calc(96px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); gap: 12px; }
+.ct-view.is-phone .ct-page { padding: calc(max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px), 20px) + 42px) 12px calc(96px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); gap: 12px; }
 .ct-empty { padding: 40px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; color: var(--ct-muted); }
 
 /* botones */

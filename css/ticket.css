@@ -90,7 +90,7 @@
 .ct-note-name.is-editable:hover { border-bottom-color: var(--ct-line); }
 .ct-note-path { font-size: 12px; color: var(--ct-faint); }
 /* los colores: siete columnas que reparten el ancho; cada círculo crece con su hueco hasta un tope */
-.ct-swatches { display: grid !important; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; justify-items: center; max-width: 360px; width: 100%; }
+.ct-swatches { display: grid !important; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; justify-items: center; max-width: 380px; width: 100%; }
 .ct-ticket-phone .ct-swatches { margin: 0 auto; }
 .ct-root .ct-swatch { width: 100% !important; max-width: 40px; height: auto !important; aspect-ratio: 1; }
 .ct-swatch { width: 28px; height: 28px; padding: 0; border: 0 !important; border-radius: 50%; background: var(--ct-swatch) !important; }

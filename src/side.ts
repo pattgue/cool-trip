@@ -9,7 +9,7 @@ import { lodgings } from "./plan";
 import { blankDoc, docButton, docForm, docWheres, firstWhere } from "./docs";
 import type { Doc, Item, Task, Where } from "./types";
 import { isTransport } from "./types";
-import { avatar, button, icon, iconButton, label, plain } from "./ui";
+import { avatar, button, destHex, icon, iconButton, label, plain } from "./ui";
 
 export interface SideCtx extends PlanCtx {
   folded: Set<string>;            // cajas contraídas (en el móvil)
@@ -176,8 +176,8 @@ export function coste(ctx: SideCtx): HTMLElement {
     const first = addDays(tr.start, acc); acc += dest.nights;
     if (dest.nights && !Array.from({ length: dest.nights }, (_, i) => addDays(first, i)).some(n => spans.some(l => l.from <= n && n < l.to))) missing.push(t("slot.lodging", { c: dest.city }));
   }
-  const rows = Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([k, v]) => {
-    const fill = h("span", null); fill.setCssProps({ "--ct-p": total ? `${Math.max(2, (v / total) * 100)}%` : "0%", "--ct-accent-fill": "var(--ct-acc)" });
+  const rows = Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([k, v], i) => {
+    const fill = h("span", null); fill.setCssProps({ "--ct-p": total ? `${Math.max(2, (v / total) * 100)}%` : "0%", "--ct-accent-fill": destHex(i) });
     return h("div", { cls: "ct-cost-row" }, h("span", { cls: "ct-cost-line" }, h("span", null, t("cost." + k)), h("span", { cls: "ct-num" }, fmtMoney(v, cur))),
       h("span", { cls: "ct-progress is-thin" }, fill));
   });

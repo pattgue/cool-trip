@@ -1,6 +1,6 @@
 {
   "name": "cool-trip",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "description": "Plan each trip in one note: a boarding-pass cover, a day-by-day route with bookings, documents and costs.",
   "license": "UNLICENSED",

@@ -9,14 +9,14 @@ export const PALETTE: { id: string; hex: string }[] = [
   { id: "bermellon", hex: "#E8613C" }, { id: "mostaza", hex: "#EDC14B" }, { id: "pistacho", hex: "#B5D69A" },
   { id: "cielo", hex: "#9CC9F0" }, { id: "lavanda", hex: "#C2B3F5" }, { id: "rosa", hex: "#F5AFC0" },
 ];
-/* el primer destino lleva el color de la portada; los siguientes, sus compañeros (complementarios y armónicos) */
+/* cada paleta, tres colores: el de la portada, su compañero y uno propio que solo sale aquí. Los destinos (y las barras del coste) los usan en orden */
 const SCHEMES: Record<string, string[]> = {
-  bermellon: ["bermellon", "cielo", "mostaza", "lavanda", "pistacho", "rosa"],
-  mostaza: ["mostaza", "lavanda", "bermellon", "cielo", "rosa", "pistacho"],
-  pistacho: ["pistacho", "rosa", "lavanda", "mostaza", "cielo", "bermellon"],
-  cielo: ["cielo", "bermellon", "mostaza", "rosa", "pistacho", "lavanda"],
-  lavanda: ["lavanda", "mostaza", "pistacho", "rosa", "bermellon", "cielo"],
-  rosa: ["rosa", "pistacho", "cielo", "mostaza", "lavanda", "bermellon"],
+  bermellon: ["#E8613C", "#9CC9F0", "#7FC8B8"],     // + aguamarina
+  mostaza: ["#EDC14B", "#C2B3F5", "#F09A72"],       // + melocotón
+  pistacho: ["#B5D69A", "#F5AFC0", "#F3D9A4"],      // + arena
+  cielo: ["#9CC9F0", "#E8613C", "#FFC9A8"],         // + albaricoque
+  lavanda: ["#C2B3F5", "#EDC14B", "#8FD3C1"],       // + menta
+  rosa: ["#F5AFC0", "#B5D69A", "#A8B9F2"],          // + vincapervinca
 };
 let scheme = SCHEMES.bermellon;
 /* el color de un viaje: el de la portada o, si la portada es una imagen, el último elegido (accent) */
@@ -44,7 +44,7 @@ export function nearestPalette(r: number, g: number, b: number): string {
   }
   return best;
 }
-export const destHex = (i: number) => hexOf(scheme[i % scheme.length]);
+export const destHex = (i: number) => scheme[i % scheme.length];
 export const personHex = (i: number) => hexOf(PEOPLE_ORDER[i % PEOPLE_ORDER.length]);
 
 export function icon(name: string, cls = "ct-ico"): HTMLElement {
