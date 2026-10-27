@@ -5,6 +5,7 @@
    Lo que Cool Trip vuelve a tocar después (syncBase) es solo lo suyo: el bloque marcado del CSS libre y las vistas de ciudades nuevas. */
 import type { Recog, Settings } from "./types";
 import { ICONS, OTHER_ICON } from "./places";
+import { twinRecog } from "./settings";
 import type { Family } from "./places";
 import { locale } from "./i18n";
 
@@ -46,14 +47,22 @@ const chain = (cases: [string, string][], last: string) => cases.reduceRight((ac
 const DAY = 86400000;
 const days = (a: string, b: string) => `((number(${a}) - number(${b})) / ${DAY}).round()`;
 
-/* el filtro de la base: cómo reconoce los ajustes cada tipo de nota */
-export function recogFilter(r: Recog): string {
-  return r.mode === "folder" ? `file.inFolder(${q(r.folder)})` : r.mode === "tag" ? `file.hasTag(${q(r.value.replace(/^#/, ""))})` : `${note(r.key)} == ${q(r.value)}`;
+/* el filtro de la base: cómo reconoce los ajustes cada tipo de nota. Con «tipo: viaje», también «type: trip» (lo mismo que
+   reconoce Cool Trip: el móvil y el ordenador pueden tener Obsidian en idiomas distintos) y sin distinguir mayúsculas */
+const one = (r: Recog, f: string) => r.mode === "folder" ? `${f}.inFolder(${q(r.folder)})` : r.mode === "tag" ? `${f}.hasTag(${q(r.value.replace(/^#/, ""))})`
+  : `list(${f === "file" ? note(r.key) : `${f}.properties[${q(r.key)}]`}).map(value.toString().lower()).contains(${q(r.value.trim().toLowerCase())})`;
+export function recogFilter(r: Recog, kind: "trip" | "place"): string {
+  const twin = twinRecog(r, kind);
+  return twin ? `${one(r, "file")} || ${one(twin, "file")}` : one(r, "file");
 }
 /* lo mismo, para otra nota (en las fórmulas que miran los viajes que enlazan un lugar) */
 function recogOf(r: Recog, f: string): string {
-  return r.mode === "folder" ? `${f}.inFolder(${q(r.folder)})` : r.mode === "tag" ? `${f}.hasTag(${q(r.value.replace(/^#/, ""))})`
-    : `list(${f}.properties[${q(r.key)}]).contains(${q(r.value)})`;
+  const twin = twinRecog(r, "trip");
+  return twin ? `(${one(r, f)} || ${one(twin, f)})` : one(r, f);
+}
+/* el filtro que escribían las versiones anteriores (solo la propiedad tal cual): se cambia por el de ahora */
+export function oldFilter(r: Recog): string {
+  return r.mode === "folder" ? `file.inFolder(${q(r.folder)})` : r.mode === "tag" ? `file.hasTag(${q(r.value.replace(/^#/, ""))})` : `${note(r.key)} == ${q(r.value)}`;
 }
 
 /* ---------- base de viajes ---------- */
@@ -205,7 +214,7 @@ export function tripsBase(s: Settings, env: BaseEnv): BaseDoc {
       sort: [{ property: `note.${P.start}`, direction: "DESC" }], summaries: { "formula.nights": "Sum" } },
   ];
   if (env.maps) views.push(mapView(s, "trips"));
-  return { filters: { and: [recogFilter(s.trips), `${S}`] }, formulas: tripFormulas(s), properties: displayNames(TRIP_PROPS()), views };
+  return { filters: { and: [recogFilter(s.trips, "trip"), `${S}`] }, formulas: tripFormulas(s), properties: displayNames(TRIP_PROPS()), views };
 }
 
 /* ---------- base de lugares ---------- */
@@ -321,7 +330,7 @@ export function placesBase(s: Settings, env: BaseEnv, cities: string[]): BaseDoc
   const views: View[] = [guide];
   if (env.maps) views.push(mapView(s, "places"));
   views.push(...cities.map(c => cityView(s, env, c)));
-  return { filters: { and: [recogFilter(s.places)] }, formulas: placeFormulas(s, env), properties: displayNames(PLACE_PROPS()), views };
+  return { filters: { and: [recogFilter(s.places, "place")] }, formulas: placeFormulas(s, env), properties: displayNames(PLACE_PROPS()), views };
 }
 
 /* ---------- el mapa (plugin Maps): un marcador por nota, con su icono y su color ---------- */

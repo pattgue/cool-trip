@@ -135,6 +135,10 @@ ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md
   const ndoc = round(md.placesBase(S, { ...env, cool: false, maps: false }, ["Tokio"]));
   const S2 = { ...S, baseCities: ["tokio"] };
   ok("pasar a Cool Bases y añadir el mapa", md.syncBase(ndoc, "places", S2, env, { useCool: true, addMap: true }) && ndoc.views.map(v => v.type).join() === "cool-bases,map,cool-bases");
+  /* el filtro reconoce las notas en los dos idiomas y sin mayúsculas, como Cool Trip */
+  const fl = md.recogFilter(S.places, "place"), hit = fm => !!evaluate(fl, { fm, file: { path: "x.md", basename: "x", fm }, formulas: {}, today: X.TODAY, notes: [], backlinks: () => [] });
+  ok("filtro de lugares", hit({ tipo: "lugar" }) && hit({ tipo: "Lugar" }) && hit({ type: "place" }) && !hit({ tipo: "viaje" }) && !hit({}), fl);
+  ok("viajes de un lugar en inglés", run(pb, { ...X.PLACES[0], _c: {} }, "tripNames") === "2027 - Japón");
 }
 
 console.log(fails ? `\n${fails} fallos` : "\nTodo bien");

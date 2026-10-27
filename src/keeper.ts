@@ -6,8 +6,9 @@
 import { getIcon, normalizePath, parseYaml, stringifyYaml, TFile } from "obsidian";
 import type { App } from "obsidian";
 import type CoolTripPlugin from "./main";
-import { placesBase, syncBase, tripColorsCss, tripsBase } from "./bases";
+import { oldFilter, placesBase, syncBase, tripColorsCss, tripsBase } from "./bases";
 import type { BaseDoc, BaseEnv, BaseKind } from "./bases";
+import type { Settings } from "./types";
 import { allPlaces, ensureFolder, isTripFile } from "./places";
 import { propKey } from "./settings";
 import { coverHex } from "./ui";
@@ -24,6 +25,18 @@ function iconSvg(name: string): string {
   if (!svg) return "";
   const ser = new XMLSerializer();
   return Array.from(svg.children).map(c => ser.serializeToString(c).replace(/ xmlns="[^"]*"/g, "")).join("");
+}
+
+/* ¿la base tiene aún el filtro que escribían las versiones anteriores? (no reconocía las notas en el otro idioma) */
+function isOldFilter(doc: BaseDoc, kind: BaseKind, s: Settings): boolean {
+  const r = kind === "trips" ? s.trips : s.places, f = JSON.stringify(doc.filters ?? null);
+  const S = `note[${JSON.stringify(s.props.start)}]`;
+  return [{ and: [oldFilter(r)] }, { and: [oldFilter(r), S] }].some(x => JSON.stringify(x) === f);
+}
+function fixFilter(doc: BaseDoc, kind: BaseKind, s: Settings, env: BaseEnv): boolean {
+  if (!isOldFilter(doc, kind, s)) return false;
+  doc.filters = (kind === "trips" ? tripsBase(s, env) : placesBase(s, env, [])).filters;
+  return true;
 }
 
 export class BaseKeeper {
@@ -81,7 +94,7 @@ export class BaseKeeper {
     await this.edit(kind, doc => {
       const fresh = kind === "trips" ? tripsBase(s, env) : placesBase(s, env, cities);
       const keep = doc.views.filter(v => !(v.type === "table" && v.name === oldName) && !fresh.views.some(f => f.name === v.name));
-      doc.filters = fresh.filters;
+      if (isOldFilter(doc, kind, s) || !doc.filters) doc.filters = fresh.filters;
       doc.formulas = { ...doc.formulas, ...fresh.formulas };
       doc.properties = { ...fresh.properties, ...doc.properties };
       doc.views = [...fresh.views, ...keep];
@@ -129,7 +142,8 @@ export class BaseKeeper {
     try {
       await this.locateTrips();
       const s = this.plugin.settings, env = this.env();
-      if (this.file("trips")) { const colors = await this.colors(); await this.edit("trips", doc => syncBase(doc, "trips", s, env, { colors })); }
+      if (this.file("trips")) { const colors = await this.colors(); await this.edit("trips", doc => { const a = fixFilter(doc, "trips", s, env), b = syncBase(doc, "trips", s, env, { colors }); return a || b; }); }
+      if (this.file("places")) await this.edit("places", doc => fixFilter(doc, "places", s, env));
       if (this.file("places")) {
         const fresh = this.cities().filter(c => !s.baseCities.includes(c.toLowerCase()));
         if (fresh.length) {
@@ -150,8 +164,9 @@ export class BaseKeeper {
       const fm: Record<string, unknown> = this.app.metadataCache.getFileCache(f)?.frontmatter || {};
       const key = propKey(s, "location", fm);
       if (fm[key] != null && fm[key] !== "") continue;
-      const city = toList(fm[propKey(s, "destinations", fm)])[0]?.replace(/^\[\[|\]\]$/g, "").trim().toLowerCase();
-      const p = city ? places.find(x => x.city.trim().toLowerCase() === city) : null;
+      /* la primera ciudad que tenga un lugar con coordenadas */
+      const cities = toList(fm[propKey(s, "destinations", fm)]).map(c => c.replace(/^\[\[|\]\]$/g, "").trim().toLowerCase());
+      const p = cities.map(c => places.find(x => x.city.trim().toLowerCase() === c)).find(Boolean);
       if (!p?.loc) continue;
       const [lat, lon] = p.loc;
       await this.app.fileManager.processFrontMatter(f, (m: Record<string, unknown>) => { if (m[key] == null || m[key] === "") m[key] = [String(lat), String(lon)]; });
