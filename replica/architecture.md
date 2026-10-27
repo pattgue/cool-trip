@@ -162,6 +162,7 @@ Lo esencial de cada reserva (localizador, horas, asiento, puerta) es **texto den
 - **Lugares con icono según su tipo** (la propiedad de la nota de lugar): templo o santuario, calle comercial, cruce, mercado, museo…; si no hay tipo, un pin. Va en una burbuja como la de las comidas.
 - **Comidas como pasos en todos los días,** también en los que no tienen planes: el desayuno incluido sale como paso y las que faltan, como huecos discontinuos que se rellenan al tocarlos.
 - **Camas de la habitación:** un número más un desplegable con el tipo (doble, individual, litera, futón…).
+- **Cabecera del billete:** avión de papel. En escritorio, los viajeros de cada destino son pastillas pequeñas y sutiles (inicial y nombre en gris); en el móvil siguen grandes.
 
 **Markdown (ronda 4, a Patt le cuadra):**
 - **Portada:** frontmatter (`tipo`, `inicio`, `fin`, `destinos`, `viajeros`, `portada`) y un callout `[!cool-trip]` con una línea por destino (noches y viajeros).
