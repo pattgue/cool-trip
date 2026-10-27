@@ -10,9 +10,9 @@ import { parseTrip, serializeTrip } from "./md";
 import { allPlaces, createPlace, isTripFile, resolve, walletUrl } from "./places";
 import type { PlaceInfo } from "./places";
 import { plan } from "./plan";
-import type { FormState } from "./plan";
+import type { DocAdd, FormState } from "./plan";
 import { renderForm } from "./forms";
-import type { FormCtx } from "./forms";
+import type { FormCtx, FormExtra } from "./forms";
 import { coste, mochila, porHacer } from "./side";
 import type { SideCtx } from "./side";
 import { ticket } from "./ticket";
@@ -28,11 +28,12 @@ const PHONE_WIDTH = 760;
 export class TripView extends TextFileView {
   plugin: CoolTripPlugin;
   trip: Trip | null = null;
-  form: FormState | null = null;
+  form: (FormState & FormExtra) | null = null;
+  docAdd: DocAdd | null = null;
+  editing = false;                 // la portada desbloqueada para editarla (con el lápiz)
   collapsed = new Set<string>();
   folded = new Set<string>();
   bagDraft: Doc | null = null;
-  expanded = false;
   private placesCache: PlaceInfo[] | null = null;
   private wasPhone: boolean | null = null;
 
@@ -45,7 +46,7 @@ export class TripView extends TextFileView {
   setViewData(data: string, clear: boolean) {
     this.data = data;
     if (clear) {
-      this.form = null; this.collapsed.clear(); this.bagDraft = null; this.expanded = false;
+      this.form = null; this.collapsed.clear(); this.bagDraft = null; this.docAdd = null; this.editing = false;
       this.folded = new Set(this.isPhone() ? ["bag", "todo"] : []);
     }
     this.trip = this.file ? parseTrip(data, this.file.basename, this.plugin.settings) : null;
@@ -83,21 +84,40 @@ export class TripView extends TextFileView {
     const ctx = this.ctx(file, phone);
     const page = h("div", { cls: "ct-page" });
     page.appendChild(ticket({
-      mode: "note", phone, trip: this.trip, expanded: this.expanded,
+      mode: "note", phone, trip: this.trip, expanded: this.editing, locked: !this.editing,
       path: [file.parent && file.parent.path !== "/" ? file.parent.path : "", file.name].filter(Boolean).join(" / "),
       changed: () => this.commit(),
       prompt: (title, ph, value) => promptText(this.app, title, ph, value),
       promptDest: (city, country, fb) => this.plugin.askDest(city, country, fb),
       rename: name => void this.rename(name),
-      toggleExpanded: () => { this.expanded = !this.expanded; this.render(); },
+      toggleExpanded: () => { this.editing = !this.editing; this.render(); },
       jump: date => this.jump(date),
       coverSrc: cover => this.plugin.coverSrc(cover, file.path),
     }));
+    let aside: HTMLElement | null = null;
     if (phone) page.append(mochila(ctx), porHacer(ctx), plan(ctx), coste(ctx));
-    else page.appendChild(h("div", { cls: "ct-columns" }, plan(ctx), h("aside", { cls: "ct-aside" }, mochila(ctx), porHacer(ctx), coste(ctx))));
+    else page.appendChild(h("div", { cls: "ct-columns" }, plan(ctx), aside = h("aside", { cls: "ct-aside" }, mochila(ctx), porHacer(ctx), coste(ctx))));
     el.appendChild(page);
     el.scrollTop = scroll;
+    this.watchAside(aside);
   }
+
+  /* el lateral acompaña al plan: si no cabe en la pantalla, baja con el scroll hasta que se ve su final y ahí se queda */
+  private asideObs: ResizeObserver | null = null;
+  private watchAside(aside: HTMLElement | null) {
+    this.asideObs?.disconnect();
+    this.asideObs = null;
+    if (!aside) return;
+    const fit = () => {
+      const room = this.contentEl.clientHeight, tall = aside.offsetHeight;
+      aside.setCssProps({ "--ct-aside-top": Math.min(16, room - tall - 24) + "px" });
+    };
+    fit();
+    this.asideObs = new ResizeObserver(fit);
+    this.asideObs.observe(aside);
+    this.asideObs.observe(this.contentEl);
+  }
+  async onClose() { this.asideObs?.disconnect(); await super.onClose(); }
 
   private ctx(file: TFile, phone: boolean): FormCtx & SideCtx {
     const ctx: FormCtx & SideCtx = {
@@ -106,9 +126,12 @@ export class TripView extends TextFileView {
       collapsed: this.collapsed, folded: this.folded,
       bagDraft: this.bagDraft,
       setBagDraft: (d, redraw = true) => { this.bagDraft = d; if (redraw) this.render(); },
+      docAdd: this.docAdd,
+      setDocAdd: (d, redraw = true) => { this.docAdd = d; if (redraw) this.render(); },
+      move: (a, ai, b, bi) => this.move(a, ai, b, bi),
       commit: () => this.commit(),
       rerender: () => this.render(),
-      openForm: f => { this.form = f; this.render(); if (f) window.setTimeout(() => this.contentEl.querySelector<HTMLElement>(".ct-form input, .ct-form select")?.focus(), 30); },
+      openForm: f => { this.form = f; this.docAdd = null; this.render(); if (f) window.setTimeout(() => this.contentEl.querySelector<HTMLElement>(".ct-form input, .ct-form select")?.focus(), 30); },
       renderForm: f => renderForm(ctx, f),
       openLink: link => void this.app.workspace.openLinkText(link, file.path, true),
       openUrl: url => window.open(url, "_blank"),
@@ -125,21 +148,40 @@ export class TripView extends TextFileView {
     const tr = this.trip!, it = f.draft;
     if (!it.title.trim() && !it.link) { new Notice(t("f.placeNote")); return; }
     if (f.day >= 0 && !f.isNew) tr.days[f.day]?.items.splice(f.index, 1);
-    /* el día lo manda la propia reserva (salida o check-in) si cae dentro del viaje */
-    let di = f.day;
+    /* el día lo manda la propia reserva (salida o check-in) si cae dentro del viaje; lo demás, el día elegido */
+    let di = f.target ?? f.day;
     const key = isTransport(it.kind) ? "depart" : it.kind === "lodging" ? "checkin" : "";
     if (key) {
       const w = splitWhen(field(it, key), tr.start);
-      if (w.time) it.time = w.time;
+      if (w.time && isTransport(it.kind)) it.time = w.time;
       const k = w.date ? tr.days.findIndex(d => d.date === w.date) : -1;
       if (k >= 0) di = k;
     }
+    if (it.kind === "lodging") it.time = "";
     const items = tr.days[di].items;
-    if (f.isNew || di !== f.day || it.time) {
-      const at = it.time ? items.findIndex(x => !!x.time && x.time > it.time) : -1;
+    if (it.kind === "lodging") {
+      /* el alojamiento va tras el transporte que te lleva (o al principio del día) */
+      let at = -1;
+      items.forEach((x, i) => { if (isTransport(x.kind)) at = i; });
+      items.splice(f.isNew || di !== f.day ? at + 1 : Math.min(f.index, items.length), 0, it);
+    } else if (f.isNew || di !== f.day || it.time) {
+      /* con hora, en su sitio; sin hora, al final del día (o donde estaba) */
+      const at = it.time ? items.findIndex(x => !!x.time && x.kind !== "lodging" && x.time > it.time) : -1;
       items.splice(at >= 0 ? at : items.length, 0, it);
     } else items.splice(Math.min(f.index, items.length), 0, it);
     this.form = null;
+    this.commit();
+  }
+
+  /* arrastrar un paso a otro sitio (del mismo día o de otro) */
+  private move(fromDay: number, fromIndex: number, toDay: number, toIndex: number) {
+    const tr = this.trip;
+    if (!tr) return;
+    const src = tr.days[fromDay]?.items, dst = tr.days[toDay]?.items;
+    if (!src || !dst || !src[fromIndex]) return;
+    const [it] = src.splice(fromIndex, 1);
+    if (src === dst && fromIndex < toIndex) toIndex--;
+    dst.splice(Math.max(0, Math.min(toIndex, dst.length)), 0, it);
     this.commit();
   }
 

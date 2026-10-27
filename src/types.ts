@@ -28,7 +28,8 @@ export interface Settings {
 
 /* ---------- el viaje ---------- */
 export type Where = "cloud" | "wallet" | "device" | "vault" | "paper";
-export interface Doc { name: string; where: Where; url: string }
+/* un documento: dónde está (el primero manda: su enlace o su etiqueta), en qué otros sitios lo llevas y de quién es */
+export interface Doc { name: string; where: Where; url: string; also: Where[]; para: string[] }
 export interface Task { text: string; done: boolean }
 export interface Dest { city: string; country: string; nights: number; travelers: string[] }
 
@@ -67,6 +68,7 @@ export interface Trip {
   accent: string;              // id de la paleta del viaje (si la portada es una imagen, el último color elegido)
   mochila: Doc[];
   tasks: Task[];
+  hidden: string[];            // sugerencias de «Por hacer» que se han quitado (no vuelven a salir)
   days: Day[];                 // uno por fecha, más los que quedaron fuera de las fechas
   intro: string[];             // lo que haya antes de las secciones (se respeta)
   outro: string[];             // secciones que no son de Cool Trip (se respetan)

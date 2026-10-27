@@ -172,6 +172,13 @@ Lo esencial de cada reserva (localizador, horas, asiento, puerta) es **texto den
   - Cada reserva como `- 11:50 **Vuelo MAD → NRT** · 920 € · para Ana, Leo`, con subelementos `- Clave: valor` (Sale, Llega, Asientos por persona, Documentos con dónde están).
 - **No se escribe** lo que el plugin calcula: llegada a destino, check-outs, huecos vacíos, desayunos incluidos, tareas sugeridas sin marcar ni el coste.
 - **Al final:** `%% cool-trip v1 %%`.
+
+**Markdown, añadidos tras la primera prueba de Patt (0.1.2):**
+- **Documentos** (mochila y reservas): `Nombre (sitio · sitio · para Ana)`. El paréntesis lleva los otros sitios donde lo llevas (`en papel`, `Wallet`, `nube`, `dispositivo`) y de quién es; si no se entiende, es parte del nombre. Con enlace: `[Billete](https://…) (en papel)`. Se siguen leyendo las formas antiguas (`Pasaporte · Ana · en papel`, `[x](Wallet)`).
+- **Precio con moneda:** `60 €`, `$60`, `¥640`, `45 CHF` (un número suelto también se lee como precio).
+- **Alojamiento:** sin hora en la línea (la suya es la del check-in). Subelementos nuevos: `Tipo: hostal | apartamento | casa de amigos | camping` (sin tipo, hotel), `Reserva`, `Llaves`, `Parcela` y `Dirección`. Una casa de amigos no tiene nota: `**Casa de Ana** · alojamiento`. Llegar a él es un paso aparte: `- [ ] 22:00 Llegada al alojamiento · [[Hotel]]`.
+- **Transporte:** `Modalidad: alquiler | compartido` (coche), `Compañía`, `Conductor`, `Camarote` y `Reserva`.
+- **Sugerencias de «Por hacer» quitadas:** `%% cool-trip · ocultas: Mapas sin conexión de Roma | … %%`, justo antes de la marca final.
 - *Por decidir:* la vista «Hoy» y las filas 3 y 4.
 
 ## Referencias de diseño de Patt y lo que aportan

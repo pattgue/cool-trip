@@ -2,13 +2,14 @@
 import { h } from "./dom";
 import { t } from "./i18n";
 import { addDays } from "./dates";
-import { currencyOf, fmtMoney, priceValue } from "./md";
+import { currencyOf, fmtMoney, newItem, priceValue } from "./md";
 import { mapsUrl } from "./places";
 import type { PlanCtx } from "./plan";
-import { docButton, lodgings } from "./plan";
-import type { Doc, Item, Where } from "./types";
+import { lodgings } from "./plan";
+import { blankDoc, docButton, docForm, docWheres, firstWhere } from "./docs";
+import type { Doc, Item, Task, Where } from "./types";
 import { isTransport } from "./types";
-import { PALETTE, avatar, button, icon, iconButton, label } from "./ui";
+import { PALETTE, avatar, button, icon, iconButton, label, plain } from "./ui";
 
 export interface SideCtx extends PlanCtx {
   folded: Set<string>;            // cajas contraídas (en el móvil)
@@ -16,9 +17,10 @@ export interface SideCtx extends PlanCtx {
   setBagDraft(d: Doc | null, redraw?: boolean): void;
 }
 
-function box(ctx: SideCtx, id: string, title: string, right: HTMLElement | string | null, body: () => (HTMLElement | null)[], summary?: () => HTMLElement | null): HTMLElement {
+function box(ctx: SideCtx, id: string, title: string, right: HTMLElement | string | null, body: () => (HTMLElement | null)[], summary?: () => HTMLElement | null, ico?: string): HTMLElement {
   const folded = ctx.folded.has(id);
-  const head = h("div", { cls: "ct-box-head" }, h("h3", { cls: "ct-h-box" }, title), h("span", { cls: "ct-grow" }),
+  const head = h("div", { cls: "ct-box-head" }, h("div", { cls: "ct-h-box", attr: { role: "heading", "aria-level": "3" } }, ico ? icon(ico, "ct-ico ct-h-ico") : null, title),
+    h("span", { cls: "ct-grow" }),
     typeof right === "string" ? h("span", { cls: "ct-sub" }, right) : right,
     iconButton(folded ? "chevron-right" : "chevron-down", t(folded ? "expand" : "collapse"), () => {
       if (folded) ctx.folded.delete(id); else ctx.folded.add(id);
@@ -28,56 +30,49 @@ function box(ctx: SideCtx, id: string, title: string, right: HTMLElement | strin
 }
 
 /* ---------- mochila ---------- */
-function bagSuggestions(ctx: SideCtx): string[] {
-  const have = new Set(ctx.trip.mochila.map(d => d.name.toLowerCase()));
-  const es = t("bag") === "Mochila";
-  const out: string[] = [];
-  for (const p of ctx.trip.travelers) out.push(`${es ? "Pasaporte" : "Passport"} · ${p}`);
-  out.push(es ? "Seguro de viaje" : "Travel insurance");
-  for (const p of ctx.trip.travelers) out.push(`${es ? "DNI" : "ID card"} · ${p}`);
-  out.push(es ? "Tarjeta sanitaria" : "Health card");
-  const names = [...have];
-  return out.filter(s => !names.some(n => n.startsWith(s.toLowerCase()))).slice(0, 4);
-}
-function docForm(ctx: SideCtx): HTMLElement {
-  const d = ctx.bagDraft!;
-  const wheres: Where[] = (["cloud", "wallet", "device", "vault"] as Where[]).filter(w => ctx.s.files[w as "cloud"]);
-  wheres.push("paper");
-  const name = h("input", { cls: "ct-input", attr: { type: "text", value: d.name, placeholder: t("f.docName") } });
-  name.addEventListener("input", () => { d.name = name.value; });
-  const url = h("input", { cls: "ct-input", attr: { type: "text", value: d.url, placeholder: d.where === "vault" ? ctx.s.files.vaultFolder + "/…" : "https://…" } });
-  url.addEventListener("input", () => { d.url = url.value; });
-  return h("form", { cls: "ct-form ct-form-small" },
-    h("label", { cls: "ct-f" }, label(t("f.docName")), name),
-    h("label", { cls: "ct-f" }, label(t("f.where")), h("span", { cls: "ct-seg" }, wheres.map(w =>
-      button(t("w." + w), "ct-pill" + (w === d.where ? " is-solid" : ""), () => { d.where = w; ctx.rerender(); })))),
-    d.where === "cloud" || d.where === "device" || d.where === "vault" ? h("label", { cls: "ct-f" }, label(d.where === "vault" ? t("f.vaultPath") : t("f.link")), url) : null,
-    h("div", { cls: "ct-form-foot" }, h("span", { cls: "ct-grow" }),
-      button(t("f.cancel"), "ct-btn-ghost", () => ctx.setBagDraft(null)),
-      button(t("f.save"), "ct-btn-primary", () => {
-        if (!d.name.trim()) return;
-        ctx.trip.mochila.push({ name: d.name.trim(), where: d.where, url: d.where === "paper" || d.where === "wallet" ? "" : d.url.trim() });
-        ctx.setBagDraft(null, false);
-        ctx.commit();
-      })));
+interface BagSugg { name: string; para: string[]; where: Where; re: RegExp; person?: string }
+function bagSuggestions(ctx: SideCtx): BagSugg[] {
+  const tr = ctx.trip, es = t("bag") === "Mochila";
+  const out: BagSugg[] = [];
+  const per = (name: string, re: RegExp) => tr.travelers.length
+    ? tr.travelers.map((p): BagSugg => ({ name, para: [p], where: "paper", re, person: p }))
+    : [{ name, para: [], where: "paper", re } as BagSugg];
+  out.push(...per(es ? "Pasaporte" : "Passport", /pasaporte|passport/));
+  out.push({ name: es ? "Seguro de viaje" : "Travel insurance", para: [], where: firstWhere(ctx.s), re: /seguro|insurance/ });
+  out.push(...per(es ? "DNI" : "ID card", /\bdni\b|identidad|\bid\b|id card|identity/));
+  out.push({ name: es ? "Tarjeta sanitaria" : "Health card", para: [], where: "paper", re: /sanitaria|health|ehic|tse\b/ });
+  /* ya está si hay un documento de ese tipo para esa persona (aunque le hayas cambiado el nombre) */
+  const covered = (sg: BagSugg) => tr.mochila.some(d => {
+    const n = plain(d.name);
+    if (!sg.re.test(n)) return false;
+    if (!sg.person) return true;
+    return d.para.includes(sg.person) || n.includes(plain(sg.person)) || (!d.para.length && tr.travelers.length <= 1);
+  });
+  return out.filter(sg => !covered(sg)).slice(0, 4);
 }
 export function mochila(ctx: SideCtx): HTMLElement {
-  const docs = ctx.trip.mochila, paper = docs.filter(d => d.where === "paper").length;
+  const docs = ctx.trip.mochila, paper = docs.filter(d => docWheres(d).includes("paper")).length;
   const right = paper ? t("bag.count", { n: docs.length, p: paper }) : String(docs.length);
-  const firstWhere = (): Where => (["cloud", "wallet", "device", "vault"] as Where[]).find(w => ctx.s.files[w as "cloud"]) || "paper";
+  const sugg = bagSuggestions(ctx);
   return box(ctx, "bag", t("bag"), right, () => [
-    h("div", { cls: "ct-docs" }, docs.map((d, i) => h("div", { cls: "ct-doc-edit-row" }, docButton(ctx, d),
-      iconButton("x", t("remove"), () => { docs.splice(i, 1); ctx.commit(); }, "ct-ibtn ct-ibtn-sm ct-hover")))),
-    bagSuggestions(ctx).length ? h("div", { cls: "ct-suggest" }, label(t("bag.suggest")), h("div", { cls: "ct-row-btns" },
-      bagSuggestions(ctx).map(s => button([icon("plus"), s], "ct-pill is-dashed", () => ctx.setBagDraft({ name: s, where: /pasaporte|passport|dni|id card|sanitaria|health/i.test(s) ? "paper" : firstWhere(), url: "" }))))) : null,
-    ctx.bagDraft ? docForm(ctx) : button([icon("plus"), t("bag.add")], "ct-btn-ghost is-wide", () => ctx.setBagDraft({ name: "", where: firstWhere(), url: "" })),
-  ]);
+    docs.length ? h("div", { cls: "ct-docs" }, docs.map((d, i) => h("div", { cls: "ct-doc-edit-row" }, docButton(ctx, d, ctx.trip.travelers),
+      iconButton("x", t("remove"), () => { docs.splice(i, 1); ctx.commit(); }, "ct-ibtn ct-ibtn-sm ct-hover")))) : null,
+    sugg.length ? h("div", { cls: "ct-suggest" }, label(t("bag.suggest")), h("div", { cls: "ct-row-btns" },
+      sugg.map(sg => button([icon("plus"), h("span", null, sg.name), sg.person ? avatar(sg.person, Math.max(0, ctx.trip.travelers.indexOf(sg.person)), "ct-avatar ct-avatar-tag") : null],
+        "ct-pill is-dashed is-small", () => ctx.setBagDraft(blankDoc(sg.where, { name: sg.name, para: [...sg.para] })))))) : null,
+    ctx.bagDraft ? docForm({
+      s: ctx.s, travelers: ctx.trip.travelers, draft: ctx.bagDraft,
+      onCancel: () => ctx.setBagDraft(null),
+      onSave: d => { ctx.trip.mochila.push(d); ctx.setBagDraft(null, false); ctx.commit(); },
+    }) : button([icon("plus"), t("bag.add")], "ct-btn-ghost is-wide", () => ctx.setBagDraft(blankDoc(firstWhere(ctx.s)))),
+  ], undefined, "backpack");
 }
 
 /* ---------- por hacer ---------- */
-interface Suggest { text: string; action?: [string, () => void] }
+/* una sugerencia: se tacha sola cuando ya está hecha en el viaje (el alojamiento reservado…) */
+interface Suggest { text: string; done: boolean; action?: [string, () => void] }
 function todoSuggestions(ctx: SideCtx): Suggest[] {
-  const tr = ctx.trip, have = new Set(tr.tasks.map(x => x.text.toLowerCase()));
+  const tr = ctx.trip, have = new Set(tr.tasks.map(x => x.text.toLowerCase())), hidden = new Set(tr.hidden.map(x => x.toLowerCase()));
   const out: Suggest[] = [];
   const spans = lodgings(tr);
   let acc = 0;
@@ -85,32 +80,33 @@ function todoSuggestions(ctx: SideCtx): Suggest[] {
     const first = addDays(tr.start, acc); acc += dest.nights;
     if (!dest.nights) return;
     const covered = Array.from({ length: dest.nights }, (_, i) => addDays(first, i)).some(n => spans.some(l => l.from <= n && n < l.to));
-    if (!covered) out.push({ text: t("todo.lodging", { c: dest.city }), action: [t("todo.addBtn"), () => {
+    out.push({ text: t("todo.lodging", { c: dest.city }), done: covered, action: covered ? undefined : [t("todo.addBtn"), () => {
       const di = tr.days.findIndex(d => d.date === first);
-      const draft: Item = { kind: "lodging", check: false, done: false, time: "", title: "", link: "", place: "", price: "", para: [], fields: [], docs: [], extra: [] };
-      ctx.openForm({ day: Math.max(0, di), index: -1, isNew: true, draft });
+      ctx.openForm({ day: Math.max(0, di), index: -1, isNew: true, draft: newItem("lodging"), at: `lodging:${dest.city}` });
     }] });
   });
   if (tr.dests.length) {
     const cities = tr.dests.map(d => d.city);
     const list = cities.length > 1 ? cities.slice(0, -1).join(", ") + (t("bag") === "Mochila" ? " y " : " and ") + cities[cities.length - 1] : cities[0];
-    out.push({ text: t("todo.maps", { c: list }), action: [t("todo.mapsBtn"), () => ctx.openUrl(mapsUrl(ctx.s.maps.app, tr.dests[0].city, tr.dests[0].country, null))] });
+    out.push({ text: t("todo.maps", { c: list }), done: false, action: [t("todo.mapsBtn"), () => ctx.openUrl(mapsUrl(ctx.s.maps.app, tr.dests[0].city, tr.dests[0].country, null))] });
   }
   const firstFlight = tr.days.flatMap(d => d.items).find(i => i.kind === "flight");
-  if (firstFlight) out.push({ text: t("todo.checkinOut") });
-  return out.filter(s => !have.has(s.text.toLowerCase()));
+  if (firstFlight) out.push({ text: t("todo.checkinOut"), done: false });
+  return out.filter(s => !have.has(s.text.toLowerCase()) && !hidden.has(s.text.toLowerCase()));
 }
-function taskRow(ctx: SideCtx, text: string, done: boolean, onToggle: () => void, extra: HTMLElement | null, onRemove: (() => void) | null): HTMLElement {
+function taskRow(text: string, done: boolean, onToggle: (() => void) | null, extra: HTMLElement | null, onRemove: () => void): HTMLElement {
   return h("div", { cls: "ct-task" + (done ? " is-done" : "") },
-    button(done ? icon("check") : null, "ct-task-check" + (done ? " is-done" : ""), onToggle, { role: "checkbox", "aria-checked": String(done), "aria-label": text }),
+    button(done ? icon("check") : null, "ct-task-check" + (done ? " is-done" : ""), onToggle || undefined,
+      { role: "checkbox", "aria-checked": String(done), "aria-label": text, ...(onToggle ? {} : { disabled: "" }) }),
     h("span", { cls: "ct-task-text" }, text), extra,
-    onRemove ? iconButton("x", t("remove"), onRemove, "ct-ibtn ct-ibtn-sm ct-hover") : null);
+    iconButton("x", t("remove"), onRemove, "ct-ibtn ct-ibtn-sm ct-task-x"));
 }
 export function porHacer(ctx: SideCtx): HTMLElement {
   const tr = ctx.trip;
   const sugg = todoSuggestions(ctx);
+  const open = sugg.filter(s => !s.done), auto = sugg.filter(s => s.done);
   const pending = tr.tasks.filter(x => !x.done), done = tr.tasks.filter(x => x.done);
-  const total = tr.tasks.length + sugg.length, ndone = done.length;
+  const total = tr.tasks.length + sugg.length, ndone = done.length + auto.length;
   const bar = h("div", { cls: "ct-progress", attr: { role: "progressbar", "aria-valuenow": String(ndone), "aria-valuemax": String(total) } }, h("span", null));
   (bar.firstChild as HTMLElement).setCssProps({ "--ct-p": total ? `${(ndone / total) * 100}%` : "0%", "--ct-accent-fill": PALETTE[0].hex });
   const right = h("span", { cls: "ct-count" }, `${ndone}/${total}`);
@@ -121,14 +117,19 @@ export function porHacer(ctx: SideCtx): HTMLElement {
     tr.tasks.push({ text: add.value.trim(), done: false });
     ctx.commit();
   });
+  const hide = (text: string) => { tr.hidden.push(text); ctx.commit(); };
+  const drop = (x: Task) => { tr.tasks.splice(tr.tasks.indexOf(x), 1); ctx.commit(); };
   const list = (rows: HTMLElement[]) => rows.length ? h("div", { cls: "ct-task-list" }, rows) : null;
   const pendingRows = [
-    ...sugg.map(s => taskRow(ctx, s.text, false, () => { tr.tasks.push({ text: s.text, done: true }); ctx.commit(); },
-      s.action ? button(s.action[0], "ct-pill is-small", s.action[1]) : h("span", { cls: "ct-sub" }, t("todo.suggested")), null)),
-    ...pending.map(x => taskRow(ctx, x.text, false, () => { x.done = true; ctx.commit(); }, null, () => { tr.tasks.splice(tr.tasks.indexOf(x), 1); ctx.commit(); })),
+    ...open.map(s => taskRow(s.text, false, () => { tr.tasks.push({ text: s.text, done: true }); ctx.commit(); },
+      s.action ? button(s.action[0], "ct-pill is-small", s.action[1]) : h("span", { cls: "ct-sub" }, t("todo.suggested")), () => hide(s.text))),
+    ...pending.map(x => taskRow(x.text, false, () => { x.done = true; ctx.commit(); }, null, () => drop(x))),
   ];
-  const doneRows = done.map(x => taskRow(ctx, x.text, true, () => { x.done = false; ctx.commit(); }, null, () => { tr.tasks.splice(tr.tasks.indexOf(x), 1); ctx.commit(); }));
-  const next = pendingRows.length ? (sugg[0]?.text || pending[0]?.text) : "";
+  const doneRows = [
+    ...auto.map(s => taskRow(s.text, true, null, null, () => hide(s.text))),
+    ...done.map(x => taskRow(x.text, true, () => { x.done = false; ctx.commit(); }, null, () => drop(x))),
+  ];
+  const next = pendingRows.length ? (open[0]?.text || pending[0]?.text) : "";
   return box(ctx, "todo", t("todo"), right, () => [
     bar,
     pendingRows.length ? h("span", { cls: "ct-group" }, h("span", null, t("todo.pending")), h("span", null, String(pendingRows.length))) : null,

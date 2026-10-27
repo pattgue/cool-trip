@@ -4,10 +4,12 @@ import { parseYaml, stringifyYaml } from "obsidian";
 import { MD, vocab } from "./i18n";
 import type { Vocab } from "./i18n";
 import { addDays, dayLabel, diffDays, isIso, iso, isTime, normTime, range, readDay } from "./dates";
-import type { Day, Dest, Doc, Field, Item, Kind, Settings, Task, Trip } from "./types";
+import type { Day, Dest, Doc, Field, Item, Kind, Settings, Task, Trip, Where } from "./types";
 import { isTransport } from "./types";
 
 export const MARKER = "%% cool-trip v1 %%";
+/* las sugerencias de «Por hacer» que se han quitado: «%% cool-trip · ocultas: Mapas sin conexión de Roma | … %%» */
+const HIDDEN_RE = /^%%\s*cool-trip\s*·\s*(?:ocultas|hidden):\s*(.*?)\s*%%$/i;
 const BOTH = [MD.es, MD.en];
 const low = (s: string) => s.toLowerCase().trim();
 
@@ -28,7 +30,10 @@ export function splitSeg(s: string): string[] {
 }
 const linkRe = /^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/;
 const boldRe = /^\*\*(.+)\*\*$/;
-const priceRe = /^(?:[€$£¥]\s?\d[\d.,]*|\d[\d.,]*\s?(?:€|\$|£|¥|EUR|USD|GBP|JPY))$/i;
+/* «60 €», «$60», «¥3.000», «45 CHF»: un número con su moneda (símbolo o código ISO en mayúsculas) */
+export const CURRENCIES = ["€", "$", "£", "¥", "CHF", "₩", "฿", "kr", "zł", "R$", "MXN", "ARS", "COP", "CLP", "PEN", "MAD", "TRY", "CZK", "HUF", "INR", "AUD", "CAD"];
+const PREFIX = new Set(["$", "£", "¥", "₩", "฿", "R$"]);
+const priceRe = /^(?:(?:R\$|[€$£¥₩฿])\s?\d[\d.,]*|\d[\d.,]*(?:\s?(?:€|\$|£|¥|₩|฿|kr|zł|[A-Z]{3}))?)$/;
 export const linkTarget = (s: string) => { const m = linkRe.exec(s.trim()); return m ? m[1] : ""; };
 export function splitNames(s: string): string[] {
   return s.split(/,\s*|\s+y\s+|\s+and\s+|\s*&\s*/).map(x => x.trim()).filter(Boolean);
@@ -46,54 +51,95 @@ export function priceValue(p: string): number {
   const v = parseFloat(n);
   return isFinite(v) ? v : 0;
 }
-export const currencyOf = (p: string) => (/[€$£¥]/.exec(p) || /\b(EUR|USD|GBP|JPY)\b/i.exec(p) || ["€"])[0];
+const CODE_SYM: Record<string, string> = { EUR: "€", USD: "$", GBP: "£", JPY: "¥" };
+export const currencyOf = (p: string): string => {
+  const m = /R\$|[€$£¥₩฿]|\bkr\b|zł|\b[A-Z]{3}\b/.exec(p);
+  return m ? CODE_SYM[m[0]] || m[0] : "€";
+};
+/* el número tal cual se escribió («30,98»), sin la moneda */
+export const priceNumber = (p: string) => p.replace(/R\$|[€$£¥₩฿]|\bkr\b|zł|\b[A-Z]{3}\b/g, "").trim();
+/* un precio con su moneda: «60 €», «$60», «45 CHF» */
+export function withCurrency(num: string, cur: string): string {
+  const n = num.trim();
+  if (!n) return "";
+  return PREFIX.has(cur) ? `${cur}${n}` : `${n} ${cur}`;
+}
 export function fmtMoney(n: number, cur = "€"): string {
   const s = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return cur === "€" ? `${s} €` : `${cur}${s}`;
+  return withCurrency(s, cur);
 }
 
-/* ---------- documentos ---------- */
-const docTok = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]|\[([^\]]+)\]\(([^)]*)\)|([^()[\]]+?)\s*\(([^()]+)\)/g;
-function whereOfUrl(url: string): Doc["where"] {
-  if (/^file:/i.test(url)) return "device";
-  if (/^https?:/i.test(url)) return "cloud";
-  return "cloud";
+/* ---------- documentos ----------
+   «Pasaporte (en papel · Wallet · para Ana)», «[Billete](https://…) (en papel)», «[[Viajes/Archivos/x.pdf|Billete]]».
+   Lo de dentro del paréntesis son los otros sitios donde lo llevas y de quién es; si no se entiende, es parte del nombre. */
+const WHERE_WORDS: Record<string, Where> = { wallet: "wallet", nube: "cloud", cloud: "cloud", dispositivo: "device", device: "device", "móvil": "device",
+  movil: "device", phone: "device", vault: "vault" };
+function whereWord(w: string): Where | null {
+  const x = low(w);
+  if (BOTH.some(v => v.paper === x)) return "paper";
+  return WHERE_WORDS[x] ?? null;
 }
+const linkDoc = (name: string, url: string): Doc => /^wallet$/i.test(url)
+  ? { name, where: "wallet", url: "", also: [], para: [] }
+  : { name, where: /^file:/i.test(url) ? "device" : "cloud", url, also: [], para: [] };
+function parseOneDoc(text: string): Doc | null {
+  const s = text.trim();
+  if (!s) return null;
+  let base = s, meta = "";
+  const full = /^\[([^\]]+)\]\(([^)]*)\)$/.exec(s);
+  if (!full) {
+    const m = /^(\[[^\]]+\]\([^)]*\)|\[\[[^\]]+\]\]|.*?)\s*\(([^()]*)\)$/.exec(s);
+    if (m) { base = m[1].trim(); meta = m[2]; }
+  }
+  /* el paréntesis: sitios y «para …» */
+  const wheres: Where[] = [], para: string[] = [];
+  let known = !!meta;
+  for (const part of meta ? meta.split(/\s+·\s+|,\s*(?=(?:en papel|on paper|wallet|nube|cloud|dispositivo|device|vault)\b)/i) : []) {
+    const pm = /^(?:para|for)\s+(.+)$/i.exec(part.trim());
+    const w = whereWord(part);
+    if (pm) para.push(...splitNames(pm[1]));
+    else if (w) { if (!wheres.includes(w)) wheres.push(w); }
+    else known = false;
+  }
+  if (meta && !known) { base = s; wheres.length = 0; para.length = 0; }
+  let doc: Doc;
+  const v = /^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/.exec(base), l = /^\[([^\]]+)\]\(([^)]*)\)$/.exec(base);
+  if (v) doc = { name: (v[2] || v[1].split("/").pop() || v[1]).trim(), where: "vault", url: v[1].trim(), also: [], para: [] };
+  else if (l) doc = linkDoc(l[1].trim(), l[2].trim());
+  else doc = { name: base.replace(/^[\s·]+/, "").trim(), where: wheres.shift() || "cloud", url: "", also: [], para: [] };
+  doc.also = wheres.filter(w => w !== doc.where);
+  doc.para = para;
+  return doc.name ? doc : null;
+}
+/* una lista de documentos separados por « · » (los nombres pueden llevar « · » si terminan en su paréntesis o su enlace) */
 export function parseDocs(value: string): Doc[] {
   const out: Doc[] = [];
-  const isPaper = (w: string) => BOTH.some(v => low(w) === v.paper);
-  for (const m of value.matchAll(docTok)) {
-    if (m[1]) out.push({ name: (m[2] || m[1].split("/").pop() || m[1]).trim(), where: "vault", url: m[1].trim() });
-    else if (m[3]) {
-      const url = m[4].trim();
-      if (/^wallet$/i.test(url)) out.push({ name: m[3].trim(), where: "wallet", url: "" });
-      else out.push({ name: m[3].trim(), where: whereOfUrl(url), url });
-    } else if (m[5]) {
-      const name = m[5].replace(/^[\s·]+/, "").trim(), w = m[6].trim();
-      if (isPaper(w)) out.push({ name, where: "paper", url: "" });
-      else if (/wallet/i.test(w)) out.push({ name, where: "wallet", url: "" });
-      else out.push({ name, where: "cloud", url: "" });
-    }
+  let cur: string[] = [];
+  const close = () => { const d = parseOneDoc(cur.join(" · ")); if (d) out.push(d); cur = []; };
+  for (const seg of splitSeg(value)) {
+    cur.push(seg);
+    if (/\)$|\]\]$/.test(seg.trim())) close();
   }
+  if (cur.length) close();
   return out;
 }
 export function docMd(d: Doc, v: Vocab = vocab()): string {
-  switch (d.where) {
-    case "paper": return `${d.name} (${v.paper})`;
-    case "wallet": return `${d.name} (Wallet)`;
-    case "vault": return d.url ? `[[${d.url}|${d.name}]]` : d.name;
-    default: return d.url ? `[${d.name}](${d.url})` : d.name;
-  }
+  const word = (w: Where) => w === "paper" ? v.paper : w === "wallet" ? "Wallet" : w === "device" ? v.device : w === "vault" ? "vault" : v.cloud;
+  let base: string;
+  const meta: string[] = [];
+  if (d.where === "vault" && d.url) base = `[[${d.url}|${d.name}]]`;
+  else if ((d.where === "cloud" || d.where === "device") && d.url) base = `[${d.name}](${d.url})`;
+  else { base = d.name; if (d.where !== "cloud" || d.also.length) meta.push(word(d.where)); }
+  for (const w of d.also) if (w !== d.where) meta.push(word(w));
+  if (d.para.length) meta.push(`${v.for} ${joinNames(d.para)}`);
+  return meta.length ? `${base} (${meta.join(" · ")})` : base;
 }
-/* una línea de la mochila: «Pasaporte · Ana (en papel)», «[Seguro](url)» o la forma antigua «Pasaporte · Ana · en papel» */
+/* una línea de la mochila: «Pasaporte (en papel · para Ana)», «[Seguro](url)» o la forma antigua «Pasaporte · Ana · en papel» */
 function parseBagLine(text: string): Doc {
-  const docs = parseDocs(text);
-  if (docs.length === 1 && text.trim().endsWith(")") || docs.length === 1 && /^\[/.test(text.trim())) return docs[0];
   const segs = splitSeg(text);
-  const last = low(segs[segs.length - 1] || "");
-  if (segs.length > 1 && BOTH.some(v => v.paper === last)) return { name: segs.slice(0, -1).join(" · "), where: "paper", url: "" };
-  if (segs.length > 1 && last === "wallet") return { name: segs.slice(0, -1).join(" · "), where: "wallet", url: "" };
-  return docs[0] || { name: text.trim(), where: "cloud", url: "" };
+  const last = segs.length > 1 ? whereWord(segs[segs.length - 1]) : null;
+  if (last === "paper" || last === "wallet") return { name: segs.slice(0, -1).join(" · "), where: last, url: "", also: [], para: [] };
+  return parseOneDoc(text) || { name: text.trim(), where: "cloud", url: "", also: [], para: [] };
 }
 
 /* ---------- campos «Clave: valor» ---------- */
@@ -160,7 +206,7 @@ function transportOf(title: string): Kind | null {
   if (w === "ferry") return "boat";
   return null;
 }
-const isRestTitle = (s: string) => /^(vuelta|volver|descanso|descansar|dormir|back|rest|return to|sleep)\b/i.test(s.trim());
+const isRestTitle = (s: string) => /^(vuelta|volver|descanso|descansar|dormir|llegada|back|rest|return to|sleep|arrival)\b/i.test(s.trim());
 
 export function parseItem(line: string): Item {
   let rest = line.replace(/^-\s+/, "");
@@ -174,11 +220,11 @@ export function parseItem(line: string): Item {
   const bold = boldRe.exec(first);
   if (bold) {
     const inner = bold[1].trim(), target = linkTarget(inner);
-    if (target) {
-      it.link = target; it.title = target;
-      const kw = segs.findIndex(s => BOTH.some(v => low(s) === v.lodging || low(s) === v.ticket));
+    const kw = segs.findIndex(s => BOTH.some(v => low(s) === v.lodging || low(s) === v.ticket));
+    if (kw >= 0 || target) {
       it.kind = kw >= 0 && BOTH.some(v => low(segs[kw]) === v.lodging) ? "lodging" : "ticket";
       if (kw >= 0) segs.splice(kw, 1);
+      it.link = target; it.title = target || inner;              // un alojamiento sin nota: «**Casa de Ana** · alojamiento»
     } else {
       it.title = inner;
       it.kind = transportOf(inner) || "car";
@@ -192,6 +238,7 @@ export function parseItem(line: string): Item {
   } else if (isRestTitle(first)) {
     it.kind = "rest"; it.title = first;
     if (segs.length && linkTarget(segs[0])) it.link = linkTarget(segs.shift()!);
+    else if (segs.length && !priceRe.test(segs[0]) && !/^(para|for)\s/i.test(segs[0])) it.place = segs.shift()!;    // un alojamiento sin nota
   } else {
     it.kind = "note"; it.title = first;
   }
@@ -206,8 +253,8 @@ export function parseItem(line: string): Item {
 
 /* las líneas de los campos de cada tipo, en el orden en que se escriben */
 const FIELD_LINES: Partial<Record<Kind, string[][]>> = {
-  flight: [["depart"], ["arrive"], ["code", "car", "luggage"], ["seats"], ["note"]],
-  lodging: [["checkin"], ["checkout"], ["room", "beds", "bath"], ["includes"], ["note"]],
+  flight: [["depart"], ["arrive"], ["mode", "company", "code", "car", "cabin", "luggage"], ["seats", "driver"], ["booking"], ["note"]],
+  lodging: [["type"], ["checkin"], ["checkout"], ["room", "beds", "bath"], ["includes"], ["booking", "keys", "pitch"], ["address"], ["note"]],
   ticket: [["tickets"], ["note"]],
 };
 for (const k of ["train", "bus", "car", "boat"] as Kind[]) FIELD_LINES[k] = FIELD_LINES.flight;
@@ -222,12 +269,14 @@ function keyLabel(k: string, it: Item, v: Vocab): string {
   return (v.keys as Record<string, string>)[k] || k;
 }
 export function itemMd(it: Item, v: Vocab = vocab()): string[] {
-  let head = "- " + (it.check ? `[${it.done ? "x" : " "}] ` : "") + (it.time ? it.time + " " : "");
+  /* el alojamiento no lleva hora: la suya es la del check-in (y la de llegar, un paso aparte) */
+  const time = it.kind === "lodging" ? "" : it.time;
+  let head = "- " + (it.check ? `[${it.done ? "x" : " "}] ` : "") + (time ? time + " " : "");
   const L = it.link ? `[[${it.link}]]` : "";
   switch (it.kind) {
     case "place": head += L || it.title; break;
     case "meal": head += it.title + (L ? ` · ${L}` : it.place ? ` · ${it.place}` : ""); break;
-    case "rest": head += it.title + (L ? ` · ${L}` : ""); break;
+    case "rest": head += it.title + (L ? ` · ${L}` : it.place ? ` · ${it.place}` : ""); break;
     case "lodging": head += `**${L || it.title}** · ${v.lodging}`; break;
     case "ticket": head += `**${L || it.title}** · ${v.ticket}`; break;
     case "note": head += it.title; break;
@@ -305,7 +354,7 @@ export const tripDates = (t: Trip) => range(t.start, t.end);
 
 export function parseTrip(text: string, name: string, s: Settings): Trip {
   const P = s.props;
-  const t: Trip = { fm: {}, name, start: "", end: "", dests: [], travelers: [], cover: "", accent: "", mochila: [], tasks: [], days: [], intro: [], outro: [] };
+  const t: Trip = { fm: {}, name, start: "", end: "", dests: [], travelers: [], cover: "", accent: "", mochila: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
   let body = text;
   const m = fmRe.exec(text);
   if (m) {
@@ -326,6 +375,8 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.trim() === MARKER) continue;
+    const hid = HIDDEN_RE.exec(line.trim());
+    if (hid) { t.hidden.push(...hid[1].split(" | ").map(x => x.trim()).filter(Boolean)); continue; }
     const callout = /^>\s*\[!cool-trip(?:\|([^\]]*))?\]/i.exec(line);
     if (callout) {
       t.accent = (callout[1] || "").trim();
@@ -434,13 +485,14 @@ export function serializeTrip(t: Trip, s: Settings): string {
     out.push(...d.raw, "");
   }
   if (t.outro.length) out.push(...t.outro, "");
+  if (t.hidden.length) out.push(`%% cool-trip · ${v.hidden}: ${t.hidden.join(" | ")} %%`);
   out.push(MARKER, "");
   return out.join("\n");
 }
 
 /* un viaje nuevo (Nuevo viaje) */
 export function blankTrip(name: string, start: string, end: string, dests: Dest[], travelers: string[], cover: string, accent = ""): Trip {
-  const t: Trip = { fm: {}, name, start, end, dests, travelers, cover, accent, mochila: [], tasks: [], days: [], intro: [], outro: [] };
+  const t: Trip = { fm: {}, name, start, end, dests, travelers, cover, accent, mochila: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
   balanceNights(t);
   t.days = tripDates(t).map(date => ({ date, items: [], raw: [] }));
   return t;

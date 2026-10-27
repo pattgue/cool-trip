@@ -2,7 +2,11 @@
 .ct-box { border-radius: 20px; background: var(--ct-ticket); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .ct-view.is-phone .ct-box { padding: 16px; }
 .ct-box-head { display: flex; align-items: center; gap: 10px; }
-.ct-h-box { margin: 0; font-weight: 900; font-size: 24px; line-height: .9; letter-spacing: -.02em; text-transform: uppercase; color: var(--ct-strong); }
+.ct-box-head > .ct-sub { white-space: nowrap; }
+.ct-h-box { margin: 0; padding: 0; border: 0; font-weight: 900; font-size: 24px; line-height: .9; letter-spacing: -.02em; text-transform: uppercase; color: var(--ct-strong);
+  display: inline-flex; align-items: center; gap: 9px; }
+.ct-root .ct-h-ico svg { width: 22px; height: 22px; stroke-width: 2.4; }
+.ct-view.is-phone .ct-h-ico svg { width: 20px; height: 20px; }
 .ct-view.is-phone .ct-h-box { font-size: 22px; }
 .ct-count { font-size: 15px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .ct-suggest { display: flex; flex-direction: column; gap: 8px; }
@@ -20,6 +24,8 @@
 .ct-task-check .ct-ico svg { width: 12px; height: 12px; stroke-width: 3.4; }
 .ct-task-text { flex: 1; min-width: 0; font-size: 14px; line-height: 1.3; font-weight: 700; }
 .ct-task.is-done .ct-task-text { font-weight: 500; color: var(--ct-muted); text-decoration: line-through; }
+.ct-task-check:disabled { cursor: default; opacity: 1; }
+.ct-task-x { color: var(--ct-faint); margin-right: -8px; }
 .ct-cost-total { display: flex; flex-direction: column; gap: 4px; }
 .ct-h-total { font-weight: 900; font-size: 52px; line-height: .9; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 .ct-cost-people { display: flex; gap: 8px; }

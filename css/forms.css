@@ -33,3 +33,15 @@
 .ct-bag-menu { display: flex; flex-direction: column; border-radius: 12px; border: 1.5px solid var(--ct-line); overflow: hidden; background: var(--ct-page); }
 .ct-form-actions { display: flex; justify-content: flex-end; }
 .ct-form-foot { display: flex; align-items: center; gap: 8px; padding-top: 14px; border-top: 1px solid var(--ct-line); }
+/* la ventanita de un documento (mochila y reservas) */
+.ct-docform { gap: 12px; }
+.ct-docform.is-pop { margin: 4px 0 0; border: 1.5px solid var(--ct-strong); background: var(--ct-page); }
+.ct-docform .ct-form-foot { padding-top: 10px; flex-wrap: wrap; }
+.ct-btn-ghost.is-small { height: 36px; padding: 0 14px; font-size: 13px; }
+.ct-pill.is-paper.is-solid { background: var(--ct-mustard) !important; border-color: var(--ct-mustard) !important; color: var(--ct-ink); }
+.ct-bag-pick { position: relative; }
+.ct-bag-pick > summary { list-style: none; cursor: pointer; }
+.ct-bag-pick > summary::-webkit-details-marker { display: none; }
+.ct-bag-pick[open] .ct-bag-menu { position: absolute; left: 0; bottom: calc(100% + 4px); z-index: 5; min-width: 220px; }
+.ct-input-other { width: 170px; height: 30px; font-size: 13px; }
+.ct-inline .ct-select { width: auto; flex: none; }

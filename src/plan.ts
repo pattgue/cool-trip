@@ -4,18 +4,23 @@ import type { App, TFile } from "obsidian";
 import { h } from "./dom";
 import { t, vocab } from "./i18n";
 import { addDays, dayLabel, dayNum, diffDays, isIso, monthShort, range, spanLabel, weekday } from "./dates";
-import { citiesOfDay, field, fmtMoney, currencyOf, newItem, priceValue, splitWhen } from "./md";
-import { cloudName, iconFor, mapsUrl, placeInfo, resolve } from "./places";
+import { citiesOfDay, field, fmtMoney, currencyOf, joinWhen, lineFor, newItem, priceValue, setField, splitWhen } from "./md";
+import { iconFor, mapsUrl, placeInfo, resolve } from "./places";
 import type { PlaceInfo } from "./places";
+import { docButton, docForm } from "./docs";
 import type { Day, Doc, Item, Kind, Settings, Trip } from "./types";
 import { isTransport } from "./types";
 import { accentOf, button, destHex, faces, icon, iconButton, label, notchH, notchV, useAccent } from "./ui";
 
-export interface FormState { day: number; index: number; draft: Item; isNew: boolean }
+/* un formulario abierto: en qué día, qué paso (o -1 si es nuevo) y en qué hueco se abrió («at») */
+export interface FormState { day: number; index: number; draft: Item; isNew: boolean; at?: string; target?: number }
+export interface DocAdd { key: string; draft: Doc }
 export interface PlanCtx {
   app: App; s: Settings; trip: Trip; file: TFile; phone: boolean;
   form: FormState | null;
   collapsed: Set<string>;
+  docAdd: DocAdd | null;                          // la ventanita de «+ Documento» de una reserva
+  setDocAdd(d: DocAdd | null, redraw?: boolean): void;
   commit(): void;
   rerender(): void;
   openForm(f: FormState | null): void;
@@ -23,6 +28,7 @@ export interface PlanCtx {
   openLink(link: string): void;
   openDoc(d: Doc): void;
   openUrl(url: string): void;
+  move(fromDay: number, fromIndex: number, toDay: number, toIndex: number): void;
 }
 
 /* ---------- lo que se calcula ---------- */
@@ -37,7 +43,7 @@ const mealKeyOf = (title: string): MealKey | "snack" | null => {
 export function itemDates(it: Item, dayDate: string, near: string): { from: string; to: string; fromTime: string; toTime: string; fromAt: string; toAt: string } {
   const isLodging = it.kind === "lodging";
   const a = splitWhen(field(it, isLodging ? "checkin" : "depart"), near), b = splitWhen(field(it, isLodging ? "checkout" : "arrive"), near);
-  return { from: a.date || dayDate, to: b.date || (isLodging ? "" : a.date || dayDate), fromTime: a.time || it.time, toTime: b.time, fromAt: a.at, toAt: b.at };
+  return { from: a.date || dayDate, to: b.date || (isLodging ? "" : a.date || dayDate), fromTime: a.time || (isLodging ? "" : it.time), toTime: b.time, fromAt: a.at, toAt: b.at };
 }
 interface LodgingSpan { item: Item; from: string; to: string; toTime: string; includesBreakfast: boolean }
 export function lodgings(tr: Trip): LodgingSpan[] {
@@ -50,6 +56,19 @@ export function lodgings(tr: Trip): LodgingSpan[] {
   return out;
 }
 const sleptAt = (spans: LodgingSpan[], night: string) => spans.find(l => l.from <= night && night < l.to) || null;
+/* ¿hay un transporte en marcha a esa hora? (para no sugerir comidas en pleno vuelo) */
+function busyAt(tr: Trip, date: string, time: string): boolean {
+  const at = `${date} ${time}`;
+  for (const d of tr.days) for (const it of d.items) if (isTransport(it.kind)) {
+    const w = itemDates(it, d.date, tr.start);
+    if (!w.fromTime) continue;
+    const a = `${w.from} ${w.fromTime}`;
+    const b = w.toTime ? `${w.to || w.from} ${w.toTime}` : `${w.from} ${addHour(w.fromTime)}`;
+    if (a <= at && at <= b) return true;
+  }
+  return false;
+}
+const addHour = (tm: string) => { const [hh, mm] = tm.split(":").map(Number); return `${String(Math.min(23, hh + 1)).padStart(2, "0")}:${String(mm).padStart(2, "0")}`; };
 
 type Row =
   | { r: "item"; item: Item; index: number; time: string }
@@ -57,13 +76,26 @@ type Row =
   | { r: "breakfast"; time: string; span: LodgingSpan }
   | { r: "meal"; time: string; meal: MealKey }
   | { r: "lodging"; time: string; city: string; from: string; to: string }
-  | { r: "transport"; time: string; which: "out" | "back" };
+  | { r: "arrive"; time: string; item: Item }
+  | { r: "transport"; time: string; which: "out" | "back" | "change"; from?: string; to?: string };
+const rowKey = (row: Row): string => row.r === "meal" ? `meal:${row.meal}` : row.r === "lodging" ? `lodging:${row.city}` : row.r === "transport" ? `transport:${row.which}`
+  : row.r === "arrive" ? `arrive:${row.item.link || row.item.title}` : row.r === "breakfast" ? "meal:breakfast" : "";
 
 function rowsOf(tr: Trip, di: number, spans: LodgingSpan[]): Row[] {
   const day = tr.days[di], date = day.date;
   const written: Row[] = [];
+  /* el alojamiento no tiene hora propia: va donde está en la nota, tras el transporte que te lleva (también si llega de otro día) */
   let last = "00:00";
-  day.items.forEach((item, index) => { if (item.time) last = item.time; written.push({ r: "item", item, index, time: item.time || last }); });
+  for (const d of tr.days) for (const it of d.items) if (isTransport(it.kind) && d.date !== date) {
+    const w = itemDates(it, d.date, tr.start);
+    if (w.to === date && w.toTime > last) last = w.toTime;
+  }
+  const arrivals = last;
+  day.items.forEach((item, index) => {
+    const tm = item.kind === "lodging" ? "" : item.time;
+    if (tm) last = tm;
+    written.push({ r: "item", item, index, time: tm || (item.kind === "lodging" ? (last > arrivals ? last : arrivals) : last) });
+  });
   if (!isIso(date) || date < tr.start || date > tr.end) return written;
   const extra: Row[] = [];
   /* llegadas de transportes que salieron otro día, y check-outs */
@@ -74,16 +106,21 @@ function rowsOf(tr: Trip, di: number, spans: LodgingSpan[]): Row[] {
     }
   }
   for (const l of spans) if (l.to === date && l.toTime) extra.push({ r: "mini", time: l.toTime, title: t("checkout"), sub: l.item.link || l.item.title });
-  /* comidas: el desayuno incluido como paso; las que faltan, como huecos */
-  const has = (k: MealKey) => day.items.some(i => i.kind === "meal" && mealKeyOf(i.title) === k);
-  const transit = day.items.some(i => isTransport(i.kind)) && (date === tr.start || date === tr.end);
-  const prevNight = addDays(date, -1);
-  const span = date > tr.start ? sleptAt(spans, prevNight) : null;
-  if (!has("breakfast")) {
-    if (span?.includesBreakfast) extra.push({ r: "breakfast", time: MEAL_TIME.breakfast, span });
-    else if (date > tr.start && !transit) extra.push({ r: "meal", time: MEAL_TIME.breakfast, meal: "breakfast" });
+  /* llegar al alojamiento: un paso aparte, con la hora a la que vayas tú (no la del check-in) */
+  for (const w of written) {
+    if (w.r !== "item" || w.item.kind !== "lodging") continue;
+    const name = w.item.link || w.item.title;
+    const there = day.items.some(i => i.kind === "rest" && (i.link || i.place) === name);
+    if (!there && itemDates(w.item, date, tr.start).from === date) extra.push({ r: "arrive", time: w.time, item: w.item });
   }
-  if (!transit) for (const k of ["lunch", "dinner"] as MealKey[]) if (!has(k)) extra.push({ r: "meal", time: MEAL_TIME[k], meal: k });
+  /* comidas: el desayuno incluido como paso; las que faltan, como huecos (menos si vas de viaje a esa hora) */
+  const has = (k: MealKey) => day.items.some(i => i.kind === "meal" && mealKeyOf(i.title) === k);
+  const span = date > tr.start ? sleptAt(spans, addDays(date, -1)) : null;
+  if (!has("breakfast") && date > tr.start && !busyAt(tr, date, MEAL_TIME.breakfast)) {
+    if (span?.includesBreakfast) extra.push({ r: "breakfast", time: MEAL_TIME.breakfast, span });
+    else extra.push({ r: "meal", time: MEAL_TIME.breakfast, meal: "breakfast" });
+  }
+  for (const k of ["lunch", "dinner"] as MealKey[]) if (!has(k) && !busyAt(tr, date, MEAL_TIME[k])) extra.push({ r: "meal", time: MEAL_TIME[k], meal: k });
   /* alojamiento que falta: el primer día de cada destino sin ninguna noche cubierta */
   let acc = 0;
   for (const dest of tr.dests) {
@@ -94,16 +131,19 @@ function rowsOf(tr: Trip, di: number, spans: LodgingSpan[]): Row[] {
       if (!covered) extra.push({ r: "lodging", time: "15:00", city: dest.city, from: first, to: addDays(first, nights) });
     }
   }
-  /* transporte de ida y de vuelta */
-  const anyTransport = (d: Day) => d.items.some(i => isTransport(i.kind));
-  if (date === tr.start && !anyTransport(day)) extra.push({ r: "transport", time: "00:00", which: "out" });
-  if (date === tr.end && date !== tr.start && !anyTransport(day)) extra.push({ r: "transport", time: "23:59", which: "back" });
+  /* transporte: de ida, de vuelta y el día que cambias de ciudad */
+  const leaves = day.items.some(i => isTransport(i.kind));
+  const cs = citiesOfDay(tr, date);
+  if (date === tr.start && !leaves) extra.push({ r: "transport", time: "00:00", which: "out", to: tr.dests[0]?.city });
+  else if (cs.length > 1 && !leaves) extra.push({ r: "transport", time: "11:30", which: "change", from: cs[0].city, to: cs[cs.length - 1].city });
+  if (date === tr.end && date !== tr.start && !leaves) extra.push({ r: "transport", time: "23:59", which: "back", from: tr.dests[tr.dests.length - 1]?.city });
 
   /* se mezclan por hora (a igual hora, primero lo escrito) */
   const out: Row[] = [];
   const rest = [...extra].sort((a, b) => a.time.localeCompare(b.time));
   for (const w of written) {
-    while (rest.length && rest[0].time < w.time) out.push(rest.shift()!);
+    const stay = w.r === "item" && w.item.kind === "lodging";          // el alojamiento, después de llegar
+    while (rest.length && (rest[0].time < w.time || (stay && rest[0].r === "mini" && rest[0].time === w.time))) out.push(rest.shift()!);
     out.push(w);
   }
   out.push(...rest);
@@ -121,11 +161,11 @@ const transportIcon: Record<string, string> = { flight: "plane", train: "train-f
 export const kindIcon = (k: Kind) => isTransport(k) ? transportIcon[k] : k === "lodging" ? "bed-double" : k === "ticket" ? "ticket" : k === "meal" ? "utensils" : k === "rest" ? "bed-double" : k === "note" ? "sticky-note" : "map-pin";
 
 /* ---------- piezas ---------- */
-function rowEl(ctx: PlanCtx, node: HTMLElement, content: HTMLElement | null, top = false, cls = ""): HTMLElement {
+function rowEl(node: HTMLElement, content: HTMLElement | null, top = false, cls = ""): HTMLElement {
   return h("div", { cls: "ct-row" + (top ? " is-top" : "") + (cls ? " " + cls : "") }, h("span", { cls: "ct-node" }, node), h("div", { cls: "ct-row-body" }, content));
 }
 const timeEl = (time: string) => h("span", { cls: "ct-time" }, time || "");
-function check(ctx: PlanCtx, done: boolean, onToggle: () => void): HTMLElement {
+function check(done: boolean, onToggle: () => void): HTMLElement {
   return button(done ? icon("check") : null, "ct-check" + (done ? " is-done" : ""), onToggle, { role: "checkbox", "aria-checked": String(done), "aria-label": t("done") });
 }
 function nodeIcon(name: string, color: string, small = false): HTMLElement {
@@ -145,9 +185,9 @@ function cityOfDay(ctx: PlanCtx, date: string): string {
   const cs = isIso(date) ? citiesOfDay(ctx.trip, date) : [];
   return cs.length ? cs[cs.length - 1].city : "";
 }
-function mapButton(ctx: PlanCtx, name: string, info: PlaceInfo | null, date: string): HTMLElement {
+function mapButton(ctx: PlanCtx, name: string, info: PlaceInfo | null, date: string, cls = "ct-map"): HTMLElement {
   const url = mapsUrl(ctx.s.maps.app, name, info?.city || cityOfDay(ctx, date), info?.loc || null);
-  return iconButton("map-pin", t("map"), () => ctx.openUrl(url), "ct-map");
+  return iconButton("map-pin", t("map"), () => ctx.openUrl(url), cls);
 }
 function placeLink(ctx: PlanCtx, name: string, link: string, cls = "ct-place-link"): HTMLElement {
   if (!link) return h("span", { cls: cls + " is-plain" }, name);
@@ -159,114 +199,191 @@ const editBtn = (ctx: PlanCtx, di: number, index: number, item: Item) =>
   iconButton("pencil", t("edit"), () => ctx.openForm({ day: di, index, draft: structuredClone(item), isNew: false }), "ct-ibtn ct-ibtn-sm");
 const peopleLabel = (ctx: PlanCtx, it: Item) => it.para.length ? it.para : ctx.trip.travelers;
 
-/* documentos: botones finos de una línea */
-export function docButton(ctx: Pick<PlanCtx, "openDoc">, d: Doc): HTMLElement {
-  const paper = d.where === "paper";
-  const where = paper ? null : d.where === "cloud" ? (cloudName(d.url) || t("w.cloud")) : t("w." + d.where);
-  const b = button([icon(d.where === "wallet" ? "wallet" : paper ? "file-text" : d.where === "vault" ? "file" : "file-text"),
-    h("span", { cls: "ct-doc-name" }, d.name),
-    paper ? h("span", { cls: "ct-paper-tag" }, icon("file-text"), t("paper")) : h("span", { cls: "ct-doc-where" }, where),
-    paper ? null : icon("arrow-up-right", "ct-ico ct-ico-xs")], "ct-doc" + (paper ? " is-paper" : ""), () => ctx.openDoc(d));
-  return b;
-}
-function docsBlock(ctx: PlanCtx, it: Item, di: number, index: number, inline: boolean): HTMLElement {
+/* los documentos de una reserva; «+ Documento» abre una ventanita solo para eso */
+function docsBlock(ctx: PlanCtx, it: Item, key: string, inline: boolean): HTMLElement {
+  const adding = ctx.docAdd?.key === key ? ctx.docAdd : null;
   return h("div", { cls: "ct-docs" + (inline ? " is-inline" : "") },
-    it.docs.map(d => docButton(ctx, d)),
-    button([icon("plus"), h("span", null, t("doc.add"))], "ct-link-btn", () => ctx.openForm({ day: di, index, draft: structuredClone(it), isNew: false })));
+    it.docs.map(d => docButton(ctx, d, ctx.trip.travelers)),
+    adding ? docForm({
+      s: ctx.s, travelers: ctx.trip.travelers, draft: adding.draft, small: true, title: t("doc.new"),
+      bag: ctx.trip.mochila.filter(m => !it.docs.some(x => x.name === m.name)),
+      onCancel: () => ctx.setDocAdd(null),
+      onSave: d => { it.docs.push(d); ctx.setDocAdd(null, false); ctx.commit(); },
+    }) : button([icon("plus"), h("span", null, t("doc.add"))], "ct-link-btn", () =>
+      ctx.setDocAdd({ key, draft: { name: "", where: "paper", url: "", also: [], para: [] } })));
 }
 function details(pairs: [string, string][]): HTMLElement | null {
   const ok = pairs.filter(p => p[1]);
   if (!ok.length) return null;
   return h("div", { cls: "ct-details" }, ok.map(([k, v]) => h("span", { cls: "ct-detail" }, label(k), h("span", { cls: "ct-detail-v" }, v))));
 }
-function kindRow(ctx: PlanCtx, text: string, it: Item, di: number, index: number, key: string): HTMLElement {
-  const open = !ctx.collapsed.has(key);
+function kindRow(ctx: PlanCtx, text: string, it: Item, di: number, index: number): HTMLElement {
   return h("div", { cls: "ct-kind-row" }, h("span", { cls: "ct-kind" }, text), h("span", { cls: "ct-grow" }),
-    faces(peopleLabel(ctx, it), ctx.trip.travelers), editBtn(ctx, di, index, it),
-    iconButton(open ? "chevron-down" : "chevron-right", t(open ? "collapse" : "expand"), () => {
-      if (open) ctx.collapsed.add(key); else ctx.collapsed.delete(key);
-      ctx.rerender();
-    }, "ct-ibtn ct-ibtn-sm"));
+    faces(peopleLabel(ctx, it), ctx.trip.travelers), editBtn(ctx, di, index, it));
 }
 const itemKey = (di: number, index: number, it: Item) => `${di}:${index}:${it.kind}:${it.title}`;
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/* contraer y desplegar: fuera de la tarjeta, en la línea, bajo el icono que la sujeta */
+function foldBtn(ctx: PlanCtx, key: string): HTMLElement {
+  const open = !ctx.collapsed.has(key);
+  return iconButton(open ? "chevron-up" : "chevron-down", t(open ? "collapse" : "expand"), () => {
+    if (open) ctx.collapsed.add(key); else ctx.collapsed.delete(key);
+    ctx.rerender();
+  }, "ct-fold");
+}
+function collapsedCard(ctx: PlanCtx, key: string, time: string, title: string, sub: string, price: string): HTMLElement {
+  const card = h("article", { cls: "ct-card ct-card-collapsed", attr: { role: "button", tabindex: "0", "aria-label": `${t("expand")}: ${title}` } }, timeEl(time),
+    h("span", { cls: "ct-collapsed-main" }, h("span", { cls: "ct-collapsed-title" }, title), h("span", { cls: "ct-sub" }, sub)),
+    price ? h("span", { cls: "ct-price" }, price) : null);
+  const open = () => { ctx.collapsed.delete(key); ctx.rerender(); };
+  card.addEventListener("click", ev => { if (!(ev.target as HTMLElement).closest("a, button")) open(); });
+  card.addEventListener("keydown", ev => { if (ev.key === "Enter") open(); });
+  return card;
+}
+/* lo que se apunta de cada transporte (el coche, según sea tuyo, de alquiler o compartido) */
+export function transportDetails(it: Item): [string, string][] {
+  const k = it.kind;
+  const base: [string, string][] = k === "car"
+    ? [[t("f.carMode"), field(it, "mode")], [t("f.company"), field(it, "company")], [t("f.driver"), field(it, "driver")]]
+    : [[t("f.code." + k), field(it, "code")], ...(k === "train" ? [[t("f.car"), field(it, "car")]] as [string, string][] : []),
+      ...(k === "boat" ? [[t("f.cabin"), field(it, "cabin")]] as [string, string][] : []), [t("f.seats"), field(it, "seats")],
+      ...(k === "flight" ? [[t("f.luggage"), field(it, "luggage")]] as [string, string][] : [])];
+  return [...base, [t("f.booking"), field(it, "booking")], [t("f.text"), field(it, "note")]];
+}
 
 /* ---------- reservas ---------- */
-function transportCard(ctx: PlanCtx, it: Item, di: number, index: number): HTMLElement {
+function transportCard(ctx: PlanCtx, it: Item, di: number, index: number, key: string): HTMLElement {
   const tr = ctx.trip, date = tr.days[di].date;
   const w = itemDates(it, date, tr.start), r = routeOf(it);
-  const key = itemKey(di, index, it);
-  const kindText = t("k." + it.kind) + (field(it, "code") ? " · " + field(it, "code") : "");
-  if (ctx.collapsed.has(key)) {
-    return h("article", { cls: "ct-card ct-card-collapsed" }, timeEl(it.time),
-      h("span", { cls: "ct-collapsed-main" }, h("span", { cls: "ct-collapsed-title" }, `${r.from} → ${r.to}`),
-        h("span", { cls: "ct-sub" }, [kindText, w.toTime ? `→ ${w.toTime}` : "", it.docs.length ? plural(it.docs.length, t("f.docName").toLowerCase(), t("f.docs").toLowerCase()) : ""].filter(Boolean).join(" · "))),
-      it.price ? h("span", { cls: "ct-price" }, it.price) : null,
-      iconButton("chevron-right", t("expand"), () => { ctx.collapsed.delete(key); ctx.rerender(); }, "ct-ibtn ct-ibtn-sm"));
-  }
+  const code = it.kind === "car" ? field(it, "mode") : field(it, "code");
+  const kindText = t("k." + it.kind) + (code ? " · " + code : "");
+  if (ctx.collapsed.has(key)) return collapsedCard(ctx, key, it.time, `${r.from} → ${r.to}`,
+    [kindText, w.toTime ? `→ ${w.toTime}` : "", it.docs.length ? plural(it.docs.length, t("f.docName").toLowerCase(), t("f.docs").toLowerCase()) : ""].filter(Boolean).join(" · "), it.price);
+  const plus = w.to && w.from && w.to > w.from ? ` +${diffDays(w.from, w.to)}` : "";
   const end = (code: string, time: string, sub: string, right: boolean) => h("span", { cls: "ct-end" + (right ? " is-right" : "") },
-    h("span", { cls: "ct-end-code" }, code || "—"), h("span", { cls: "ct-end-time" }, time + (right && w.to && w.to !== w.from ? ` +${diffDays(w.from, w.to)}` : "")), h("span", { cls: "ct-sub" }, sub));
+    h("span", { cls: "ct-end-code" }, code || "—"), h("span", { cls: "ct-end-time" }, time + (right ? plus : "")), h("span", { cls: "ct-sub" }, sub));
   const route = h("div", { cls: "ct-route-big" },
     end(r.from, w.fromTime, [w.from ? dayLabel(w.from) : "", w.fromAt].filter(Boolean).join(" · "), false),
     h("span", { cls: "ct-route-mid" }, h("span", { cls: "ct-route-dash" }), icon(transportIcon[it.kind] || "plane"), h("span", { cls: "ct-route-dash" })),
-    end(r.to, w.toTime, [w.to ? dayLabel(w.to) : "", w.toAt].filter(Boolean).join(" · "), true));
-  const main = h("div", { cls: "ct-card-main" }, kindRow(ctx, kindText, it, di, index, key), route,
-    details([[t("f.seats"), field(it, "seats")], [t("f.car"), field(it, "car")], [t("f.luggage"), field(it, "luggage")], [t("f.text"), field(it, "note")]]));
+    end(r.to, w.toTime, [w.to && w.to !== w.from ? dayLabel(w.to) : w.to ? dayLabel(w.to) : "", w.toAt].filter(Boolean).join(" · "), true));
+  route.setCssProps({ "--ct-chars": String(Math.max(3, r.from.length, r.to.length)) });       // los nombres largos encogen para caber
+  const main = h("div", { cls: "ct-card-main" }, kindRow(ctx, kindText, it, di, index), route, details(transportDetails(it).filter(([, v]) => v !== code)));
   const n = peopleLabel(ctx, it).length;
   const stub = h("div", { cls: "ct-card-stub" },
     h("div", { cls: "ct-stub-price" }, h("span", { cls: "ct-price-big" }, it.price || "—"), h("span", { cls: "ct-sub" }, n ? plural(n, t("ticket.one"), t("ticket.many")) : "")),
-    label(t("f.docs")), docsBlock(ctx, it, di, index, false));
+    label(t("f.docs")), docsBlock(ctx, it, key, false));
   return h("article", { cls: "ct-card ct-pass" }, main, ctx.phone ? notchH() : notchV(), stub);
 }
-function docsRow(ctx: PlanCtx, it: Item, di: number, index: number, sub: string): HTMLElement {
+function docsRow(ctx: PlanCtx, it: Item, key: string, sub: string): HTMLElement {
   return h("div", { cls: "ct-docs-row" },
     h("span", { cls: "ct-docs-price" }, h("span", { cls: "ct-price-big" }, it.price || "—"), h("span", { cls: "ct-sub" }, sub)),
-    docsBlock(ctx, it, di, index, true));
+    docsBlock(ctx, it, key, true));
 }
-function lodgingCard(ctx: PlanCtx, it: Item, di: number, index: number): HTMLElement {
+export const LODGING_TYPES = ["hotel", "hostel", "apartment", "friends", "camping"] as const;
+export type LodgingType = typeof LODGING_TYPES[number];
+/* el tipo de alojamiento, escrito en cualquiera de los dos idiomas */
+export function lodgingType(it: Item): LodgingType {
+  const v = field(it, "type").toLowerCase();
+  if (/hostal|albergue|hostel/.test(v)) return "hostel";
+  if (/apartamento|apartment|airbnb|piso|flat/.test(v)) return "apartment";
+  if (/amig|famil|friend|casa de|home/.test(v)) return "friends";
+  if (/camping|campsite/.test(v)) return "camping";
+  return "hotel";
+}
+function lodgingCard(ctx: PlanCtx, it: Item, di: number, index: number, key: string, color: string): HTMLElement {
   const tr = ctx.trip, date = tr.days[di].date, w = itemDates(it, date, tr.start);
-  const key = itemKey(di, index, it);
   const nights = w.to ? Math.max(0, diffDays(w.from, w.to)) : 0;
+  const type = lodgingType(it), friends = type === "friends";
   const name = it.link || it.title, info = placeOf(ctx, it.link);
   const span = (d: string) => d ? `${weekday(d)} ${dayNum(d)}`.toUpperCase() : "?";
+  const cities = citiesOfDay(tr, w.from);
+  const city = info?.city || cities.map(c => c.city).pop() || "";
+  if (ctx.collapsed.has(key)) return collapsedCard(ctx, key, "", name,
+    [t("lt." + type), plural(nights, t("night"), t("nights")), w.fromTime ? t("checkin.from", { t: w.fromTime }) : ""].filter(Boolean).join(" · "), it.price);
   const tag = h("div", { cls: "ct-key-tag" }, h("span", { cls: "ct-key-hole" }), h("span", { cls: "ct-grow" }),
     h("span", { cls: "ct-key-nights" }, h("b", null, String(nights || "–")), h("span", null, (nights === 1 ? t("night") : t("nights")).toUpperCase())),
     h("span", { cls: "ct-key-dates" }, `${span(w.from)} → ${span(w.to)}`));
-  const cities = citiesOfDay(tr, w.from);
-  tag.setCssProps({ "--ct-key": destHex(Math.max(0, tr.dests.indexOf(cities[cities.length - 1]))) });
-  if (ctx.collapsed.has(key)) {
-    return h("article", { cls: "ct-card ct-card-collapsed" }, timeEl(it.time),
-      h("span", { cls: "ct-collapsed-main" }, h("span", { cls: "ct-collapsed-title" }, name), h("span", { cls: "ct-sub" }, `${t("k.lodging")} · ${plural(nights, t("night"), t("nights"))}`)),
-      it.price ? h("span", { cls: "ct-price" }, it.price) : null,
-      iconButton("chevron-right", t("expand"), () => { ctx.collapsed.delete(key); ctx.rerender(); }, "ct-ibtn ct-ibtn-sm"));
-  }
   const io = (k: string, time: string, d: string) => h("span", { cls: "ct-io" }, h("span", { cls: "ct-kind" }, k), h("span", { cls: "ct-io-time" }, time || "—"), h("span", { cls: "ct-sub" }, d ? dayLabel(d) : ""));
+  const address = field(it, "address");
+  const mapTarget = friends && address ? address : name;
+  const extraBits = type === "apartment" ? [[t("f.keys"), field(it, "keys")]] : type === "camping" ? [[t("f.pitch"), field(it, "pitch")]] : [];
   const body = h("div", { cls: "ct-card-main" },
-    kindRow(ctx, t("k.lodging"), it, di, index, key),
+    kindRow(ctx, t("lt." + type), it, di, index),
     h("div", { cls: "ct-name-row" }, h("span", { cls: "ct-name-col" }, placeLink(ctx, name, it.link, "ct-place-link is-big"),
-      h("span", { cls: "ct-sub" }, [info?.category, info?.city || cities.map(c => c.city).pop()].filter(Boolean).join(" · "))), mapButton(ctx, name, info, w.from)),
+      h("span", { cls: "ct-sub" }, (friends ? [address] : [info?.category, city]).filter(Boolean).join(" · "))),
+      mapButton(ctx, mapTarget, friends ? null : info, w.from, "ct-map is-tinted")),
     h("div", { cls: "ct-io-row" }, io(t("f.checkin").toUpperCase(), w.fromTime, w.from), io(t("f.checkout").toUpperCase(), w.toTime, w.to)),
-    details([[t("f.room"), field(it, "room")], [t("f.beds").split(" ")[0], field(it, "beds")], [t("f.bath"), field(it, "bath")], [t("f.includes"), field(it, "includes")]]),
-    docsRow(ctx, it, di, index, plural(nights, t("night"), t("nights"))));
-  return h("article", { cls: "ct-card ct-key" }, tag, body);
+    details([[t("f.room"), field(it, "room")], [t("f.beds").split(" ")[0], field(it, "beds")], [t("f.bath"), field(it, "bath")], [t("f.includes"), field(it, "includes")],
+      [t("f.booking"), field(it, "booking")], ...extraBits as [string, string][], [t("f.text"), field(it, "note")]]),
+    friends && !it.price && !it.docs.length ? null : docsRow(ctx, it, key, plural(nights, t("night"), t("nights"))));
+  const card = h("article", { cls: "ct-card ct-key" }, tag, body);
+  card.setCssProps({ "--ct-key": color });
+  return card;
 }
-function ticketCard(ctx: PlanCtx, it: Item, di: number, index: number): HTMLElement {
-  const date = ctx.trip.days[di].date, key = itemKey(di, index, it);
+function ticketCard(ctx: PlanCtx, it: Item, di: number, index: number, key: string): HTMLElement {
+  const date = ctx.trip.days[di].date;
   const name = it.link || it.title, info = placeOf(ctx, it.link);
-  if (ctx.collapsed.has(key)) {
-    return h("article", { cls: "ct-card ct-card-collapsed" }, timeEl(it.time),
-      h("span", { cls: "ct-collapsed-main" }, h("span", { cls: "ct-collapsed-title" }, name), h("span", { cls: "ct-sub" }, t("k.ticket"))),
-      it.price ? h("span", { cls: "ct-price" }, it.price) : null,
-      iconButton("chevron-right", t("expand"), () => { ctx.collapsed.delete(key); ctx.rerender(); }, "ct-ibtn ct-ibtn-sm"));
-  }
+  if (ctx.collapsed.has(key)) return collapsedCard(ctx, key, it.time, name, t("k.ticket"), it.price);
   const strip = h("div", { cls: "ct-admit", attr: { "aria-hidden": "true" } }, h("span", null, `${t("k.ticket")} · ${t("k.ticket")}`.toUpperCase()));
   const body = h("div", { cls: "ct-card-main" },
-    kindRow(ctx, t("k.ticket"), it, di, index, key),
+    kindRow(ctx, t("k.ticket"), it, di, index),
     h("div", { cls: "ct-name-row" }, h("span", { cls: "ct-name-col" }, placeLink(ctx, name, it.link, "ct-place-link is-big"),
       h("span", { cls: "ct-sub" }, [info?.category, info?.city].filter(Boolean).join(" · "))), mapButton(ctx, name, info, date)),
     details([[t("f.time"), it.time], [t("f.tickets"), field(it, "tickets")], [t("f.text"), field(it, "note")]]),
-    docsRow(ctx, it, di, index, (() => { const n = peopleLabel(ctx, it).length; return n ? plural(n, t("k.ticket").toLowerCase(), t("f.tickets").toLowerCase()) : ""; })()));
+    docsRow(ctx, it, key, (() => { const n = peopleLabel(ctx, it).length; return n ? plural(n, t("k.ticket").toLowerCase(), t("f.tickets").toLowerCase()) : ""; })()));
   return h("article", { cls: "ct-card ct-admission" }, strip, body, h("span", { cls: "ct-notch-l" }), h("span", { cls: "ct-notch-r" }));
+}
+
+/* ---------- mover pasos: se arrastran por el asa (ratón o dedo) a otro sitio del mismo día o de otro ---------- */
+function grip(ctx: PlanCtx, di: number, index: number): HTMLElement {
+  const g = button(icon("grip-vertical"), "ct-grip", undefined, { "aria-label": t("move"), title: t("move") });
+  g.addEventListener("pointerdown", ev => startDrag(ctx, ev, di, index, g));
+  return g;
+}
+function startDrag(ctx: PlanCtx, ev: PointerEvent, di: number, index: number, handle: HTMLElement) {
+  const row = handle.closest<HTMLElement>(".ct-row");
+  const root = handle.closest<HTMLElement>(".ct-days");
+  const scroller = handle.closest<HTMLElement>(".ct-view") || document.scrollingElement as HTMLElement | null;
+  if (!row || !root) return;
+  ev.preventDefault();
+  handle.setPointerCapture(ev.pointerId);
+  const rect = row.getBoundingClientRect(), dy = ev.clientY - rect.top, base = root.getBoundingClientRect();
+  const ghost = row.cloneNode(true) as HTMLElement;              // una copia que sigue al dedo, dentro de la lista de días
+  ghost.addClass("ct-drag-ghost");
+  ghost.setCssProps({ "--ct-ghost-w": rect.width + "px", "--ct-ghost-x": rect.left - base.left + "px", "--ct-ghost-y": rect.top - base.top + "px" });
+  root.appendChild(ghost);
+  row.addClass("is-dragging");
+  const line = h("div", { cls: "ct-drop-line" });
+  let target: { day: number; index: number } | null = null, raf = 0, lastY = ev.clientY;
+  const place = (x: number, y: number) => {
+    ghost.setCssProps({ "--ct-ghost-y": y - dy - root.getBoundingClientRect().top + "px" });
+    const under = root.ownerDocument.elementFromPoint(x, y)?.closest<HTMLElement>("[data-drop]");
+    if (!under || under === row) return;
+    const day = Number(under.dataset.day), idx = Number(under.dataset.index), r = under.getBoundingClientRect();
+    const after = under.dataset.drop === "item" && y > r.top + r.height / 2;
+    target = { day, index: idx + (after ? 1 : 0) };
+    if (after) under.after(line); else under.before(line);
+  };
+  const scroll = () => {                                     // cerca del borde, la vista se desplaza sola
+    if (!scroller) return;
+    const b = scroller.getBoundingClientRect();
+    const v = lastY < b.top + 60 ? -12 : lastY > b.bottom - 60 ? 12 : 0;
+    if (v) scroller.scrollTop += v;
+    raf = window.requestAnimationFrame(scroll);
+  };
+  raf = window.requestAnimationFrame(scroll);
+  const move = (e: PointerEvent) => { lastY = e.clientY; place(e.clientX, e.clientY); };
+  const end = () => {
+    window.cancelAnimationFrame(raf);
+    handle.removeEventListener("pointermove", move);
+    handle.removeEventListener("pointerup", end);
+    handle.removeEventListener("pointercancel", end);
+    ghost.remove(); line.remove(); row.removeClass("is-dragging");
+    if (target && !(target.day === di && (target.index === index || target.index === index + 1))) ctx.move(di, index, target.day, target.index);
+  };
+  handle.addEventListener("pointermove", move);
+  handle.addEventListener("pointerup", end);
+  handle.addEventListener("pointercancel", end);
 }
 
 /* ---------- pasos de una línea ---------- */
@@ -280,54 +397,62 @@ function itemRow(ctx: PlanCtx, di: number, row: Extract<Row, { r: "item" }>): HT
   const toggle = () => { it.done = !it.done; if (!it.check) it.check = true; ctx.commit(); };
   const cityIdx = Math.max(0, tr.dests.indexOf(citiesOfDay(tr, isIso(date) ? date : tr.start).pop()!));
   const color = destHex(cityIdx);
-  if (isTransport(it.kind)) return rowEl(ctx, nodeIcon(transportIcon[it.kind], color), h("div", { cls: "ct-card-wrap" }, transportCard(ctx, it, di, index)), true);
-  if (it.kind === "lodging") return rowEl(ctx, nodeIcon("bed-double", color), h("div", { cls: "ct-card-wrap" }, lodgingCard(ctx, it, di, index)), true);
-  if (it.kind === "ticket") return rowEl(ctx, nodeIcon("ticket", color), h("div", { cls: "ct-card-wrap" }, ticketCard(ctx, it, di, index)), true);
+  const key = itemKey(di, index, it);
+  const card = (ico: string, el: HTMLElement) => {
+    const r = rowEl(h("span", { cls: "ct-node-stack" }, nodeIcon(ico, color), foldBtn(ctx, key)), h("div", { cls: "ct-card-wrap" }, el), true, "is-card");
+    return dropTarget(r, di, index);
+  };
+  if (isTransport(it.kind)) return card(transportIcon[it.kind], transportCard(ctx, it, di, index, key));
+  if (it.kind === "lodging") return card("bed-double", lodgingCard(ctx, it, di, index, key, color));
+  if (it.kind === "ticket") return card("ticket", ticketCard(ctx, it, di, index, key));
   const priceSub = ctx.phone && it.price ? ` · ${it.price}` : "";
+  const handle = it.time ? h("span", { cls: "ct-grip-gap" }) : grip(ctx, di, index);   // lo que tiene hora se coloca solo
+  let out: HTMLElement;
   if (it.kind === "place") {
     const info = placeOf(ctx, it.link), name = it.link || it.title;
     const main = h("span", { cls: "ct-name-col" }, placeLink(ctx, name, it.link),
       h("span", { cls: "ct-sub" }, [info?.category, info?.city].filter(Boolean).join(" · ") + priceSub));
-    return rowEl(ctx, check(ctx, it.done, toggle), stepLine(ctx, it.time, bubble(iconFor(info?.category || "")), main, it.price,
-      [mapButton(ctx, name, info, date), editBtn(ctx, di, index, it)]));
-  }
-  if (it.kind === "meal") {
+    out = rowEl(check(it.done, toggle), stepLine(ctx, it.time, bubble(iconFor(info?.category || "")), main, it.price,
+      [mapButton(ctx, name, info, date), editBtn(ctx, di, index, it), handle]));
+  } else if (it.kind === "meal") {
     const info = placeOf(ctx, it.link);
     const where = it.link ? placeLink(ctx, it.link, it.link, "ct-place-link is-small") : it.place ? h("span", { cls: "ct-sub-strong" }, it.place) : null;
     const main = h("span", { cls: "ct-name-col" }, h("span", { cls: "ct-step-title" }, it.title),
       h("span", { cls: "ct-meal-sub" }, where, h("span", { cls: "ct-sub" }, [...it.extra, info?.city].filter(Boolean).join(" · ") + priceSub)));
-    return rowEl(ctx, check(ctx, it.done, toggle), stepLine(ctx, it.time, bubble("utensils"), main, it.price,
-      [it.link ? mapButton(ctx, it.link, info, date) : h("span", { cls: "ct-map-gap" }), editBtn(ctx, di, index, it)]));
-  }
-  if (it.kind === "rest") {
+    out = rowEl(check(it.done, toggle), stepLine(ctx, it.time, bubble("utensils"), main, it.price,
+      [it.link ? mapButton(ctx, it.link, info, date) : h("span", { cls: "ct-map-gap" }), editBtn(ctx, di, index, it), handle]));
+  } else if (it.kind === "rest") {
     const info = placeOf(ctx, it.link);
-    const main = h("span", { cls: "ct-name-col" }, h("span", { cls: "ct-step-title" }, it.title), it.link ? placeLink(ctx, it.link, it.link, "ct-place-link is-muted") : null);
-    return rowEl(ctx, nodeIcon("bed-double", color, true), stepLine(ctx, it.time, null, main, it.price,
-      [it.link ? mapButton(ctx, it.link, info, date) : h("span", { cls: "ct-map-gap" }), editBtn(ctx, di, index, it)]));
+    const main = h("span", { cls: "ct-name-col" }, h("span", { cls: "ct-step-title" }, it.title),
+      it.link ? placeLink(ctx, it.link, it.link, "ct-place-link is-muted") : it.place ? h("span", { cls: "ct-sub" }, it.place) : null);
+    out = rowEl(nodeIcon("bed-double", color, true), stepLine(ctx, it.time, null, main, it.price,
+      [it.link || it.place ? mapButton(ctx, it.link || it.place, info, date) : h("span", { cls: "ct-map-gap" }), editBtn(ctx, di, index, it), handle]));
+  } else {
+    /* nota */
+    const main = h("span", { cls: "ct-name-col" }, h("span", { cls: "ct-note-text" }, it.title), it.extra.length ? h("span", { cls: "ct-sub" }, it.extra.join(" · ")) : null);
+    out = rowEl(it.check ? check(it.done, toggle) : dot(), stepLine(ctx, it.time, bubble("sticky-note"), main, it.price, [editBtn(ctx, di, index, it), handle]));
   }
-  /* nota */
-  const main = h("span", { cls: "ct-name-col" }, h("span", { cls: "ct-note-text" }, it.title), it.extra.length ? h("span", { cls: "ct-sub" }, it.extra.join(" · ")) : null);
-  return rowEl(ctx, it.check ? check(ctx, it.done, toggle) : dot(), stepLine(ctx, it.time, bubble("sticky-note"), main, it.price, [editBtn(ctx, di, index, it)]));
+  return dropTarget(out, di, index);
+}
+function dropTarget(el: HTMLElement, di: number, index: number, kind = "item"): HTMLElement {
+  el.dataset.drop = kind; el.dataset.day = String(di); el.dataset.index = String(index);
+  return el;
 }
 
+/* ---------- huecos: lo que falta, con un botón sutil para añadirlo ---------- */
 const mealTitle = (k: MealKey) => vocab().meals[k];
-function mealSlot(ctx: PlanCtx, di: number, meal: MealKey, compact: boolean): HTMLElement {
+function slot(title: string, ico: string, actions: HTMLElement[], cls = ""): HTMLElement {
+  return h("div", { cls: "ct-slot" + (cls ? " " + cls : "") }, h("span", { cls: "ct-slot-title" }, icon(ico), h("span", { cls: "ct-slot-text" }, title)), ...actions);
+}
+const slotPill = (text: string, ico: string | null, onClick: () => void) => button([ico ? icon(ico) : null, h("span", { cls: "ct-slot-pill-text" }, text)], "ct-slot-pill", onClick, { "aria-label": text });
+function mealSlot(ctx: PlanCtx, di: number, meal: MealKey, at: string): HTMLElement {
   const day = ctx.trip.days[di];
-  const node = h("span", { cls: "ct-node-dashed" + (compact ? " is-small" : "") });
-  const openMeal = (place: string) => ctx.openForm({ day: di, index: -1, isNew: true,
-    draft: newItem("meal", { title: mealTitle(meal), place, time: meal === "breakfast" ? "" : "" }) });
-  if (compact) {
-    return rowEl(ctx, node, button([icon("utensils"), h("span", null, t("meal." + meal)), h("span", { cls: "ct-grow" }), icon("plus")], "ct-slot ct-slot-compact", () => openMeal("")));
-  }
-  const addNow = (place: string) => {
-    day.items.push(newItem("meal", { title: mealTitle(meal), place }));
-    ctx.commit();
-  };
-  return rowEl(ctx, node, h("div", { cls: "ct-slot" },
-    h("span", { cls: "ct-slot-title" }, icon("utensils"), t("meal." + meal)),
-    button([icon("map-pin"), t("f.where.restaurant")], "ct-pill", () => openMeal("")),
-    button([icon("home"), t("f.where.home")], "ct-pill", () => addNow(vocab().home)),
-    button(t("f.where.snack"), "ct-pill", () => addNow(t("f.where.snack").toLowerCase()))));
+  const openMeal = () => ctx.openForm({ day: di, index: -1, isNew: true, at, draft: newItem("meal", { title: mealTitle(meal) }) });
+  const addNow = (place: string) => { day.items.push(newItem("meal", { title: mealTitle(meal), place })); ctx.commit(); };
+  return rowEl(h("span", { cls: "ct-node-dashed is-small" }), slot(t("meal." + meal), "utensils", [
+    slotPill(t("f.where.restaurant"), "map-pin", openMeal),
+    slotPill(t("f.where.home"), "home", () => addNow(vocab().home)),
+    slotPill(t("f.where.snack"), "cookie", () => addNow(t("f.where.snack").toLowerCase()))], "is-meal"));
 }
 function breakfastRow(ctx: PlanCtx, di: number, span: LodgingSpan, time: string): HTMLElement {
   const day = ctx.trip.days[di], hotel = span.item.link || span.item.title, info = placeOf(ctx, span.item.link);
@@ -337,26 +462,32 @@ function breakfastRow(ctx: PlanCtx, di: number, span: LodgingSpan, time: string)
   };
   const main = h("span", { cls: "ct-name-col" }, h("span", { cls: "ct-step-title" }, mealTitle("breakfast")),
     h("span", { cls: "ct-meal-sub" }, placeLink(ctx, hotel, span.item.link, "ct-place-link is-small"), h("span", { cls: "ct-sub" }, t("meal.included"))));
-  return rowEl(ctx, check(ctx, false, () => make(true)), stepLine(ctx, time, bubble("utensils"), main, "",
-    [mapButton(ctx, hotel, info, day.date), iconButton("pencil", t("edit"), () => ctx.openForm({ day: di, index: -1, isNew: true,
-      draft: newItem("meal", { title: mealTitle("breakfast"), time, link: span.item.link, extra: [vocab().included] }) }), "ct-ibtn ct-ibtn-sm")]));
+  return rowEl(check(false, () => make(true)), stepLine(ctx, time, bubble("utensils"), main, "",
+    [mapButton(ctx, hotel, info, day.date), iconButton("pencil", t("edit"), () => ctx.openForm({ day: di, index: -1, isNew: true, at: "meal:breakfast",
+      draft: newItem("meal", { title: mealTitle("breakfast"), time, link: span.item.link, extra: [vocab().included] }) }), "ct-ibtn ct-ibtn-sm"), h("span", { cls: "ct-grip-gap" })]));
 }
-function lodgingSlot(ctx: PlanCtx, di: number, row: Extract<Row, { r: "lodging" }>): HTMLElement {
-  const draft = newItem("lodging", { fields: [] });
-  draft.fields.push({ k: "checkin", v: dayLabel(row.from).toLowerCase(), line: 0 }, { k: "checkout", v: dayLabel(row.to).toLowerCase(), line: 1 });
-  return rowEl(ctx, h("span", { cls: "ct-node-dashed" }, icon("bed-double")),
-    button([h("span", { cls: "ct-slot-title" }, icon("bed-double"), t("slot.lodging", { c: row.city })), h("span", { cls: "ct-grow" }),
-      h("span", { cls: "ct-pill is-solid" }, icon("plus"), t("add.lodging"))], "ct-slot ct-slot-btn",
-    () => ctx.openForm({ day: di, index: -1, isNew: true, draft })));
+function lodgingSlot(ctx: PlanCtx, di: number, row: Extract<Row, { r: "lodging" }>, at: string): HTMLElement {
+  const draft = newItem("lodging");
+  setField(draft, "checkin", joinWhen(row.from, "", ""), lineFor("lodging", "checkin"));
+  setField(draft, "checkout", joinWhen(row.to, "", ""), lineFor("lodging", "checkout"));
+  return rowEl(h("span", { cls: "ct-node-dashed" }, icon("bed-double")),
+    slot(t("slot.lodging", { c: row.city }), "bed-double", [slotPill(t("add.lodging"), "plus", () => ctx.openForm({ day: di, index: -1, isNew: true, at, draft }))]));
 }
-function transportSlot(ctx: PlanCtx, di: number, which: "out" | "back"): HTMLElement {
-  return rowEl(ctx, h("span", { cls: "ct-node-dashed" }, icon("plane")),
-    button([h("span", { cls: "ct-slot-title" }, icon("plane"), t(which === "out" ? "slot.out" : "slot.back")), h("span", { cls: "ct-grow" }),
-      h("span", { cls: "ct-pill is-solid" }, icon("plus"), t("add.transport"))], "ct-slot ct-slot-btn",
-    () => ctx.openForm({ day: di, index: -1, isNew: true, draft: newItem("flight") })));
+function arriveSlot(ctx: PlanCtx, di: number, it: Item, at: string): HTMLElement {
+  const name = it.link || it.title;
+  const draft = newItem("rest", { title: t("rest.arrive"), link: it.link, place: it.link ? "" : it.title });
+  return rowEl(h("span", { cls: "ct-node-dashed is-small" }),
+    slot(t("slot.arrive", { p: name }), "key-round", [slotPill(t("slot.arriveBtn"), "clock", () => ctx.openForm({ day: di, index: -1, isNew: true, at, draft }))]));
+}
+function transportSlot(ctx: PlanCtx, di: number, row: Extract<Row, { r: "transport" }>, at: string): HTMLElement {
+  const title = row.which === "change" ? t("slot.change", { a: row.from || "", b: row.to || "" }) : t(row.which === "out" ? "slot.out" : "slot.back");
+  const kind: Kind = row.which === "change" ? "train" : "flight";
+  const draft = newItem(kind, { title: row.which === "change" ? `${vocab().kinds[kind as "train"]} ${row.from} → ${row.to}` : "" });
+  return rowEl(h("span", { cls: "ct-node-dashed" }, icon("plane")),
+    slot(title, kindIcon(kind), [slotPill(t("add.transport"), "plus", () => ctx.openForm({ day: di, index: -1, isNew: true, at, draft }))]));
 }
 function miniRow(ctx: PlanCtx, row: Extract<Row, { r: "mini" }>): HTMLElement {
-  return rowEl(ctx, dot(), h("div", { cls: "ct-step ct-mini" }, ctx.phone ? null : timeEl(row.time),
+  return rowEl(dot(), h("div", { cls: "ct-step ct-mini" }, ctx.phone ? null : timeEl(row.time),
     h("span", { cls: "ct-name-col" }, ctx.phone ? h("span", { cls: "ct-time-sm" }, row.time) : null, h("span", { cls: "ct-mini-title" }, row.title), h("span", { cls: "ct-sub" }, row.sub))));
 }
 
@@ -383,22 +514,27 @@ function dayEl(ctx: PlanCtx, di: number, spans: LodgingSpan[]): HTMLElement {
     h("span", { cls: "ct-day-title" }, h("span", { cls: "ct-day-city" }, titleText), h("span", { cls: "ct-sub" }, sub)),
     h("span", { cls: "ct-day-total" }, dayTotal(day)));
   const body: HTMLElement[] = [];
-  const formHere = ctx.form && ctx.form.day === di;
+  const f = ctx.form && ctx.form.day === di ? ctx.form : null;
+  const formRow = (node: HTMLElement) => rowEl(node, ctx.renderForm(f!), true);
   for (const row of rows) {
+    const at = rowKey(row);
+    if (f && f.isNew && at && f.at === at) { body.push(formRow(h("span", { cls: "ct-node-add" }, icon("plus")))); continue; }   // el formulario, en el hueco que lo abrió
     if (row.r === "item") {
-      if (formHere && !ctx.form!.isNew && ctx.form!.index === row.index) { body.push(rowEl(ctx, nodeIcon(kindIcon(row.item.kind), "var(--ct-strong)", true), ctx.renderForm(ctx.form!), true)); continue; }
+      if (f && !f.isNew && f.index === row.index) { body.push(formRow(nodeIcon(kindIcon(row.item.kind), "var(--ct-strong)", true))); continue; }
       body.push(itemRow(ctx, di, row));
     } else if (row.r === "mini") body.push(miniRow(ctx, row));
     else if (row.r === "breakfast") body.push(breakfastRow(ctx, di, row.span, row.time));
-    else if (row.r === "meal") body.push(mealSlot(ctx, di, row.meal, empty));
-    else if (row.r === "lodging") body.push(lodgingSlot(ctx, di, row));
-    else if (row.r === "transport") body.push(transportSlot(ctx, di, row.which));
+    else if (row.r === "meal") body.push(mealSlot(ctx, di, row.meal, at));
+    else if (row.r === "lodging") body.push(lodgingSlot(ctx, di, row, at));
+    else if (row.r === "arrive") body.push(arriveSlot(ctx, di, row.item, at));
+    else if (row.r === "transport") body.push(transportSlot(ctx, di, row, at));
   }
-  for (const raw of day.raw) if (!/^###/.test(raw)) body.push(rowEl(ctx, dot(), h("div", { cls: "ct-raw" }, raw)));
-  if (formHere && ctx.form!.isNew) body.push(rowEl(ctx, h("span", { cls: "ct-node-add" }, icon("plus")), ctx.renderForm(ctx.form!), true));
-  else body.push(rowEl(ctx, h("span", { cls: "ct-node-add" }, icon("plus")),
-    button(t("add.to", { d: isIso(date) ? dayLabel(date).toLowerCase() : "" }), "ct-add-btn",
-      () => ctx.openForm({ day: di, index: -1, isNew: true, draft: newItem("place") }))));
+  for (const raw of day.raw) if (!/^###/.test(raw)) body.push(rowEl(dot(), h("div", { cls: "ct-raw" }, raw)));
+  const inPlace = f && f.isNew && f.at && rows.some(r => rowKey(r) === f.at);
+  if (f && f.isNew && !inPlace) body.push(formRow(h("span", { cls: "ct-node-add" }, icon("plus"))));
+  else body.push(dropTarget(rowEl(h("span", { cls: "ct-node-add" }, icon("plus")),
+    button([t("add.to", { d: isIso(date) ? dayLabel(date).toLowerCase() : "" })], "ct-add-btn",
+      () => ctx.openForm({ day: di, index: -1, isNew: true, draft: newItem("place") }))), di, day.items.length, "end"));
   const sec = h("section", { cls: "ct-day" + (empty ? " is-empty" : ""), attr: { "data-date": date || "" } }, head, body);
   return sec;
 }
@@ -408,7 +544,7 @@ export function plan(ctx: PlanCtx): HTMLElement {
   useAccent(accentOf(tr.cover, tr.accent));
   const total = range(tr.start, tr.end).length;
   return h("div", { cls: "ct-plan" },
-    h("div", { cls: "ct-plan-head" }, h("h2", { cls: "ct-h-big" }, t("plan")),
-      h("span", { cls: "ct-sub" }, total ? t("plan.days", { a: spanLabel(tr.start, tr.end), n: total }) : "")),
+    h("div", { cls: "ct-plan-head" }, h("div", { cls: "ct-h-big", attr: { role: "heading", "aria-level": "2" } }, t("plan")),
+      h("span", { cls: "ct-sub ct-nowrap" }, total ? t("plan.days", { a: spanLabel(tr.start, tr.end), n: total }) : "")),
     h("div", { cls: "ct-days" }, tr.days.map((_, di) => dayEl(ctx, di, spans))));
 }

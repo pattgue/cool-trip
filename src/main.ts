@@ -43,6 +43,7 @@ export default class CoolTripPlugin extends Plugin {
       order: 30,
       appliesTo: () => true,
       isOpen: leaf => leaf.view instanceof TripView,
+      kind: "view",
       toggle: leaf => {
         const v = leaf.view;
         if (v instanceof TripView || (v instanceof MarkdownView && isTripFile(this.app, this.settings, v.file))) void this.toggleLeaf(leaf);

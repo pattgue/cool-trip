@@ -1,7 +1,14 @@
 /* ===== la portada: tarjeta de embarque ===== */
 .ct-ticket { display: flex; border-radius: 20px; overflow: hidden; background: var(--ct-ticket); box-shadow: 0 2px 8px 0 #00000033; position: relative; }
-.ct-band { flex: none; width: 46px; background: var(--ct-graphite); color: var(--ct-cream); display: flex; align-items: center; justify-content: center; }
-.ct-band span { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; font-weight: 800; letter-spacing: .6em; text-transform: uppercase; white-space: nowrap; }
+.ct-band { flex: none; width: 46px; background: var(--ct-graphite); color: var(--ct-cream); display: flex; align-items: center; justify-content: center; position: relative; }
+.ct-ticket:not(.is-create) .ct-band { padding-top: 48px; }
+.ct-band-text { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; font-weight: 800; letter-spacing: .6em; text-transform: uppercase; white-space: nowrap; }
+/* el lápiz que desbloquea la portada de la nota */
+.ct-band-btn { position: absolute; top: 12px; left: 7px; width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--ct-cream) 45%, transparent) !important;
+  background: transparent !important; color: var(--ct-cream); display: grid; place-items: center; }
+.ct-band-btn:hover { border-color: var(--ct-cream) !important; }
+.ct-band-btn.is-on { background: var(--ct-cream) !important; border-color: var(--ct-cream) !important; color: var(--ct-graphite); }
+.ct-band-btn .ct-ico svg { width: 15px; height: 15px; }
 .ct-ticket-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .ct-cover { background: var(--ct-cover); color: var(--ct-ink); padding: 25px 28px 35px; display: flex; flex-direction: column; gap: 7px; position: relative; }
 .ct-cover.has-image { background: linear-gradient(0deg, color-mix(in srgb, var(--ct-cover) 85%, transparent) 0%, color-mix(in srgb, var(--ct-cover) 35%, transparent) 55%, transparent 100%), var(--ct-cover-img) center / cover; }
@@ -10,11 +17,11 @@
 .ct-city { display: flex; flex-direction: column; gap: 8px; text-align: center; min-width: 0; }
 .ct-city-name { font-weight: 900; font-size: var(--ct-city-size, 92px); line-height: .82; letter-spacing: -.045em; text-transform: uppercase; white-space: nowrap; }
 .ct-city-sub { font-size: 14px; font-weight: 700; }
-.ct-route { flex: 1; min-width: 50px; height: 50px; margin: 0 22px 34px; display: flex; align-items: center; gap: 10px; }
+/* la ruta entre dos ciudades: igual que en el diseño (el mismo trazo de avión, girado 45°) */
+.ct-route { flex: 1; min-width: 60px; height: 50px; margin: 0 22px 34px; display: flex; align-items: center; gap: 10px; }
 .ct-route-line { flex: 1; border-top: 3px dashed var(--ct-ink); }
-.ct-route-plane { box-sizing: border-box; display: flex; align-items: center; width: 32px; padding-right: 8px; }
-.ct-route-plane .ct-ico, .ct-route-plane .ct-ico svg { width: 34px; height: 34px; stroke-width: 2; }
-.ct-route-plane .ct-ico { transform: rotate(45deg); }
+.ct-route-plane { box-sizing: border-box; display: flex; flex-direction: row; gap: 10px; align-items: center; width: 32px; padding-right: 8px; color: var(--ct-ink); }
+.ct-plane { transform: rotate(45deg); }
 .ct-dest-add { height: 28px; width: auto; min-width: 98px; padding: 0 12px; border-radius: 999px; border: 2px solid var(--ct-ink) !important; background: transparent !important;
   color: var(--ct-ink); font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .ct-dest-add .ct-ico svg { stroke-width: 3; width: 14px; height: 14px; }
@@ -31,10 +38,11 @@
 .ct-field .ct-field-value .ct-ico { color: var(--ct-muted); }
 /* la fecha: toda la casilla es un botón que abre el selector del sistema; el campo de fecha real va escondido debajo */
 .ct-field-wrap { position: relative; min-width: 0; display: flex; }
-.ct-field-btn { width: 100%; height: auto; padding: 0; margin: 0; border: 0 !important; border-radius: 0; background: transparent !important; box-shadow: none !important;
-  color: inherit; text-align: left; cursor: pointer; align-items: stretch; }
+.ct-field-btn { width: 100%; height: auto !important; min-height: 0 !important; padding: 0 !important; margin: 0; border: 0 !important; border-radius: 0; background: transparent !important;
+  box-shadow: none !important; line-height: normal; color: inherit; text-align: left; cursor: pointer; align-items: stretch; justify-content: flex-start; }
 .ct-field-btn:hover .ct-field-value { border-bottom-color: var(--ct-strong); }
-.ct-date-input { position: absolute; left: 0; bottom: 0; width: 100%; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+.ct-date-input { position: absolute !important; left: 0; bottom: 0; width: 100% !important; height: 1px !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important;
+  border: 0 !important; opacity: 0; pointer-events: none; }
 .ct-reparto { display: flex; flex-direction: column; gap: 14px; }
 .ct-strip { display: flex; gap: 5px; }
 .ct-strip-day { flex: 1; min-width: 0; height: 62px; padding: 0; border: 0 !important; border-radius: 10px; color: var(--ct-ink);
@@ -79,7 +87,7 @@
 .ct-swatch { width: 28px; height: 28px; padding: 0; border: 0 !important; border-radius: 50%; background: var(--ct-swatch) !important; }
 .ct-swatch.is-on { box-shadow: 0 0 0 2px var(--ct-ticket), 0 0 0 4px var(--ct-strong) !important; }
 .ct-swatch-img { background: #3D3D3D !important; color: var(--ct-cream); display: inline-grid; place-items: center; }
-.ct-swatch-img .ct-ico, .ct-swatch-img .ct-ico svg { width: 14px; height: 14px; }
+.ct-swatch-img .ct-ico svg { width: 14px; height: 14px; }
 .ct-swatch-img.has-image { background: var(--ct-cover-img) center / cover !important; }
 .ct-swatch-img.has-image .ct-ico { display: none; }
 .ct-barcode { display: flex; flex-direction: column; gap: 6px; }
@@ -91,6 +99,11 @@
 .ct-countdown-n { font-weight: 900; font-size: 64px; line-height: .9; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
 .ct-countdown-t { font-size: 15px; font-weight: 700; line-height: 1.2; }
 .ct-btn-create { height: 52px; width: 100%; font-size: 16px; border-radius: 18px; }
+
+/* la portada de la nota: más estrecha (los datos juntos, sin huecos de sobra) */
+.ct-view:not(.is-phone) .ct-ticket { width: min(100%, 1060px); }
+.ct-view:not(.is-phone) .ct-ticket .ct-fields { grid-template-columns: repeat(4, max-content); column-gap: 44px; align-items: start; }
+.ct-view:not(.is-phone) .ct-ticket .ct-strip-day { max-width: 66px; }
 
 /* móvil */
 .ct-ticket-phone { flex-direction: column; border-radius: 24px; }

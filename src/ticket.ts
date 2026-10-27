@@ -1,10 +1,10 @@
 /* La portada del viaje: la tarjeta de embarque. La misma en «Nuevo viaje» (create) y arriba de la nota (note). */
-import { h } from "./dom";
+import { append, h } from "./dom";
 import { t } from "./i18n";
 import { dayNum, diffDays, isIso, longDate, spanLabel, todayIso, weekday, dayLabel } from "./dates";
 import { balanceNights, citiesOfDay, nightsTotal, redate, tripDates } from "./md";
 import type { Trip } from "./types";
-import { PALETTE, accentOf, avatar, barcode, button, coverHex, destHex, icon, iconButton, imageAccent, kicker, label, miniPerson, notchH, notchV, paletteId, personChip, plain, useAccent } from "./ui";
+import { PALETTE, accentOf, avatar, barcode, button, coverHex, destHex, icon, iconButton, imageAccent, kicker, label, miniPerson, notchH, notchV, paletteId, paperPlane, personChip, plain, useAccent } from "./ui";
 
 export interface TicketCtx {
   mode: "create" | "note";
@@ -12,6 +12,7 @@ export interface TicketCtx {
   trip: Trip;
   path: string;                                  // «Viajes / 2027 - Japón.md»
   expanded?: boolean;                            // en el móvil, la portada de la nota desplegada para editarla
+  locked?: boolean;                              // la portada de la nota, sellada (se desbloquea con el lápiz)
   changed(): void;                               // tras cada cambio: repintar (y guardar, en la nota)
   prompt(title: string, placeholder: string, value?: string): Promise<string | null>;
   promptDest(city: string, country: string, fallbackCountry: string): Promise<{ city: string; country: string } | null>;
@@ -23,6 +24,8 @@ export interface TicketCtx {
 }
 
 const INK = "#141414";
+/* se puede editar: siempre en «Nuevo viaje»; en la nota, solo con la portada desbloqueada */
+const editable = (ctx: TicketCtx) => ctx.mode === "create" || !ctx.locked;
 const fit = (names: string[], width: number, max: number) => {
   const longest = Math.max(4, ...names.map(n => n.length));
   return Math.max(28, Math.min(max, Math.floor(width / (longest * 0.66 * names.length + (names.length - 1) * 1.6))));
@@ -96,14 +99,15 @@ function setDates(ctx: TicketCtx, start: string, end: string) {
 
 /* un campo de fecha: se ve el texto bonito y encima, invisible, el selector de fecha del sistema */
 function dateField(ctx: TicketCtx, lbl: string, value: string, set: (v: string) => void, size: "lg" | "md" | "sm"): HTMLElement {
+  if (!editable(ctx)) return staticField(lbl, value ? (size === "lg" ? longDate(value) : dayLabel(value)) : "—", size);
   const input = h("input", { cls: "ct-date-input", attr: { type: "date", value, tabindex: "-1", "aria-hidden": "true" } });
   input.addEventListener("change", () => set(input.value));
   const text = value ? (size === "lg" ? longDate(value) : dayLabel(value)) : "—";
   const open = () => {
     try { input.showPicker(); } catch { input.focus(); input.click(); }
   };
-  const field = button([label(lbl), h("span", { cls: "ct-field-value" }, text, ctx.mode === "create" ? icon("calendar") : null)],
-    `ct-field ct-field-btn ct-field-${size}` + (ctx.mode === "create" ? " is-input" : ""), open, { "aria-label": `${lbl}: ${text}` });
+  const field = button([label(lbl), h("span", { cls: "ct-field-value" }, text, icon("calendar"))],
+    `ct-field ct-field-btn ct-field-${size} is-input`, open, { "aria-label": `${lbl}: ${text}` });
   return h("span", { cls: "ct-field-wrap" }, field, input);
 }
 const staticField = (lbl: string, value: string | Node, size: "lg" | "md" | "sm") =>
@@ -173,13 +177,17 @@ function destRows(ctx: TicketCtx, big: boolean): HTMLElement {
     const a = isIso(tr.start) ? tripDates(tr)[acc] : "", b = isIso(tr.start) ? tripDates(tr)[Math.min(acc + d.nights, tripDates(tr).length - 1)] : "";
     acc += d.nights;
     const sw = h("span", { cls: "ct-dest-sw" }); sw.setCssProps({ "--ct-sw": destHex(i) });
-    const people = tr.travelers.map((p, k) => big ? personChip(p, k, d.travelers.includes(p), () => toggleDestTraveler(ctx, i, p))
-      : miniPerson(p, k, d.travelers.includes(p), () => toggleDestTraveler(ctx, i, p)));
+    const edit = editable(ctx);
+    const people = edit ? tr.travelers.map((p, k) => big ? personChip(p, k, d.travelers.includes(p), () => toggleDestTraveler(ctx, i, p))
+      : miniPerson(p, k, d.travelers.includes(p), () => toggleDestTraveler(ctx, i, p)))
+      : d.travelers.map(p => h("span", { cls: "ct-mini-person is-on is-static" }, avatar(p, Math.max(0, tr.travelers.indexOf(p)), "ct-avatar ct-avatar-xs"), h("span", null, p)));
+    const cityText = d.country ? `${d.city} · ${d.country}` : d.city;
     box.appendChild(h("div", { cls: "ct-dest-row" },
       h("div", { cls: "ct-dest-top" }, sw,
-        h("span", { cls: "ct-dest-name" }, button(d.country ? `${d.city} · ${d.country}` : d.city, "ct-dest-city", () => editDest(ctx, i), { "aria-label": `${t("edit")} ${d.city}` }), h("span", { cls: "ct-dest-dates" }, [a && b ? spanLabel(a, b) : "", t("nights")].filter(Boolean).join(" · "))),
-        tr.dests.length > 1 ? stepper(ctx, i) : h("span", { cls: "ct-step-n" }, String(d.nights)),
-        iconButton("x", t("removeDest"), () => removeDest(ctx, i), "ct-ibtn ct-ibtn-sm")),
+        h("span", { cls: "ct-dest-name" }, edit ? button(cityText, "ct-dest-city", () => editDest(ctx, i), { "aria-label": `${t("edit")} ${d.city}` }) : h("span", { cls: "ct-dest-city" }, cityText),
+          h("span", { cls: "ct-dest-dates" }, [a && b ? spanLabel(a, b) : "", t("nights")].filter(Boolean).join(" · "))),
+        edit && tr.dests.length > 1 ? stepper(ctx, i) : h("span", { cls: "ct-step-n" }, String(d.nights)),
+        edit ? iconButton("x", t("removeDest"), () => removeDest(ctx, i), "ct-ibtn ct-ibtn-sm") : null),
       people.length ? h("div", { cls: "ct-dest-people" }, people) : null));
   });
   return box;
@@ -187,6 +195,8 @@ function destRows(ctx: TicketCtx, big: boolean): HTMLElement {
 
 function travelersBox(ctx: TicketCtx): HTMLElement {
   const tr = ctx.trip;
+  if (!editable(ctx)) return h("div", { cls: "ct-people" }, tr.travelers.map((p, k) =>
+    h("span", { cls: "ct-person is-on is-static" }, avatar(p, k), h("span", null, p))));
   return h("div", { cls: "ct-people" },
     tr.travelers.map((p, k) => {
       const chip = personChip(p, k, true, () => removeTraveler(ctx, p));
@@ -198,7 +208,7 @@ function travelersBox(ctx: TicketCtx): HTMLElement {
 function noteName(ctx: TicketCtx, big: boolean): HTMLElement {
   const name = h("span", { cls: "ct-note-name" + (big ? " is-big" : "") }, ctx.trip.name || "—");
   const el = h("span", { cls: "ct-note" }, label(t("new.note")), name, h("span", { cls: "ct-note-path" }, ctx.path));
-  if (ctx.rename) {
+  if (ctx.rename && editable(ctx)) {
     name.addClass("is-editable");
     name.setAttribute("role", "button"); name.setAttribute("tabindex", "0");
     const go = () => void ctx.prompt(t("new.note"), t("new.note"), ctx.trip.name).then(v => { if (v && v.trim() && v.trim() !== ctx.trip.name) ctx.rename!(v.trim()); });
@@ -213,17 +223,17 @@ function coverStyle(ctx: TicketCtx, el: HTMLElement) {
   const src = ctx.coverSrc?.(ctx.trip.cover);
   if (src) { el.addClass("has-image"); el.setCssProps({ "--ct-cover-img": `url("${src.replace(/"/g, "%22")}")` }); }
 }
-const destBtn = (ctx: TicketCtx, small: boolean) =>
+const destBtn = (ctx: TicketCtx, small: boolean) => !editable(ctx) ? null :
   button([icon("plus"), h("span", null, t("addDest"))], "ct-dest-add" + (small ? " is-small" : ""), () => addDest(ctx));
 
 /* ---------- escritorio ---------- */
 function desktop(ctx: TicketCtx): HTMLElement {
   const tr = ctx.trip, create = ctx.mode === "create";
   const names = tr.dests.map(d => d.city);
-  const size = fit(names, 760, 92);
+  const size = fit(names, create ? 760 : 600, 92);          // la portada de la nota es más estrecha
   const cities: HTMLElement[] = [];
   tr.dests.forEach((d, i) => {
-    if (i) cities.push(h("span", { cls: "ct-route" }, h("span", { cls: "ct-route-line" }), h("span", { cls: "ct-route-plane" }, icon("send")), h("span", { cls: "ct-route-line" })));
+    if (i) cities.push(h("span", { cls: "ct-route", attr: { "aria-hidden": "true" } }, h("span", { cls: "ct-route-line" }), h("span", { cls: "ct-route-plane" }, paperPlane()), h("span", { cls: "ct-route-line" })));
     const el = h("span", { cls: "ct-city" }, h("span", { cls: "ct-city-name" }, d.city),
       h("span", { cls: "ct-city-sub" }, [d.country, `${d.nights} ${d.nights === 1 ? t("night") : t("nights")}`].filter(Boolean).join(" · ")));
     el.setCssProps({ "--ct-city-size": size + "px" });
@@ -242,8 +252,10 @@ function desktop(ctx: TicketCtx): HTMLElement {
     staticField(t("new.nights"), days ? String(nights) : "—", "lg"));
   const reparto = tr.dests.length ? h("div", { cls: "ct-reparto" }, label(t("new.split")), days ? strip(ctx) : null, destRows(ctx, false)) : null;
   const main = h("div", { cls: "ct-ticket-main" }, header, h("div", { cls: "ct-ticket-body" }, fields, reparto));
-  const band = h("div", { cls: "ct-band", attr: { "aria-hidden": "true" } },
-    h("span", null, t("band", { y: isIso(tr.start) ? tr.start.slice(0, 4) : "" })));
+  /* en la nota, el lápiz de arriba a la izquierda desbloquea la portada (y el ✓ la vuelve a sellar) */
+  const lock = create ? null : iconButton(ctx.locked ? "pencil" : "check", t(ctx.locked ? "editCover" : "lockCover"), () => ctx.toggleExpanded?.(), "ct-band-btn" + (ctx.locked ? "" : " is-on"));
+  const band = h("div", { cls: "ct-band" }, lock,
+    h("span", { cls: "ct-band-text", attr: { "aria-hidden": "true" } }, t("band", { y: isIso(tr.start) ? tr.start.slice(0, 4) : "" })));
   const code = barcode(plain(tr.name).replace(/\W/g, "").toUpperCase() || "COOLTRIP",
     ["CT", isIso(tr.start) ? tr.start.slice(0, 4) : "", ...tr.dests.slice(0, 3).map(d => plain(d.city).slice(0, 3).toUpperCase())].filter(Boolean).join(" · "));
   const end = create
@@ -252,9 +264,9 @@ function desktop(ctx: TicketCtx): HTMLElement {
   const stub = h("div", { cls: "ct-stub" },
     noteName(ctx, true),
     h("div", { cls: "ct-stub-block" }, label(t("new.travelers")), travelersBox(ctx)),
-    h("div", { cls: "ct-stub-block" }, label(t("new.cover")), swatches(ctx)),
+    editable(ctx) ? h("div", { cls: "ct-stub-block" }, label(t("new.cover")), swatches(ctx)) : null,
     h("span", { cls: "ct-grow" }), end);
-  return h("div", { cls: "ct-ticket" + (create ? " is-create" : "") }, band, main, notchV(), stub);
+  return h("div", { cls: "ct-ticket" + (create ? " is-create" : editable(ctx) ? " is-editing" : " is-locked") }, band, main, notchV(), stub);
 }
 
 /* ---------- móvil ---------- */
@@ -266,7 +278,7 @@ function phoneHeader(ctx: TicketCtx): HTMLElement {
   header.setCssProps({ "--ct-city-size": size + "px" });
   const sub = (d: Trip["dests"][number]) => h("span", { cls: "ct-city-sub" }, [d.country, `${d.nights} ${d.nights === 1 ? t("night") : t("nights")}`].filter(Boolean).join(" · ").toUpperCase());
   if (!tr.dests.length) {
-    header.append(h("span", { cls: "ct-city-name" }, "?"), destBtn(ctx, true));
+    append(header, [h("span", { cls: "ct-city-name" }, "?"), destBtn(ctx, true)]);
     return header;
   }
   tr.dests.forEach((d, i) => {
@@ -274,7 +286,7 @@ function phoneHeader(ctx: TicketCtx): HTMLElement {
     if (!first) header.appendChild(h("div", { cls: "ct-bar-row" }, h("span", { cls: "ct-bar-line" }), i === 1 ? destBtn(ctx, true) : null));
     header.appendChild(h("div", { cls: "ct-city-stack" }, first ? null : sub(d), h("span", { cls: "ct-city-name" }, d.city), first ? sub(d) : null));
   });
-  if (tr.dests.length === 1) header.appendChild(destBtn(ctx, true));
+  if (tr.dests.length === 1) append(header, [destBtn(ctx, true)]);
   return header;
 }
 function phone(ctx: TicketCtx): HTMLElement {

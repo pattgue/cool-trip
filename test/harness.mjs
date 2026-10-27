@@ -52,7 +52,7 @@ await b.close();
   await p.click(".ct-form >> text=Transporte");
   await p.locator(".ct-form").screenshot({ path: join(out, `form-transport-${theme}.png`) });
   await p.click(".ct-form >> text=Cancelar");
-  await p.click("text=Alojamiento en Kioto >> nth=0");
+  await p.click(".ct-slot:has-text('Alojamiento en Kioto') .ct-slot-pill");
   await p.waitForTimeout(100);
   await p.locator(".ct-form").screenshot({ path: join(out, `form-lodging-${theme}.png`) });
   /* guardar un lugar y comprobar el Markdown */
@@ -64,5 +64,63 @@ await b.close();
   await p.click(".ct-form >> text=Guardar");
   const saved = await p.evaluate(() => window.__saved || "");
   console.log("guardar lugar:", /- \[ \] 11:00 \[\[Tsukiji Outer Market\]\]/.test(saved) ? "ok" : "FALLA", errs.length ? "ERRORES: " + errs.join(" | ") : "sin errores");
+  const ok = (name, cond) => console.log(name + ":", cond ? "ok" : "FALLA");
+  /* el formulario sale en el hueco que lo abrió (no al final del día) */
+  await p.click(".ct-slot:has-text('Alojamiento en Kioto') .ct-slot-pill");
+  ok("formulario en su hueco", await p.evaluate(() => { const f = document.querySelector(".ct-form"); const day = f.closest(".ct-day"); return !!day && f.closest(".ct-row").nextElementSibling !== null; }));
+  await p.click(".ct-form >> text=Casa de amigos");
+  await p.locator(".ct-form").screenshot({ path: join(out, `form-friends-${theme}.png`) });
+  await p.click(".ct-form >> text=Hotel");
+  await p.click(".ct-form >> text=Otro");
+  await p.fill(".ct-form .ct-input-other", "Toallas de playa");
+  await p.press(".ct-form .ct-input-other", "Enter");
+  await p.fill(".ct-form .ct-picker input", "Machiya Gion");
+  await p.fill(".ct-form .ct-grid-price input", "640");
+  await p.selectOption(".ct-form .ct-grid-price select", "¥");
+  await p.locator(".ct-form").screenshot({ path: join(out, `form-lodging2-${theme}.png`) });
+  await p.click(".ct-form >> text=Guardar");
+  let md = await p.evaluate(() => window.__saved || "");
+  ok("alojamiento: moneda, incluye otro, sin hora", /- \*\*Machiya Gion\*\* · alojamiento · ¥640/.test(md) && /Incluye: toallas de playa|Incluye: Toallas de playa/.test(md));
+  /* la portada: sellada; el lápiz la desbloquea */
+  ok("portada sellada", await p.evaluate(() => !document.querySelector(".ct-ticket .ct-dest-add") && !document.querySelector(".ct-ticket .ct-swatches")));
+  await p.click(".ct-band-btn");
+  ok("portada desbloqueada", await p.evaluate(() => !!document.querySelector(".ct-ticket .ct-dest-add") && !!document.querySelector(".ct-ticket .ct-swatches")));
+  await p.locator(".ct-ticket").screenshot({ path: join(out, `ticket-edit-${theme}.png`) });
+  await p.click(".ct-band-btn");
+  /* + Documento en una reserva: solo la ventanita del documento */
+  await p.locator(".ct-pass .ct-link-btn >> text=Documento").first().click();
+  ok("documento: ventanita sola", await p.evaluate(() => !!document.querySelector(".ct-pass .ct-docform") && !document.querySelector(".ct-form:not(.ct-docform)")));
+  await p.fill(".ct-pass .ct-docform input", "DNI");
+  await p.click(".ct-pass .ct-docform >> text=Ana");
+  await p.click(".ct-pass .ct-docform >> text=Wallet");
+  await p.locator(".ct-pass").first().screenshot({ path: join(out, `doc-add-${theme}.png`) });
+  await p.click(".ct-pass .ct-docform >> text=Guardar");
+  md = await p.evaluate(() => window.__saved || "");
+  ok("documento con varios sitios y su viajero", /DNI \(en papel · Wallet · para Ana\)/.test(md));
+  /* la mochila: una sugerencia, con su viajero como etiqueta */
+  await p.click(".ct-suggest .ct-pill >> nth=0");
+  await p.locator(".ct-box >> nth=0").screenshot({ path: join(out, `bag-form-${theme}.png`) });
+  await p.click(".ct-box .ct-docform >> text=Guardar");
+  md = await p.evaluate(() => window.__saved || "");
+  ok("mochila: DNI para Ana", /- DNI \(en papel · para Ana\)/.test(md));
+  ok("mochila: la sugerencia ya no sale", await p.evaluate(() => ![...document.querySelectorAll(".ct-suggest .ct-pill")].some(b => /DNI/.test(b.textContent) && /A/.test(b.textContent) && b.querySelector(".ct-avatar")?.textContent === "A")));
+  /* arrastrar un paso sin hora a otro día */
+  await p.click("text=Añadir al lun 5 abr");
+  await p.click(".ct-form >> text=Nota");
+  await p.fill(".ct-form .ct-grid-time input[type=text]", "Comprar SIM");
+  await p.click(".ct-form >> text=Guardar");
+  await p.setViewportSize({ width: 1440, height: 4000 });
+  await p.evaluate(() => window.scrollTo(0, 0));
+  const g = p.locator(".ct-row:has-text('Comprar SIM') .ct-grip");
+  const box = await g.boundingBox();
+  const dest = await p.locator(".ct-row:has-text('Senso-ji')").boundingBox();
+  await p.mouse.move(box.x + 10, box.y + 10);
+  await p.mouse.down();
+  await p.mouse.move(box.x + 10, dest.y + 5, { steps: 12 });
+  await p.mouse.move(box.x + 12, dest.y + 6, { steps: 2 });
+  await p.mouse.up();
+  md = await p.evaluate(() => window.__saved || "");
+  ok("arrastrar a otro día", /### Dom 4 abr[^#]*Comprar SIM[^#]*\[\[Senso-ji\]\]/.test(md));
+  console.log(errs.length ? "ERRORES: " + errs.join(" | ") : "sin errores");
   await b2.close();
 }

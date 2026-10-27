@@ -52,5 +52,24 @@ ok("se conserva lo que no es de Cool Trip", out1.includes("Notas sueltas que esc
 const b = md.blankTrip("2026 - Roma", "2026-12-01", "2026-12-05", [{ city: "Roma", country: "Italia", nights: 0, travelers: ["Patt"] }], ["Patt"], "bermellón");
 const ob = md.serializeTrip(b, S);
 ok("viaje nuevo", ob.includes("> Roma · Italia · 4 noches · Patt") && ob.includes("### Mar 1 dic · Roma") && ob.includes("### Sáb 5 dic · Roma"), "\n" + ob);
+/* añadidos de la 0.1.2: documentos con varios sitios y viajeros, moneda, alojamiento sin nota, sugerencias ocultas */
+const docs = md.parseDocs("DNI (en papel · Wallet · para Ana) · [Billete · Leo](https://x.y/z) (en papel) · Seguro (Mapfre)");
+ok("documento con varios sitios", docs[0].name === "DNI" && docs[0].where === "paper" && docs[0].also.join() === "wallet" && docs[0].para.join() === "Ana", JSON.stringify(docs[0]));
+ok("documento con enlace y papel", docs[1].name === "Billete · Leo" && docs[1].where === "cloud" && docs[1].url === "https://x.y/z" && docs[1].also.join() === "paper", JSON.stringify(docs[1]));
+ok("paréntesis que es parte del nombre", docs[2].name === "Seguro (Mapfre)" && docs[2].where === "cloud", JSON.stringify(docs[2]));
+ok("documento: se escribe igual", docs.map(d => md.docMd(d)).join(" · ") === "DNI (en papel · Wallet · para Ana) · [Billete · Leo](https://x.y/z) (en papel) · Seguro (Mapfre)", docs.map(d => md.docMd(d)).join(" · "));
+ok("moneda", md.parseItem("- [ ] Cena · [[X]] · $60").price === "$60" && md.parseItem("- [ ] Cena · [[X]] · 45 CHF").price === "45 CHF" && md.parseItem("- [ ] Cena · [[X]] · 30.98").price === "30.98");
+ok("precio con moneda", md.withCurrency("640", "¥") === "¥640" && md.withCurrency("60", "€") === "60 €" && md.currencyOf("45 CHF") === "CHF" && md.priceNumber("$60") === "60");
+const casa = md.parseItem("- **Casa de Ana** · alojamiento");
+ok("alojamiento sin nota", casa.kind === "lodging" && casa.title === "Casa de Ana" && !casa.link, JSON.stringify(casa));
+const llegada = md.parseItem("- [ ] 22:00 Llegada al alojamiento · Casa de Ana");
+ok("llegada a un alojamiento sin nota", llegada.kind === "rest" && llegada.place === "Casa de Ana" && md.itemMd(llegada)[0] === "- [ ] 22:00 Llegada al alojamiento · Casa de Ana", JSON.stringify(llegada));
+const t3 = md.parseTrip(sample, "2027 - Japón", S);
+t3.hidden.push("Mapas sin conexión de Tokio y Kioto");
+const t4 = md.parseTrip(md.serializeTrip(t3, S), "2027 - Japón", S);
+ok("sugerencias ocultas", t4.hidden.join() === "Mapas sin conexión de Tokio y Kioto", JSON.stringify(t4.hidden));
+const hotel2 = t4.days[1].items[0];
+ok("el alojamiento no lleva hora", hotel2.kind === "lodging" && !md.itemMd(hotel2)[0].includes("15:00"), md.itemMd(hotel2)[0]);
+
 console.log(fails ? `\n${fails} fallos` : "\nTodo bien");
 process.exit(fails ? 1 : 0);

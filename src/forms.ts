@@ -2,13 +2,14 @@
    borrador (FormState.draft) y «Guardar» lo escribe en la nota. */
 import { append, h } from "./dom";
 import { t, vocab } from "./i18n";
-import { dayLabel, isIso, normTime } from "./dates";
-import { citiesOfDay, field, joinWhen, lineFor, newItem, setField, splitWhen } from "./md";
+import { addDays, dayLabel, isIso, normTime } from "./dates";
+import { CURRENCIES, citiesOfDay, currencyOf, field, joinWhen, lineFor, newItem, priceNumber, setField, splitWhen, withCurrency } from "./md";
 import { iconFor } from "./places";
 import type { PlaceInfo } from "./places";
-import type { FormState, PlanCtx } from "./plan";
-import { docButton, kindIcon, routeOf } from "./plan";
-import type { Doc, Item, Kind, Where } from "./types";
+import type { FormState, LodgingType, PlanCtx } from "./plan";
+import { LODGING_TYPES, kindIcon, lodgingType, routeOf } from "./plan";
+import { blankDoc, docButton, docForm } from "./docs";
+import type { Doc, Item, Kind } from "./types";
 import { isTransport, TRANSPORT } from "./types";
 import { button, icon, iconButton, label, personChip } from "./ui";
 
@@ -18,14 +19,34 @@ export interface FormCtx extends PlanCtx {
   saveForm(f: FormState): void;
   deleteForm(f: FormState): void;
 }
+/* lo que la vista guarda del formulario entre repintados */
+export interface FormExtra { docDraft?: Doc | null }
 
 const KINDS: { k: Kind; key: string }[] = [
   { k: "place", key: "add.place" }, { k: "meal", key: "add.meal" }, { k: "flight", key: "add.transport" }, { k: "lodging", key: "add.lodging" },
   { k: "ticket", key: "add.ticket" }, { k: "rest", key: "add.rest" }, { k: "note", key: "add.note" },
 ];
-const ROOMS = ["single", "double", "twin", "triple", "family", "suite", "apartment", "house", "dorm"];
+/* lo que tiene sentido en cada tipo de alojamiento */
+const ROOMS: Record<LodgingType, string[]> = {
+  hotel: ["single", "double", "twin", "triple", "family", "suite"],
+  hostel: ["dorm", "private", "double", "twin", "family"],
+  apartment: ["apartment", "house", "private"],
+  friends: [], camping: [],
+};
 const BEDS = ["double", "single", "bunk", "sofa", "futon"];
-const INCLUDES = ["breakfast", "wifi", "kitchen", "washer", "parking"];
+const INCLUDES: Record<LodgingType, string[]> = {
+  hotel: ["breakfast", "wifi", "parking", "aircon"],
+  hostel: ["breakfast", "wifi", "kitchen", "lockers", "towels"],
+  apartment: ["wifi", "kitchen", "washer", "parking", "aircon"],
+  friends: [],
+  camping: ["electricity", "showers", "wifi", "parking"],
+};
+const ALL_INCLUDES = [...new Set(Object.values(INCLUDES).flat())];
+type CarMode = "own" | "rental" | "shared";
+export function carMode(it: Item): CarMode {
+  const v = field(it, "mode").toLowerCase();
+  return /alquil|rental|rent/.test(v) ? "rental" : /compart|shared|blabla|carpool/.test(v) ? "shared" : "own";
+}
 
 /* ---------- campos ---------- */
 const lab = (text: string, ...inner: (HTMLElement | null)[]) => h("label", { cls: "ct-f" }, label(text), ...inner);
@@ -34,8 +55,8 @@ function input(value: string, onInput: (v: string) => void, attr: Record<string,
   el.addEventListener("input", () => onInput(el.value));
   return el;
 }
-function dateInput(value: string, onInput: (v: string) => void): HTMLInputElement {
-  const el = h("input", { cls: "ct-input", attr: { type: "date", value } });
+function dateInput(value: string, onInput: (v: string) => void, attr: Record<string, string> = {}): HTMLInputElement {
+  const el = h("input", { cls: "ct-input", attr: { type: "date", value, ...attr } });
   el.addEventListener("change", () => onInput(el.value));
   return el;
 }
@@ -44,7 +65,7 @@ function timeInput(value: string, onInput: (v: string) => void): HTMLInputElemen
   el.addEventListener("change", () => onInput(normTime(el.value)));
   return el;
 }
-function select(value: string, options: [string, string][], onInput: (v: string) => void, allowFree = true): HTMLElement {
+function select(value: string, options: [string, string][], onInput: (v: string) => void, allowFree = true): HTMLSelectElement {
   const el = h("select", { cls: "ct-input ct-select" });
   const known = options.some(o => o[0] === value);
   if (allowFree && value && !known) el.appendChild(h("option", { attr: { value } }, value));
@@ -58,6 +79,7 @@ function seg(options: [string, string][], value: string, onPick: (v: string) => 
   return h("span", { cls: "ct-seg", attr: { role: "radiogroup" } }, options.map(([v, text]) =>
     button(text, "ct-pill" + (v === value ? " is-solid" : ""), () => onPick(v), { role: "radio", "aria-checked": String(v === value) })));
 }
+const fieldInput = (d: Item, key: string, attr: Record<string, string> = {}) => input(field(d, key), v => setField(d, key, v, lineFor(d.kind, key)), attr);
 
 /* «sáb 3 abr · 11:50 · T4S» se edita por partes */
 function whenParts(ctx: FormCtx, d: Item, key: string) {
@@ -66,7 +88,7 @@ function whenParts(ctx: FormCtx, d: Item, key: string) {
   const set = (part: "date" | "time" | "at", v: string) => {
     const w = get(); w[part] = v;
     setField(d, key, joinWhen(w.date, w.time, w.at), lineFor(d.kind, key));
-    if (part === "time" && (key === "depart" || key === "checkin")) d.time = v;
+    if (part === "time" && key === "depart") d.time = v;
   };
   return { get, set };
 }
@@ -87,12 +109,21 @@ function paraChips(ctx: FormCtx, d: Item): HTMLElement {
   draw();
   return box;
 }
+/* el precio: el número y su moneda por separado (en la nota se escribe junto: «60 €», «$60») */
+function priceField(ctx: FormCtx, d: Item, key: string): HTMLElement {
+  const used = ctx.trip.days.flatMap(x => x.items).find(i => i.price)?.price;
+  let cur = d.price ? currencyOf(d.price) : used ? currencyOf(used) : "€", num = priceNumber(d.price);
+  const sync = () => { d.price = withCurrency(num, cur); };
+  return lab(t(key), h("span", { cls: "ct-inline" },
+    input(num, v => { num = v.replace(/[^\d.,]/g, ""); sync(); }, { placeholder: "0", inputmode: "decimal" }),
+    select(cur, CURRENCIES.map(c => [c, c]), v => { cur = v || "€"; sync(); }, true)));
+}
 
 /* el buscador de lugares: una nota tuya o una nueva */
-function placePicker(ctx: FormCtx, d: Item, f: FormState, city: string, country: string, labelKey = "f.placeNote"): HTMLElement {
+function placePicker(ctx: FormCtx, d: Item, city: string, country: string, labelKey = "f.placeNote"): HTMLElement {
   const wrap = h("div", { cls: "ct-picker" });
-  const field_ = input(d.link || d.title, v => { query = v; d.link = ""; d.title = v; drawList(); }, { placeholder: t("f.placeNote"), autocomplete: "off" });
   let query = d.link ? "" : d.title;
+  const field_ = input(d.link || d.title, v => { query = v; d.link = ""; d.title = v; drawList(); }, { placeholder: t("f.placeNote"), autocomplete: "off" });
   const list = h("div", { cls: "ct-picker-list", attr: { role: "listbox" } });
   const pick = (name: string) => { d.link = name; d.title = name; field_.value = name; query = ""; drawList(); };
   const drawList = () => {
@@ -113,113 +144,157 @@ function placePicker(ctx: FormCtx, d: Item, f: FormState, city: string, country:
   field_.addEventListener("focus", drawList);
   wrap.append(field_, list);
   list.hidden = true;
-  void f;
   return lab(t(labelKey), wrap);
 }
 
-function docsEditor(ctx: FormCtx, f: FormState): HTMLElement {
+/* los documentos de una reserva: los que tiene y la ventanita para añadir otro */
+function docsEditor(ctx: FormCtx, f: FormState & FormExtra): HTMLElement {
   const d = f.draft;
   const box = h("div", { cls: "ct-f ct-docs-edit" }, label(t("f.docs")));
-  d.docs.forEach((doc, i) => box.appendChild(h("div", { cls: "ct-doc-edit-row" }, docButton(ctx, doc),
+  d.docs.forEach((doc, i) => box.appendChild(h("div", { cls: "ct-doc-edit-row" }, docButton(ctx, doc, ctx.trip.travelers),
     iconButton("x", t("remove"), () => { d.docs.splice(i, 1); ctx.rerender(); }, "ct-ibtn ct-ibtn-sm"))));
-  const wheres: Where[] = (["cloud", "wallet", "device", "vault"] as Where[]).filter(w => ctx.s.files[w as "cloud"]);
-  wheres.push("paper");
-  let draftDoc: Doc = { name: "", where: wheres[0], url: "" };
-  const sub = h("div", { cls: "ct-newdoc", attr: { hidden: "" } });
-  const drawSub = () => {
-    sub.empty();
-    append(sub, [
-      h("div", { cls: "ct-grid ct-grid-2" },
-        lab(t("f.docName"), input(draftDoc.name, v => { draftDoc.name = v; })),
-        lab(t("f.where"), seg(wheres.map(w => [w, t("w." + w)]), draftDoc.where, v => { draftDoc.where = v as Where; drawSub(); }))),
-      draftDoc.where === "cloud" || draftDoc.where === "device"
-        ? lab(t("f.link"), input(draftDoc.url, v => { draftDoc.url = v; }, { placeholder: draftDoc.where === "cloud" ? "https://…" : "file:///…" })) : null,
-      draftDoc.where === "vault" ? lab(t("f.vaultPath"), input(draftDoc.url, v => { draftDoc.url = v; }, { placeholder: ctx.s.files.vaultFolder + "/…" })) : null,
-      h("div", { cls: "ct-form-actions" }, button(t("f.save"), "ct-btn-primary is-small", () => {
-        if (!draftDoc.name.trim()) return;
-        d.docs.push({ ...draftDoc, name: draftDoc.name.trim(), url: draftDoc.url.trim() });
-        draftDoc = { name: "", where: wheres[0], url: "" };
-        ctx.rerender();
-      }))]);
-  };
-  drawSub();
-  const bag = ctx.trip.mochila.filter(m => !d.docs.some(x => x.name === m.name));
-  const bagMenu = h("div", { cls: "ct-bag-menu", attr: { hidden: "" } }, bag.map(m => button(m.name, "ct-option", () => { d.docs.push({ ...m }); ctx.rerender(); })));
-  box.append(
-    h("div", { cls: "ct-row-btns" },
-      bag.length ? button([icon("plus"), t("f.fromBag")], "ct-pill is-dashed", () => { bagMenu.toggleAttribute("hidden"); }) : null,
-      button([icon("plus"), t("f.addDoc")], "ct-pill is-dashed", () => { sub.toggleAttribute("hidden"); })),
-    bagMenu, sub);
+  if (f.docDraft) box.appendChild(docForm({
+    s: ctx.s, travelers: ctx.trip.travelers, draft: f.docDraft, small: true,
+    bag: ctx.trip.mochila.filter(m => !d.docs.some(x => x.name === m.name)),
+    onCancel: () => { f.docDraft = null; ctx.rerender(); },
+    onSave: doc => { d.docs.push(doc); f.docDraft = null; ctx.rerender(); },
+  }));
+  else box.appendChild(h("div", { cls: "ct-row-btns" },
+    button([icon("plus"), t("f.addDoc")], "ct-pill is-dashed is-small", () => { f.docDraft = blankDoc("paper"); ctx.rerender(); })));
   return box;
 }
 
-/* ---------- por tipo ---------- */
+/* ---------- transporte: lo que pide cada uno ---------- */
 function transportFields(ctx: FormCtx, f: FormState): HTMLElement[] {
-  const d = f.draft, r = routeOf(d);
+  const d = f.draft, r = routeOf(d), k = d.kind;
   const setTitle = (from: string, to: string) => { d.title = `${vocab().kinds[d.kind as "flight"]} ${from.trim()} → ${to.trim()}`.trim(); };
   let from = r.from, to = r.to;
   const dep = whenParts(ctx, d, "depart"), arr = whenParts(ctx, d, "arrive");
-  return [
-    lab(t("f.kind"), seg(TRANSPORT.map(k => [k, t("k." + k)]), d.kind, v => { d.kind = v as Kind; setTitle(from, to); ctx.rerender(); })),
-    h("div", { cls: "ct-grid ct-grid-2" },
-      lab(t("f.from"), input(from, v => { from = v; setTitle(from, to); }, { placeholder: "MAD" })),
-      lab(t("f.to"), input(to, v => { to = v; setTitle(from, to); }, { placeholder: "NRT" }))),
-    h("div", { cls: "ct-grid ct-grid-3" },
-      lab(t("f.departDay"), dateInput(dep.get().date, v => dep.set("date", v))),
-      lab(t("f.departTime"), timeInput(dep.get().time || d.time, v => dep.set("time", v))),
-      lab(t("f.departAt"), input(dep.get().at, v => dep.set("at", v)))),
-    h("div", { cls: "ct-grid ct-grid-3" },
-      lab(t("f.arriveDay"), dateInput(arr.get().date, v => arr.set("date", v))),
-      lab(t("f.arriveTime"), timeInput(arr.get().time, v => arr.set("time", v))),
-      lab(t("f.arriveAt"), input(arr.get().at, v => arr.set("at", v)))),
-    h("div", { cls: "ct-grid ct-grid-3" },
-      lab(t("f.code"), input(field(d, "code"), v => setField(d, "code", v, lineFor(d.kind, "code")))),
-      lab(t("f.car"), input(field(d, "car"), v => setField(d, "car", v, lineFor(d.kind, "car")))),
-      lab(t("f.luggage"), input(field(d, "luggage"), v => setField(d, "luggage", v, lineFor(d.kind, "luggage"))))),
-    lab(t("f.seats"), input(field(d, "seats"), v => setField(d, "seats", v, lineFor(d.kind, "seats")), { placeholder: ctx.trip.travelers.map((p, i) => `${p} ${12 + i}A`).join(" · ") })),
+  /* la llegada empieza el mismo día que la salida (y nunca antes) */
+  if (!arr.get().date && dep.get().date) arr.set("date", dep.get().date);
+  const mode = k === "car" ? carMode(d) : null;
+  const ph = (which: "from" | "to") => t(`ph.${k}.${which}`);
+  const atLabel = (which: "depart" | "arrive") => k === "car" ? t(`f.car.${mode}.${which}`) : t(`f.at.${k}`);
+  const showAt = !(k === "car" && mode === "own");
+  const out: HTMLElement[] = [
+    lab(t("f.kind"), seg(TRANSPORT.map(x => [x, t("k." + x)]), k, v => { d.kind = v as Kind; setTitle(from, to); ctx.rerender(); })),
   ];
+  if (k === "car") out.push(lab(t("f.carMode"), seg((["own", "rental", "shared"] as CarMode[]).map(m => [m, t("car." + m)]), mode || "own",
+    v => { setField(d, "mode", v === "own" ? "" : t("car." + v).toLowerCase(), lineFor(k, "mode")); ctx.rerender(); })));
+  out.push(
+    h("div", { cls: "ct-grid ct-grid-2" },
+      lab(t("f.from"), input(from, v => { from = v; setTitle(from, to); }, { placeholder: ph("from") })),
+      lab(t("f.to"), input(to, v => { to = v; setTitle(from, to); }, { placeholder: ph("to") }))),
+    h("div", { cls: "ct-grid " + (showAt ? "ct-grid-3" : "ct-grid-2") },
+      lab(t("f.departDay"), dateInput(dep.get().date, v => {
+        const old = dep.get().date;
+        dep.set("date", v);
+        if (!arr.get().date || arr.get().date === old || arr.get().date < v) arr.set("date", v);
+        ctx.rerender();
+      })),
+      lab(t("f.departTime"), timeInput(dep.get().time || d.time, v => dep.set("time", v))),
+      showAt ? lab(atLabel("depart"), input(dep.get().at, v => dep.set("at", v))) : null),
+    h("div", { cls: "ct-grid " + (showAt ? "ct-grid-3" : "ct-grid-2") },
+      lab(t("f.arriveDay"), dateInput(arr.get().date, v => arr.set("date", v), dep.get().date ? { min: dep.get().date } : {})),
+      lab(t("f.arriveTime"), timeInput(arr.get().time, v => arr.set("time", v))),
+      showAt ? lab(atLabel("arrive"), input(arr.get().at, v => arr.set("at", v))) : null));
+  /* los datos de la reserva, según el transporte */
+  const cells: HTMLElement[] = [];
+  if (k === "car") {
+    if (mode === "rental") cells.push(lab(t("f.company"), fieldInput(d, "company", { placeholder: "Hertz, Sixt…" })), lab(t("f.booking"), fieldInput(d, "booking")));
+    if (mode === "shared") cells.push(lab(t("f.platform"), fieldInput(d, "company", { placeholder: "BlaBlaCar" })), lab(t("f.driver"), fieldInput(d, "driver")),
+      lab(t("f.booking"), fieldInput(d, "booking")));
+  } else {
+    cells.push(lab(t("f.code." + k), fieldInput(d, "code", { placeholder: t(`ph.${k}.code`) })));
+    if (k === "train") cells.push(lab(t("f.car"), fieldInput(d, "car")));
+    if (k === "boat") cells.push(lab(t("f.cabin"), fieldInput(d, "cabin")));
+    if (k === "flight") cells.push(lab(t("f.luggage"), fieldInput(d, "luggage")));
+    cells.push(lab(t("f.booking"), fieldInput(d, "booking")));
+  }
+  if (cells.length) out.push(h("div", { cls: "ct-grid ct-grid-" + Math.min(3, cells.length) }, cells));
+  if (k !== "car") out.push(lab(t("f.seats"), fieldInput(d, "seats", { placeholder: ctx.trip.travelers.map((p, i) => `${p} ${12 + i}A`).join(" · ") })));
+  return out;
+}
+
+/* ---------- alojamiento: según sea un hotel, un hostal, un apartamento, casa de amigos o un camping ---------- */
+function includesBox(ctx: FormCtx, d: Item, type: LodgingType): HTMLElement {
+  const inc = field(d, "includes").split(/,\s*/).map(s => s.trim()).filter(Boolean);
+  const has = (x: string) => inc.some(i => i.toLowerCase() === x.toLowerCase());
+  const known = (x: string) => ALL_INCLUDES.some(k => t("inc." + k).toLowerCase() === x.toLowerCase());
+  const save = () => setField(d, "includes", inc.join(", "), lineFor("lodging", "includes"));
+  const box = h("span", { cls: "ct-people" });
+  let adding = false;
+  const draw = () => {
+    box.empty();
+    const keys = [...INCLUDES[type], ...ALL_INCLUDES.filter(k => !INCLUDES[type].includes(k) && has(t("inc." + k)))];
+    for (const k of keys) {
+      const lbl = t("inc." + k), on = has(lbl);
+      box.appendChild(button([icon(on ? "check" : "plus"), lbl], "ct-pill is-small" + (on ? " is-on" : " is-dashed"), () => {
+        if (on) inc.splice(inc.findIndex(i => i.toLowerCase() === lbl.toLowerCase()), 1); else inc.push(lbl.toLowerCase());
+        save(); draw();
+      }));
+    }
+    /* lo que hayas escrito tú («toallas de playa») */
+    for (const x of inc.filter(i => !known(i))) box.appendChild(button([icon("check"), x, icon("x", "ct-ico ct-ico-xs")], "ct-pill is-small is-on", () => {
+      inc.splice(inc.indexOf(x), 1); save(); draw();
+    }, { "aria-label": `${t("remove")} ${x}` }));
+    if (adding) {
+      const other = h("input", { cls: "ct-input ct-input-other", attr: { type: "text", placeholder: t("f.otherPh") } });
+      let done = false;
+      const ok = () => { if (done) return; done = true; const v = other.value.trim(); if (v && !has(v)) { inc.push(v); save(); } adding = false; draw(); };
+      other.addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); ok(); } if (ev.key === "Escape") { done = true; adding = false; draw(); } });
+      other.addEventListener("blur", ok);
+      box.appendChild(other);
+      window.setTimeout(() => other.focus(), 0);
+    } else box.appendChild(button([icon("plus"), t("f.other")], "ct-pill is-small is-dashed", () => { adding = true; draw(); }));
+  };
+  draw();
+  void ctx;
+  return box;
 }
 function lodgingFields(ctx: FormCtx, f: FormState, city: string, country: string): HTMLElement[] {
-  const d = f.draft;
+  const d = f.draft, type = lodgingType(d);
   const ci = whenParts(ctx, d, "checkin"), co = whenParts(ctx, d, "checkout");
   const beds = /^(\d+)\s*(.*)$/.exec(field(d, "beds")) || ["", "", field(d, "beds")];
   let bedN = beds[1], bedType = beds[2];
   const setBeds = () => setField(d, "beds", [bedN, bedType].filter(Boolean).join(" "), lineFor("lodging", "beds"));
-  const inc = new Set(field(d, "includes").split(/,\s*/).map(s => s.trim().toLowerCase()).filter(Boolean));
-  const incLabel = (k: string) => t("inc." + k).toLowerCase();
-  const incBox = h("span", { cls: "ct-people" });
-  const drawInc = () => {
-    incBox.empty();
-    for (const k of INCLUDES) {
-      const on = inc.has(incLabel(k));
-      incBox.appendChild(button([icon(on ? "check" : "plus"), t("inc." + k)], "ct-pill" + (on ? " is-on" : " is-dashed"), () => {
-        if (on) inc.delete(incLabel(k)); else inc.add(incLabel(k));
-        setField(d, "includes", [...inc].join(", "), lineFor("lodging", "includes"));
-        drawInc();
-      }));
-    }
-  };
-  drawInc();
-  return [
-    placePicker(ctx, d, f, city, country),
-    h("div", { cls: "ct-grid ct-grid-4" },
-      lab(t("f.checkinDay"), dateInput(ci.get().date, v => ci.set("date", v))),
-      lab(t("f.checkin"), timeInput(ci.get().time || d.time, v => ci.set("time", v))),
-      lab(t("f.checkoutDay"), dateInput(co.get().date, v => co.set("date", v))),
-      lab(t("f.checkout"), timeInput(co.get().time, v => co.set("time", v)))),
-    h("div", { cls: "ct-grid ct-grid-3" },
-      lab(t("f.room"), select(field(d, "room"), ROOMS.map(k => [t("room." + k), t("room." + k)]), v => setField(d, "room", v, lineFor("lodging", "room")))),
-      lab(t("f.beds"), h("span", { cls: "ct-inline" },
-        input(bedN, v => { bedN = v.replace(/\D/g, ""); setBeds(); }, { inputmode: "numeric", class: "ct-input ct-input-num" }),
-        select(bedType, BEDS.map(k => [t("bed." + k).toLowerCase(), t("bed." + k)]), v => { bedType = v; setBeds(); }))),
-      lab(t("f.bath"), seg([[t("bath.private").toLowerCase(), t("bath.private")], [t("bath.shared").toLowerCase(), t("bath.shared")]], field(d, "bath").toLowerCase(),
-        v => { setField(d, "bath", v, lineFor("lodging", "bath")); ctx.rerender(); }))),
-    lab(t("f.includes"), incBox),
+  const out: HTMLElement[] = [
+    lab(t("f.lodgingType"), seg(LODGING_TYPES.map(x => [x, t("lt." + x)]), type, v => {
+      setField(d, "type", v === "hotel" ? "" : t("lt." + v).toLowerCase(), lineFor("lodging", "type"));
+      if (v === "friends") { d.link = ""; d.title = ""; }
+      ctx.rerender();
+    })),
   ];
+  if (type === "friends") {
+    out.push(h("div", { cls: "ct-grid ct-grid-2" },
+      lab(t("f.friendsName"), input(d.title, v => { d.title = v; d.link = ""; }, { placeholder: t("f.friendsPh") })),
+      lab(t("f.address"), fieldInput(d, "address", { placeholder: t("f.addressPh") }))));
+  } else out.push(placePicker(ctx, d, city, country, "f.lodgingNote"));
+  const fr = type === "friends";                     // en casa de amigos no hay check-in: llegas y te vas
+  out.push(h("div", { cls: "ct-grid ct-grid-4" },
+    lab(t(fr ? "f.arriveDay" : "f.checkinDay"), dateInput(ci.get().date, v => ci.set("date", v))),
+    lab(t(fr ? "f.arriveTime" : "f.checkin"), timeInput(ci.get().time, v => ci.set("time", v))),
+    lab(t(fr ? "f.departDay" : "f.checkoutDay"), dateInput(co.get().date, v => co.set("date", v), ci.get().date ? { min: addDays(ci.get().date, 1) } : {})),
+    lab(t(fr ? "f.departTime" : "f.checkout"), timeInput(co.get().time, v => co.set("time", v)))));
+  if (type === "friends") return out;
+  const room = ROOMS[type].length ? lab(t("f.room"), select(field(d, "room"), ROOMS[type].map(k => [t("room." + k), t("room." + k)]), v => setField(d, "room", v, lineFor("lodging", "room")))) : null;
+  const bedsEl = type === "camping" ? null : lab(t("f.beds"), h("span", { cls: "ct-inline" },
+    input(bedN, v => { bedN = v.replace(/\D/g, ""); setBeds(); }, { inputmode: "numeric", class: "ct-input ct-input-num" }),
+    select(bedType, BEDS.map(k => [t("bed." + k).toLowerCase(), t("bed." + k)]), v => { bedType = v; setBeds(); })));
+  const bath = type === "camping" ? null : lab(t("f.bath"), seg([[t("bath.private").toLowerCase(), t("bath.private")], [t("bath.shared").toLowerCase(), t("bath.shared")]], field(d, "bath").toLowerCase(),
+    v => { setField(d, "bath", v, lineFor("lodging", "bath")); ctx.rerender(); }));
+  const pitch = type === "camping" ? lab(t("f.pitch"), fieldInput(d, "pitch", { placeholder: "B12" })) : null;
+  const firstRow = ([room, bedsEl, bath, pitch] as (HTMLElement | null)[]).filter((x): x is HTMLElement => !!x);
+  if (firstRow.length) out.push(h("div", { cls: "ct-grid ct-grid-" + firstRow.length }, firstRow));
+  out.push(lab(t("f.includes"), includesBox(ctx, d, type)));
+  out.push(h("div", { cls: "ct-grid ct-grid-2" },
+    lab(t("f.booking"), fieldInput(d, "booking", { placeholder: "HB-48213" })),
+    type === "apartment" ? lab(t("f.keys"), fieldInput(d, "keys", { placeholder: t("f.keysPh") })) : h("span")));
+  return out;
 }
 
-export function renderForm(ctx: FormCtx, f: FormState): HTMLElement {
-  const d = f.draft, tr = ctx.trip, day = tr.days[f.day];
+export function renderForm(ctx: FormCtx, f: FormState & FormExtra): HTMLElement {
+  const d = f.draft, tr = ctx.trip, day = tr.days[f.target ?? f.day];
   const date = day?.date || tr.start;
   const cs = isIso(date) ? citiesOfDay(tr, date) : [];
   const dest = cs[cs.length - 1];
@@ -235,23 +310,23 @@ export function renderForm(ctx: FormCtx, f: FormState): HTMLElement {
       return button([icon(kindIcon(k)), t(key)], "ct-pill" + (on ? " is-solid" : ""), () => {
         if (on) return;
         const keep = d.time;
-        f.draft = newItem(k, { time: keep });
-        if (k === "rest") { f.draft.title = t("rest.back"); }
+        f.draft = newItem(k, { time: k === "lodging" ? "" : keep });
+        if (k === "rest") f.draft.title = t("rest.back");
         if (k === "meal") f.draft.title = vocab().meals.lunch;
         ctx.rerender();
       });
     })));
   }
   if (f.isNew && isIso(date)) {                 /* lo nuevo empieza el día en que se añade */
-    if (isTransport(d.kind) && !field(d, "depart")) setField(d, "depart", joinWhen(date, "", ""), lineFor(d.kind, "depart"));
+    if (isTransport(d.kind) && !field(d, "depart")) setField(d, "depart", joinWhen(date, d.time, ""), lineFor(d.kind, "depart"));
     if (d.kind === "lodging" && !field(d, "checkin")) setField(d, "checkin", joinWhen(date, "", ""), lineFor("lodging", "checkin"));
   }
   const rows: (HTMLElement | null)[] = [];
   const timeRow = (key = "f.timeOpt") => lab(t(key), timeInput(d.time, v => { d.time = v; }));
   if (d.kind === "place") {
-    rows.push(h("div", { cls: "ct-grid ct-grid-time" }, timeRow(), placePicker(ctx, d, f, city, country)));
+    rows.push(h("div", { cls: "ct-grid ct-grid-time" }, timeRow(), placePicker(ctx, d, city, country)));
   } else if (d.kind === "meal") {
-    const isHome = d.place.toLowerCase() === vocab().home || d.place.toLowerCase() === "en casa" || d.place.toLowerCase() === "at home";
+    const isHome = [vocab().home, "en casa", "at home"].includes(d.place.toLowerCase());
     const mode = d.link ? "restaurant" : isHome ? "home" : d.place ? "other" : "restaurant";
     rows.push(
       lab(t("f.meal"), seg(Object.entries(vocab().meals).map(([, m]) => [m, m]), d.title, v => { d.title = v; ctx.rerender(); })),
@@ -260,29 +335,42 @@ export function renderForm(ctx: FormCtx, f: FormState): HTMLElement {
           if (v === "home") { d.link = ""; d.place = vocab().home; } else if (v === "other") { d.link = ""; d.place = d.place && !isHome ? d.place : " "; } else { d.place = ""; }
           ctx.rerender();
         }))),
-      mode === "restaurant" ? placePicker(ctx, d, f, city, country) : null,
+      mode === "restaurant" ? placePicker(ctx, d, city, country) : null,
       mode === "other" ? lab(t("f.placeName"), input(d.place.trim(), v => { d.place = v; })) : null);
   } else if (isTransport(d.kind)) {
     rows.push(...transportFields(ctx, f));
   } else if (d.kind === "lodging") {
     rows.push(...lodgingFields(ctx, f, city, country));
   } else if (d.kind === "ticket") {
-    rows.push(h("div", { cls: "ct-grid ct-grid-time" }, timeRow("f.time"), placePicker(ctx, d, f, city, country)),
+    rows.push(h("div", { cls: "ct-grid ct-grid-time" }, timeRow("f.time"), placePicker(ctx, d, city, country)),
       lab(t("f.tickets"), input(field(d, "tickets"), v => setField(d, "tickets", v, lineFor("ticket", "tickets")), { placeholder: "1 · adulto" })));
   } else if (d.kind === "rest") {
-    const lodgingsHere = tr.days.flatMap(x => x.items).filter(i => i.kind === "lodging" && i.link);
-    if (!d.link && lodgingsHere.length) d.link = lodgingsHere[lodgingsHere.length - 1].link;
+    /* llegar, volver o descansar en un alojamiento del viaje (con nota o sin ella, como la casa de unos amigos) */
+    const stays = [...new Set(tr.days.flatMap(x => x.items).filter(i => i.kind === "lodging").map(i => i.link || i.title).filter(Boolean))];
+    if (!d.link && !d.place.trim() && stays.length) { const last = tr.days.flatMap(x => x.items).filter(i => i.kind === "lodging").pop()!; d.link = last.link; d.place = last.link ? "" : last.title; }
+    const restTitles = [t("rest.arrive"), t("rest.back"), t("rest.rest")];
     rows.push(h("div", { cls: "ct-grid ct-grid-time" }, timeRow(),
-      lab(t("f.restTitle"), seg([[t("rest.back"), t("rest.back")], [t("rest.rest"), t("rest.rest")]], d.title, v => { d.title = v; ctx.rerender(); }))),
-      lodgingsHere.length ? lab(t("k.lodging"), select(d.link, [...new Set(lodgingsHere.map(i => i.link))].map(l => [l, l]), v => { d.link = v; })) : null);
+      lab(t("f.restTitle"), seg(restTitles.map(x => [x, x]), d.title, v => { d.title = v; ctx.rerender(); }))),
+      stays.length ? lab(t("k.lodging"), select(d.link || d.place, stays.map(l => [l, l]), v => {
+        const it = tr.days.flatMap(x => x.items).find(i => i.kind === "lodging" && (i.link || i.title) === v);
+        d.link = it?.link || ""; d.place = it && !it.link ? it.title : "";
+      })) : null);
   } else {
     rows.push(h("div", { cls: "ct-grid ct-grid-time" }, timeRow(), lab(t("f.text"), input(d.title, v => { d.title = v; }))));
   }
-  const money = d.kind === "note" || d.kind === "rest" ? null : h("div", { cls: "ct-grid ct-grid-price" },
-    lab(d.kind === "lodging" ? t("f.priceTotal") : t("f.price"), input(d.price, v => { d.price = v; }, { placeholder: "0 €", inputmode: "decimal" })),
+  /* el día: lo que no es una reserva se puede pasar a otro día desde aquí */
+  if (!isTransport(d.kind) && d.kind !== "lodging" && tr.days.length > 1) {
+    const cur = f.target ?? f.day;
+    rows.push(lab(t("f.day"), select(String(cur), tr.days.map((x, i) => [String(i), isIso(x.date) ? dayLabel(x.date) : "?"] as [string, string]), v => {
+      if (v !== "") { f.target = Number(v); ctx.rerender(); }
+    }, false)));
+  }
+  const friends = d.kind === "lodging" && lodgingType(d) === "friends";
+  const money = d.kind === "note" || d.kind === "rest" || friends ? null : h("div", { cls: "ct-grid ct-grid-price" },
+    priceField(ctx, d, d.kind === "lodging" ? "f.priceTotal" : "f.price"),
     tr.travelers.length > 1 ? lab(t("f.para"), paraChips(ctx, d)) : null);
-  const docs = isTransport(d.kind) || d.kind === "lodging" || d.kind === "ticket" ? docsEditor(ctx, f) : null;
-  form.append(...rows.filter((x): x is HTMLElement => !!x), ...(money ? [money] : []), ...(docs ? [docs] : []));
+  const docs = (isTransport(d.kind) || d.kind === "lodging" || d.kind === "ticket") && !friends ? docsEditor(ctx, f) : null;
+  append(form, [rows, money, docs]);
   form.appendChild(h("div", { cls: "ct-form-foot" },
     f.isNew ? null : button(t("f.delete"), "ct-link-btn", () => ctx.deleteForm(f)),
     h("span", { cls: "ct-grow" }),

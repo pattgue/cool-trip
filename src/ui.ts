@@ -1,6 +1,6 @@
 /* Piezas pequeñas de la interfaz de Cool Trip (botones, viajeros, código de barras, perforaciones…). */
 import { setIcon } from "obsidian";
-import { h } from "./dom";
+import { h, svg } from "./dom";
 import type { Kid } from "./dom";
 import { t } from "./i18n";
 
@@ -124,6 +124,9 @@ export function imageAccent(src: string): Promise<string | null> {
     img.src = src;
   });
 }
+/* el avión de papel de la portada: el trazo exacto del diseño (el «send» de Lucide ha cambiado de forma) */
+export const paperPlane = () => svg("svg", { width: 34, height: 34, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 2,
+  "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true", class: "ct-plane" }, svg("path", { d: "M22 2L11 13M22 2l-7 20-4-9-9-4z" }));
 export const notchV = () => h("div", { cls: "ct-notch-v", attr: { "aria-hidden": "true" } });
 export const notchH = () => h("div", { cls: "ct-notch-h", attr: { "aria-hidden": "true" } });
 
