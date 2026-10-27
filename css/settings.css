@@ -1,70 +1,197 @@
-/* ===== Ajustes › Cool Trip: sobrios y accesibles ===== */
-.ct-settings { --ct-accent: #6b58e6; --ct-ok: #47BE88; }
-.ct-set { display: flex; gap: 28px; min-height: 620px; }
-.ct-set-nav { flex: none; width: 230px; display: flex; flex-direction: column; gap: 24px; padding-right: 20px; border-right: 1px solid var(--background-modifier-border); }
+/* ===== Ajustes › Cool Trip: sobrios y accesibles =====
+   Se adaptan al hueco que deja Obsidian (container queries): con sitio, los pasos a la izquierda;
+   en una ventana estrecha o en el móvil, los pasos son una fila de números encima. */
+.ct-settings { --ct-accent: #6b58e6; --ct-ok: #47BE88;
+  --ct-set-card: color-mix(in srgb, var(--background-primary) 86%, black);
+  --ct-set-line: color-mix(in srgb, var(--text-normal) 14%, var(--background-primary));
+  --ct-set-field: color-mix(in srgb, var(--text-normal) 5%, var(--background-primary));
+  --ct-set-field-line: color-mix(in srgb, var(--text-normal) 22%, var(--background-primary));
+  --ct-set-soft: color-mix(in srgb, var(--ct-accent) 28%, var(--background-primary)); }
+.theme-light .ct-settings { --ct-set-card: var(--background-secondary); }
+/* Obsidian centra los ajustes en una columna estrecha: aquí dejamos que el asistente use el ancho de la ventana */
+.vertical-tab-content.ct-settings { max-width: 1180px; }
+.ct-settings { container: ctset / inline-size; }
+.ct-set { display: flex; gap: 32px; min-height: 620px; }
+.ct-set-nav { flex: none; width: 240px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px; padding: 12px 20px 0 0; border-right: 1px solid var(--ct-set-line); }
 .ct-set-brand { display: flex; flex-direction: column; gap: 8px; }
 .ct-set-logo { font-weight: 900; font-size: 34px; line-height: 1; letter-spacing: -1px; color: var(--ct-strong); }
 .ct-set-steps { display: flex; flex-direction: column; gap: 2px; }
-.ct-set-step { display: flex; gap: 14px; align-items: center; padding: 11px 10px; border-radius: 8px; border: 0 !important; background: transparent !important;
-  color: var(--ct-muted); text-align: left; height: auto; }
+.ct-set-step { display: flex; justify-content: flex-start; gap: 14px; align-items: center; width: 100%; padding: 11px 10px; border-radius: 8px; border: 0 !important;
+  background: transparent !important; box-shadow: none !important; color: var(--ct-muted); text-align: left; height: auto; font: inherit; }
 .ct-set-step.is-current { background: color-mix(in srgb, var(--ct-accent) 22%, var(--background-primary)) !important; color: var(--ct-strong); }
-.ct-set-step-text { display: flex; flex-direction: column; gap: 2px; }
+.ct-set-step-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
 .ct-set-step-text b { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .02em; }
 .ct-set-step-text span { font-size: 11px; }
 .ct-set-num { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px;
   background: color-mix(in srgb, var(--text-normal) 12%, var(--background-primary)); color: var(--ct-muted); }
 .ct-set-num.is-done { background: var(--ct-ok); color: #0f2a1d; }
 .ct-set-num.is-current { background: var(--ct-accent); color: #fff; }
-.ct-set-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
-.ct-set-head h2 { margin: 0 0 8px; font-weight: 700; font-size: 26px; letter-spacing: -.5px; }
+
+.ct-set-body { container: ctbody / inline-size; flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; padding-top: 12px; }
+.ct-set-head { display: flex; flex-direction: column; gap: 8px; }
+.ct-set-title { margin: 0; padding: 0; border: 0; font-weight: 700; font-size: 28px; line-height: 1.15; letter-spacing: -.5px; color: var(--ct-strong); }
 .ct-set-head p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ct-muted); max-width: 680px; }
 .ct-set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .ct-set-grid.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .ct-set-list { display: flex; flex-direction: column; gap: 10px; }
-.ct-set-card { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 10px; border: 1px solid var(--background-modifier-border) !important;
-  background: var(--background-secondary) !important; color: var(--ct-strong); text-align: left; height: auto; }
+.ct-set-card { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; border-radius: 6px; border: 1px solid var(--ct-set-line) !important;
+  background: var(--ct-set-card) !important; box-shadow: none !important; color: var(--ct-strong); text-align: left; height: auto; font: inherit; }
 .ct-set-card.is-row { flex-direction: row; align-items: center; gap: 16px; }
 .ct-set-card.is-check { display: grid; grid-template-columns: 20px minmax(0, 1fr); cursor: pointer; }
 .ct-set-card.is-check input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--ct-accent); }
-.ct-set-card.is-radio { gap: 8px; cursor: pointer; }
-.ct-set-card.is-radio.is-on, .ct-set-card.is-check.is-on { border: 2px solid var(--ct-accent) !important; background: color-mix(in srgb, var(--ct-accent) 14%, var(--background-secondary)) !important; }
-.ct-set-card-top { display: flex; gap: 14px; align-items: stretch; }
-.ct-set-icon { flex: none; width: 52px; border-radius: 8px; background: var(--ct-berm); color: var(--ct-ink); display: grid; place-items: center; }
+.ct-set-card.is-radio { align-items: flex-start; justify-content: flex-start; gap: 8px; cursor: pointer; white-space: normal; }
+.ct-set-card.is-radio.is-on, .ct-set-card.is-check.is-on { border: 2px solid var(--ct-accent) !important; background: color-mix(in srgb, var(--ct-accent) 14%, var(--ct-set-card)) !important; }
+.ct-set-card-top { display: flex; gap: 14px; align-items: flex-start; min-width: 0; }
+.ct-set-icon { flex: none; width: 52px; height: 52px; border-radius: 6px; background: var(--ct-set-soft); color: color-mix(in srgb, var(--ct-accent) 30%, white); display: grid; place-items: center; }
+.ct-set-icon svg { width: 26px; height: 26px; }
 .ct-set-card-text { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
-.ct-set-card-text b { font-size: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ct-set-card-text b { font-size: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--ct-strong); }
+.ct-set-card-text b.is-caps { text-transform: uppercase; }
 .ct-set-card-text > span { font-size: 13px; line-height: 1.45; color: var(--ct-muted); }
 .ct-set-tag { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--text-normal) 12%, var(--background-primary)); color: var(--ct-muted); }
 .ct-set-warn { display: flex; gap: 8px; align-items: flex-start; margin-top: 4px; padding: 8px 10px; border-radius: 6px; font-size: 12px; line-height: 1.45;
   background: color-mix(in srgb, var(--ct-mustard) 18%, var(--background-primary)); border: 1px solid color-mix(in srgb, var(--ct-mustard) 50%, transparent); color: var(--ct-strong); }
-.ct-set-how { display: flex; align-items: center; gap: 8px; }
-.ct-set-how .ct-input { flex: 1; height: 38px; }
+.ct-set-warn svg { flex: none; }
+
+/* los campos de los ajustes: sobrios, del tema */
+.ct-settings .ct-input { height: 36px !important; border-radius: 6px !important; border: 1px solid var(--ct-set-field-line) !important; background: var(--ct-set-field) !important;
+  padding: 0 10px !important; font-size: 14px !important; font-weight: 400; box-shadow: none !important; }
+.ct-settings .ct-input:focus { border-color: var(--ct-accent) !important; }
+.ct-settings .ct-input.is-key { background: color-mix(in srgb, var(--text-normal) 16%, var(--background-primary)) !important; font-weight: 600; }
+.ct-settings .ct-label { font-size: 12px; font-weight: 600; }
+
+/* 1 · Tus notas */
+.ct-set-recog { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 24px; align-items: start; }
+.ct-set-recog .ct-set-icon { width: 76px; height: 76px; }
+.ct-set-recog .ct-set-icon svg { width: 35px; height: 35px; }
+.ct-set-recog-how { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ct-set-radios { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--ct-strong); }
+.ct-set-radios label { display: flex; align-items: center; gap: 6px; min-height: 28px; cursor: pointer; }
+.ct-set-radios input { width: 16px; height: 16px; margin: 0; accent-color: var(--interactive-accent); }
+.ct-set-how { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ct-set-how .ct-input { flex: 1; }
+.ct-set-how .ct-input.is-key { flex: 0 1 120px; }
 .ct-eq { font-weight: 700; color: var(--ct-muted); }
+.ct-set-save { width: 100%; max-width: 380px; margin-top: -8px; }
 .ct-set-auto { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
-.ct-set-btn { height: 42px; padding: 0 18px; border-radius: 8px; border: 1px solid var(--background-modifier-border-hover, var(--ct-line)) !important;
-  background: transparent !important; color: var(--ct-strong); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
-.ct-set-btn.is-primary { background: var(--ct-accent) !important; border-color: var(--ct-accent) !important; color: #fff; font-weight: 700; }
+.ct-set-autoorg { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); grid-template-areas: "tree title" "tree text" "tree btn"; gap: 10px 28px;
+  align-items: start; padding: 16px 18px; border-radius: 6px; border: 1px dashed var(--ct-set-field-line); }
+.ct-set-autoorg-title { grid-area: title; font-size: 15px; font-weight: 700; }
+.ct-set-autoorg-title .ct-sub { font-weight: 400; }
+.ct-set-autoorg-text { grid-area: text; margin: 0; font-size: 13px; line-height: 1.5; color: var(--ct-muted); }
+.ct-set-autoorg-text b { color: var(--ct-strong); }
+.ct-set-autoorg-btn { grid-area: btn; justify-self: start; align-self: end; margin-top: 8px; height: 34px !important; font-size: 13px !important; }
+.ct-set-tree { grid-area: tree; display: flex; flex-direction: column; padding: 8px; border-radius: 6px; background: color-mix(in srgb, var(--text-normal) 3%, var(--background-primary)); font-size: 13px; color: var(--ct-strong); }
+.ct-set-tree-row { display: flex; align-items: center; gap: 6px; height: 24px; padding-left: calc(var(--d) * 18px); white-space: nowrap; overflow: hidden; }
+.ct-set-tree-row svg { flex: none; width: 15px; height: 15px; color: var(--ct-muted); }
+.ct-set-tree-row.is-faint { color: var(--ct-faint); padding-left: calc(var(--d) * 18px + 21px); }
+.ct-set-tree-tag { margin-left: 4px; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: color-mix(in srgb, var(--text-normal) 14%, var(--background-primary)); color: var(--ct-muted); }
+
+.ct-set-btn { height: 42px; padding: 0 18px; border-radius: 8px; border: 1px solid var(--ct-set-field-line) !important; box-shadow: none !important;
+  background: transparent !important; color: var(--ct-strong); font: inherit; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.ct-set-btn.is-primary { background: var(--ct-accent) !important; border-color: var(--ct-accent) !important; color: #fff; font-weight: 700; padding: 0 22px; }
 .ct-set-btn.is-on { border-color: var(--ct-ok) !important; color: var(--ct-ok); }
-.ct-set-table { display: flex; flex-direction: column; border-radius: 10px; border: 1px solid var(--background-modifier-border); overflow: hidden; }
-.ct-set-group { padding: 10px 14px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ct-muted); background: var(--background-secondary); }
-.ct-set-prop { display: grid; grid-template-columns: minmax(0, 1.4fr) 90px minmax(0, 1fr) 100px; gap: 14px; align-items: center; padding: 12px 14px; border-top: 1px solid var(--background-modifier-border); }
-.ct-set-prop-name { display: flex; flex-direction: column; gap: 2px; }
+
+/* 2 · Propiedades */
+.ct-set-table { display: flex; flex-direction: column; border-radius: 6px; border: 1px solid var(--ct-set-line); overflow: hidden; background: var(--ct-set-card); }
+.ct-set-group { padding: 10px 14px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ct-muted); background: color-mix(in srgb, var(--text-normal) 4%, var(--ct-set-card)); }
+.ct-set-prop { display: grid; grid-template-columns: minmax(0, 1.4fr) 90px minmax(0, 1fr) 100px; grid-template-areas: "name type in state"; gap: 8px 14px; align-items: center;
+  padding: 12px 14px; border-top: 1px solid var(--ct-set-line); }
+.ct-set-prop-name { grid-area: name; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ct-set-prop-name b { font-size: 14px; } .ct-set-prop-name span { font-size: 12px; color: var(--ct-muted); }
-.ct-set-type { font-size: 12px; color: var(--ct-muted); }
-.ct-set-prop-in .ct-input { height: 36px; font-size: 14px; }
-.ct-set-state { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; justify-self: start; background: color-mix(in srgb, var(--text-normal) 10%, var(--background-primary)); color: var(--ct-muted); }
+.ct-set-type { grid-area: type; font-size: 12px; color: var(--ct-muted); }
+.ct-set-prop-in { grid-area: in; min-width: 0; }
+.ct-set-state { grid-area: state; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; justify-self: start; white-space: nowrap;
+  background: color-mix(in srgb, var(--text-normal) 10%, var(--background-primary)); color: var(--ct-muted); }
 .ct-set-state.is-used { background: color-mix(in srgb, var(--ct-ok) 22%, var(--background-primary)); color: var(--ct-strong); }
 .ct-req { color: var(--ct-berm); margin-left: 4px; }
 .ct-set-subhead { margin: 0; font-size: 15px; }
 .ct-set-note { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--ct-muted); }
 .ct-set-ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ct-muted); }
 .ct-set-ul li { display: flex; gap: 8px; align-items: flex-start; }
-.ct-set-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 16px; border-top: 1px solid var(--background-modifier-border); }
-.ct-set-coolbar .setting-item { padding: 10px 0; }
-/* móvil: los pasos son solo números, en una fila */
-.ct-settings.is-phone .ct-set { flex-direction: column; gap: 16px; min-height: 0; }
-.ct-settings.is-phone .ct-set-nav { width: auto; border: 0; padding: 0; }
-.ct-settings.is-phone .ct-set-steps { flex-direction: row; justify-content: space-between; }
-.ct-settings.is-phone .ct-set-step { padding: 4px; }
-.ct-settings.is-phone :is(.ct-set-grid, .ct-set-grid.is-3) { grid-template-columns: 1fr; }
-.ct-settings.is-phone .ct-set-prop { grid-template-columns: 1fr 1fr; }
-.ct-settings.is-phone .ct-set-card.is-row { flex-direction: column; align-items: stretch; }
+.ct-set-ul svg { flex: none; }
+.ct-set-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 16px; border-top: 1px solid var(--ct-set-line); }
+.ct-set-foot > .ct-sub { font-size: 12px; }
+.ct-set-foot > span:empty { display: none; }
+
+/* 6 · Cool Bar: los ajustes del Cool Kit (filas de Obsidian) en dos tarjetas, «Cool Bar» y «Botones» */
+.ct-set-coolbar .cool-settings { position: relative; display: grid; grid-template-columns: 1fr; align-items: start; }
+.ct-set-coolbar .setting-item { margin: 0; padding: 12px 18px; gap: 16px; border: 1px solid var(--ct-set-line); border-top-color: color-mix(in srgb, var(--text-normal) 9%, var(--background-primary));
+  border-bottom: 0; background: var(--ct-set-card); }
+.ct-set-coolbar .setting-item-heading { padding: 14px 18px 10px; border-top-color: var(--ct-set-line); border-radius: 6px 6px 0 0; }
+.ct-set-coolbar .setting-item-heading .setting-item-name { font-size: 15px; font-weight: 700; }
+.ct-set-coolbar .setting-item-heading ~ .setting-item-heading { margin-top: 14px; }
+.ct-set-coolbar .setting-item:has(+ .setting-item-heading), .ct-set-coolbar .setting-item:last-child { border-bottom: 1px solid var(--ct-set-line); border-radius: 0 0 6px 6px; }
+.ct-set-coolbar .setting-item-name { font-size: 14px; font-weight: 600; color: var(--ct-strong); }
+.ct-set-coolbar .setting-item-description { font-size: 12px; line-height: 1.45; padding-top: 3px; }
+.ct-set-coolbar .setting-item-control { gap: 8px; }
+.ct-set-coolbar .setting-item-control .dropdown { width: 260px; max-width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--ct-set-field-line); background-color: var(--ct-set-field); box-shadow: none; font-size: 14px; }
+.ct-set-coolbar .cool-settings-tool .dropdown { width: 190px; }
+/* las pestañas Ordenador / Móvil van en la cabecera de la tarjeta de la barra */
+.ct-set-coolbar .cool-settings > .setting-item-heading:first-child { min-height: 54px; }
+.ct-set-coolbar .cool-settings-tabs { position: absolute; top: 11px; right: 14px; margin: 0; z-index: 1; }
+.ct-set-coolbar .cool-settings[data-ck] .cool-settings-tabs button { height: 32px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--ct-set-field-line); background: transparent; box-shadow: none;
+  text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 400; color: var(--ct-strong); }
+.ct-set-coolbar .cool-settings[data-ck] .cool-settings-tabs button[aria-selected="true"] { background: var(--ct-accent); border-color: var(--ct-accent); color: #fff; font-weight: 700; }
+@container ctbody (min-width: 820px) {
+  .ct-set-coolbar .cool-settings { grid-template-columns: 1fr 1fr; column-gap: 14px; grid-auto-flow: dense; }
+  .ct-set-coolbar .cool-settings > * { grid-column: 1; }
+  .ct-set-coolbar .setting-item-heading ~ .setting-item-heading, .ct-set-coolbar .setting-item-heading ~ .setting-item-heading ~ * { grid-column: 2; }
+  .ct-set-coolbar .setting-item-heading ~ .setting-item-heading { margin-top: 0; }
+  .ct-set-coolbar .cool-settings-tabs { right: calc(50% + 7px + 14px); }
+  .ct-set-coolbar .setting-item-control .dropdown { width: 220px; }
+  .ct-set-coolbar .cool-settings-tool .dropdown { width: 170px; }
+}
+
+/* el contenido, según su ancho */
+@container ctbody (max-width: 720px) {
+  .ct-set-recog { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .ct-set-recog .ct-set-icon { width: 52px; height: 52px; }
+  .ct-set-recog .ct-set-icon svg { width: 26px; height: 26px; }
+  .ct-set-autoorg { grid-template-columns: minmax(0, 1fr); grid-template-areas: "title" "text" "tree" "btn"; }
+  .ct-set-autoorg-btn { justify-self: stretch; }
+  .ct-set-grid.is-3 { grid-template-columns: minmax(0, 1fr); }
+  .ct-set-prop { grid-template-columns: minmax(0, 1fr) 86px; grid-template-areas: "name type" "in state"; }
+  .ct-set-type, .ct-set-state { justify-self: end; }
+}
+@container ctbody (max-width: 560px) {
+  .ct-set-save { max-width: none; }
+  .ct-set-grid { grid-template-columns: minmax(0, 1fr); }
+  .ct-set-card.is-row { flex-direction: column; align-items: stretch; }
+  .ct-set-coolbar .setting-item:not(.setting-item-heading):not(.mod-toggle) { flex-direction: column; align-items: stretch; }
+  .ct-set-coolbar .setting-item:not(.setting-item-heading):not(.mod-toggle) .setting-item-control { justify-content: stretch; }
+  .ct-set-coolbar .setting-item-control .dropdown { width: 100%; flex: 1; }
+  .ct-set-coolbar .cool-settings-tool .dropdown { width: auto; min-width: 0; }
+}
+
+/* estrecho (ventana pequeña o móvil): marca arriba, los pasos en una fila de números y el pie con los botones a lo ancho */
+@container ctset (max-width: 760px) {
+  .ct-set { flex-direction: column; gap: 16px; min-height: 0; }
+  .ct-set-nav { width: auto; border: 0; padding: 0; gap: 14px; }
+  .ct-set-brand { gap: 6px; }
+  .ct-set-logo { font-size: 28px; }
+  .ct-set-steps { flex-direction: row; justify-content: space-between; gap: 4px; }
+  .ct-set-step, .ct-set-step.is-current { width: auto; padding: 0; background: transparent !important; }
+  .ct-set-step-text { display: none; }
+  .ct-set-num { width: 36px; height: 36px; font-size: 14px; }
+  .ct-set-body { padding-top: 4px; gap: 16px; }
+  .ct-set-title { font-size: 24px; }
+  .ct-set-foot { flex-wrap: wrap; }
+  .ct-set-foot > .ct-sub { order: -1; width: 100%; text-align: center; }
+  .ct-set-foot > .ct-set-btn { flex: 1; height: 48px; font-size: 15px; }
+}
+
+/* móvil: dedos y letra de iOS */
+.ct-settings.is-phone .ct-set-num { width: 40px; height: 40px; font-size: 15px; }
+.ct-settings.is-phone .ct-input, .ct-settings.is-phone .ct-set-coolbar .dropdown { height: 44px !important; font-size: 16px !important; }
+.ct-settings.is-phone .ct-set-radios { font-size: 15px; }
+.ct-settings.is-phone .ct-set-radios label { min-height: 44px; }
+.ct-settings.is-phone .ct-set-radios input { width: 20px; height: 20px; }
+.ct-settings.is-phone .ct-set-btn { height: 44px; }
+.ct-settings.is-phone .ct-set-coolbar .setting-item { padding: 12px 14px; }
+.ct-settings.is-phone .ct-set-coolbar .cool-settings[data-ck] .cool-settings-tabs button { height: 40px; padding: 0 12px; font-size: 14px; }
+.ct-settings.is-phone .ct-set-coolbar .cool-settings > .setting-item-heading:first-child { min-height: 64px; }
+.ct-settings.is-phone .ct-set-coolbar .cool-settings-tabs { top: 12px; }
+.ct-set-card.is-radio > b { font-size: 15px; }
+.ct-set-card.is-radio > span { font-size: 13px; line-height: 1.45; color: var(--ct-muted); font-weight: 400; }
+.ct-set-grid > .ct-set-card > .ct-set-btn { margin-top: auto; }

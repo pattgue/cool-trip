@@ -52,4 +52,19 @@ export class Modal { constructor(app) { this.app = app; this.containerEl = docum
   open() { document.body.appendChild(this.containerEl); this.onOpen?.(); } close() { this.containerEl.remove(); this.onClose?.(); } }
 export class Plugin {}
 export class PluginSettingTab { constructor(app, plugin) { this.app = app; this.plugin = plugin; this.containerEl = document.createElement("div"); } }
-export class Setting { constructor() { return new Proxy(this, { get: (t, k) => k === "then" ? undefined : () => t.proxy() }); } proxy() { return this; } }
+/* las filas de ajustes de Obsidian, con su DOM (setting-item › info + control), para ver la sección de la Cool Bar */
+export class Setting {
+  constructor(el) { this.settingEl = el.createDiv({ cls: "setting-item" }); const info = this.settingEl.createDiv({ cls: "setting-item-info" });
+    this.nameEl = info.createDiv({ cls: "setting-item-name" }); this.descEl = info.createDiv({ cls: "setting-item-description" }); this.controlEl = this.settingEl.createDiv({ cls: "setting-item-control" }); }
+  setName(n) { this.nameEl.textContent = n; return this; } setDesc(d) { this.descEl.textContent = d; return this; }
+  setHeading() { this.settingEl.addClass("setting-item-heading"); return this; } setClass(c) { this.settingEl.addClass(c); return this; }
+  addDropdown(cb) { const s = this.controlEl.createEl("select", { cls: "dropdown" });
+    const api = { addOptions(o) { for (const [k, v] of Object.entries(o)) s.createEl("option", { text: v, attr: { value: k } }); return api; }, setValue(v) { s.value = v; return api; }, onChange(f) { s.onchange = () => f(s.value); return api; } };
+    cb(api); return this; }
+  addToggle(cb) { this.settingEl.addClass("mod-toggle"); const d = this.controlEl.createDiv({ cls: "checkbox-container" });
+    const api = { setValue(v) { d.toggleClass("is-enabled", v); return api; }, onChange(f) { d.onclick = () => { d.classList.toggle("is-enabled"); f(d.classList.contains("is-enabled")); }; return api; } };
+    cb(api); return this; }
+  addExtraButton(cb) { const b = this.controlEl.createDiv({ cls: "clickable-icon extra-setting-button" });
+    const api = { setIcon(i) { b.textContent = i === "arrow-up" ? "↑" : "↓"; return api; }, setTooltip() { return api; }, setDisabled(x) { b.toggleClass("is-disabled", x); return api; }, onClick(f) { b.onclick = f; return api; } };
+    cb(api); return this; }
+}

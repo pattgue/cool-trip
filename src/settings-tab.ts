@@ -6,7 +6,7 @@ import { h } from "./dom";
 import { t } from "./i18n";
 import { renderCoolBarSettings } from "./cool-kit/settings";
 import { AUTO_FOLDERS, suggestedProps } from "./settings";
-import { ensureFolder } from "./places";
+import { allPlaces, ensureFolder, isTripFile } from "./places";
 import type { MapsApp, PropNames, Recog, RecogMode } from "./types";
 import { button, icon } from "./ui";
 
@@ -35,7 +35,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
     const s = this.plugin.settings;
     if (!s.visited.includes(this.step)) { s.visited.push(this.step); this.save(); }
     const nav = h("nav", { cls: "ct-set-nav", attr: { "aria-label": t("s.subtitle") } });
-    if (!Platform.isPhone) nav.appendChild(h("div", { cls: "ct-set-brand" }, h("span", { cls: "ct-set-logo" }, t("s.title")), h("span", { cls: "ct-sub" }, t("s.subtitle"))));
+    nav.appendChild(h("div", { cls: "ct-set-brand" }, h("span", { cls: "ct-set-logo" }, t("s.title")), h("span", { cls: "ct-sub" }, t("s.subtitle"))));
     const list = nav.createDiv({ cls: "ct-set-steps" });
     for (let i = 1; i <= STEPS; i++) {
       const state = i === this.step ? "is-current" : s.visited.includes(i) ? "is-done" : "";
@@ -55,7 +55,8 @@ export class CoolTripSettingTab extends PluginSettingTab {
   }
 
   private head(body: HTMLElement, title: string, p: string) {
-    body.appendChild(h("div", { cls: "ct-set-head" }, h("h2", null, title), h("p", null, p)));
+    /* sin <h2>: Obsidian y los temas les ponen raya, sangría y márgenes propios en los ajustes */
+    body.appendChild(h("div", { cls: "ct-set-head" }, h("div", { cls: "ct-set-title", attr: { role: "heading", "aria-level": "2" } }, title), h("p", null, p)));
   }
   private folderSelect(value: string, onPick: (v: string) => void, rootLabel: string): HTMLSelectElement {
     const sel = h("select", { cls: "ct-input ct-select" });
@@ -76,28 +77,63 @@ export class CoolTripSettingTab extends PluginSettingTab {
   private s1(body: HTMLElement) {
     const s = this.plugin.settings;
     this.head(body, t("s1.h"), t("s1.p"));
-    const card = (title: string, desc: string, iconName: string, r: Recog, kind: string, folder: () => string, setFolder: (v: string) => void) => {
+    const block = (title: string, desc: string, iconName: string, r: Recog, kind: string, folderLabel: string, folder: () => string, setFolder: (v: string) => void) => {
       const modes: [RecogMode, string][] = [["property", t("s1.property")], ["tag", t("s1.tag")], ["folder", t("s1.folder")]];
-      const how = h("div", { cls: "ct-set-how" });
-      if (r.mode === "property") how.append(this.text(r.key, v => { r.key = v; this.save(); }, { placeholder: "tipo" }), h("span", { cls: "ct-eq" }, "="),
-        this.text(r.value, v => { r.value = v; this.save(); }, { placeholder: kind }));
-      else if (r.mode === "tag") how.append(h("span", { cls: "ct-eq" }, "#"), this.text(r.value.replace(/^#/, ""), v => { r.value = v.replace(/^#/, ""); this.save(); }, { placeholder: kind }));
-      else how.append(this.folderSelect(r.folder, v => { r.folder = v; this.save(); }, "—"), h("span", { cls: "ct-sub" }, t("s1.folderHint", { k: kind })));
-      return h("div", { cls: "ct-set-card" },
-        h("div", { cls: "ct-set-card-top" }, h("span", { cls: "ct-set-icon" }, icon(iconName)),
-          h("span", { cls: "ct-set-card-text" }, h("b", null, title), h("span", null, desc))),
-        h("div", { cls: "ct-seg" }, modes.map(([m, l]) => button(l, "ct-pill" + (r.mode === m ? " is-solid" : ""), () => { r.mode = m; this.save(); this.display(); }))),
-        how,
-        h("label", { cls: "ct-f" }, h("span", { cls: "ct-label" }, t("s1.saveIn")),
-          s.autoOrganize ? h("span", { cls: "ct-set-auto" }, icon("sparkles"), folder()) : this.folderSelect(folder(), v => { setFolder(v); this.save(); }, t("s1.root"))));
+      const radios = h("div", { cls: "ct-set-radios", attr: { role: "radiogroup", "aria-label": title } }, modes.map(([m, l]) => {
+        const rb = h("input", { attr: { type: "radio", name: "ct-recog-" + kind } });
+        rb.checked = r.mode === m;
+        rb.addEventListener("change", () => { r.mode = m; this.save(); this.display(); });
+        return h("label", null, rb, l);
+      }));
+      let how: HTMLElement;
+      if (r.mode === "property") {
+        const key = this.text(r.key, v => { r.key = v; this.save(); }, { placeholder: "tipo", "aria-label": t("s1.property") });
+        key.classList.add("is-key");
+        how = h("div", { cls: "ct-set-how" }, key, h("span", { cls: "ct-eq" }, "="), this.text(r.value, v => { r.value = v; this.save(); }, { placeholder: kind, "aria-label": kind }));
+      } else if (r.mode === "tag") how = h("div", { cls: "ct-set-how" }, this.text(r.value ? "#" + r.value.replace(/^#/, "") : "", v => { r.value = v.replace(/^#/, ""); this.save(); }, { placeholder: "#" + kind, "aria-label": t("s1.tag") }));
+      else how = h("span", { cls: "ct-sub" }, t("s1.folderHint", { k: kind }));
+      /* con «Carpeta», el desplegable de abajo elige esa carpeta (y ahí se guardan los nuevos) */
+      const inFolder = r.mode === "folder";
+      const pick = s.autoOrganize ? h("span", { cls: "ct-set-auto" }, icon("sparkles"), folder())
+        : this.folderSelect(inFolder ? r.folder : folder(), v => { if (inFolder) r.folder = v; setFolder(v); this.save(); }, inFolder ? "—" : t("s1.root"));
+      return [
+        h("div", { cls: "ct-set-card ct-set-recog" },
+          h("div", { cls: "ct-set-card-top" }, h("span", { cls: "ct-set-icon" }, icon(iconName)),
+            h("span", { cls: "ct-set-card-text" }, h("b", { cls: "is-caps" }, title), h("span", null, desc))),
+          h("div", { cls: "ct-set-recog-how" }, radios, how)),
+        h("label", { cls: "ct-f ct-set-save" }, h("span", { cls: "ct-label" }, inFolder && !s.autoOrganize ? folderLabel : t("s1.saveIn")), pick),
+      ];
     };
-    body.appendChild(h("div", { cls: "ct-set-grid" },
-      card(t("s1.trips"), t("s1.tripsD"), "plane", s.trips, t("s1.trip"), () => s.autoOrganize ? AUTO_FOLDERS[s.language].trips : s.tripFolder, v => { s.tripFolder = v; }),
-      card(t("s1.places"), t("s1.placesD"), "map-pin", s.places, t("s1.place"), () => s.autoOrganize ? AUTO_FOLDERS[s.language].places + "/…" : s.placeFolder, v => { s.placeFolder = v; })));
-    body.appendChild(h("div", { cls: "ct-set-card is-row" },
-      h("span", { cls: "ct-set-card-text" }, h("b", null, t("s1.auto")), h("span", null, t("s1.autoD"))),
-      button([icon(s.autoOrganize ? "check" : "smile"), s.autoOrganize ? t("s1.usingAuto") : t("s1.useAuto")], "ct-set-btn" + (s.autoOrganize ? " is-on" : " is-primary"),
+    body.append(...block(t("s1.trips"), t("s1.tripsD"), "plane", s.trips, t("s1.trip"), t("s1.tripsFolder"),
+      () => s.autoOrganize ? AUTO_FOLDERS[s.language].trips : s.tripFolder, v => { s.tripFolder = v; }));
+    body.append(...block(t("s1.places"), t("s1.placesD"), "map-pin", s.places, t("s1.place"), t("s1.placesFolder"),
+      () => s.autoOrganize ? AUTO_FOLDERS[s.language].places + "/…" : s.placeFolder, v => { s.placeFolder = v; }));
+    body.appendChild(h("div", { cls: "ct-set-autoorg" },
+      h("b", { cls: "ct-set-autoorg-title" }, t("s1.auto"), h("span", { cls: "ct-sub" }, " · " + t("s1.optional"))),
+      h("p", { cls: "ct-set-autoorg-text" }, h("b", null, t("s1.autoB")), " ", t("s1.autoD")),
+      this.tree(),
+      button([icon(s.autoOrganize ? "check" : "sparkles"), s.autoOrganize ? t("s1.usingAuto") : t("s1.useAuto")], "ct-set-btn ct-set-autoorg-btn" + (s.autoOrganize ? " is-on" : ""),
         () => { s.autoOrganize = !s.autoOrganize; this.save(); this.display(); })));
+  }
+  /* lo que quedaría en el vault con la organización automática, con los viajes y lugares que ya tienes */
+  private tree(): HTMLElement {
+    const s = this.plugin.settings, F = AUTO_FOLDERS[s.language];
+    const trips = this.app.vault.getMarkdownFiles().filter(f => isTripFile(this.app, s, f)).map(f => f.basename).sort().reverse().slice(0, 3);
+    const cities = new Map<string, string[]>();
+    for (const p of allPlaces(this.app, s)) if (p.city) cities.set(p.city, [...(cities.get(p.city) || []), p.name]);
+    const row = (depth: number, ico: string, name: string, base = false) => h("span", { cls: "ct-set-tree-row", attr: { style: `--d: ${depth}` } },
+      icon(ico), name, base ? h("span", { cls: "ct-set-tree-tag" }, "BASE") : null);
+    const more = (depth: number) => h("span", { cls: "ct-set-tree-row is-faint", attr: { style: `--d: ${depth}` } }, "…");
+    const base = (name: string) => this.app.vault.getAbstractFileByPath(normalizePath((s.bases.folder ? s.bases.folder + "/" : "") + name + ".base")) instanceof TFile;
+    const kids: HTMLElement[] = [row(0, "folder", F.trips)];
+    kids.push(...(trips.length ? trips.map(n => row(1, "file", n)) : [more(1)]));
+    if (base(t("s5.trips"))) kids.push(row(1, "table", t("s5.trips"), true));
+    kids.push(row(0, "folder", F.places));
+    const cs = [...cities.keys()].sort().slice(0, 2);
+    if (!cs.length) kids.push(more(1));
+    for (const c of cs) kids.push(row(1, "folder", c), ...(cities.get(c) || []).sort().slice(0, 2).map(n => row(2, "file", n)));
+    if (base(t("s5.places"))) kids.push(row(1, "table", t("s5.places"), true));
+    return h("div", { cls: "ct-set-tree", attr: { "aria-label": t("s1.preview") } }, kids);
   }
 
   /* 2 · Propiedades */
