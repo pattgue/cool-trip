@@ -119,7 +119,7 @@ Lo esencial de cada reserva (localizador, horas, asiento, puerta) es **texto den
 | dentro del vault | carpeta elegida | sí, si se sincroniza el vault; ocupa espacio |
 
 
-## Nuevo viaje y la nota del viaje (desde cero, paso a paso con Patt)
+## Nuevo viaje y la nota del viaje (cerrada con Patt, 27-10-2026)
 
 **Ronda 1, descartada (27-10-2026).** El panel estrecho de 440 px colgando de la Cool Bar (copiado del de Cool Bases) y las dos láminas de Markdown no gustaron a Patt: no se entendía y era feo. Que se abra desde la Cool Bar no obliga a que sea un panel lateral estrecho: el tamaño y el layout se adaptan a lo que necesita esta pantalla. Se quitó del boceto entero.
 
@@ -155,6 +155,13 @@ Lo esencial de cada reserva (localizador, horas, asiento, puerta) es **texto den
 - **Por hacer:** pendientes y hechas por separado, con filas separadas. El progreso y las hechas van en bermellón.
 - **Formulario de alojamiento:** Check-in y Check-out; desplegables para Habitación y «Camas de la habitación».
 - **Flechas de plegar:** como en Obsidian. Contraído › y desplegado ⌄.
+
+**Ronda 6, fila 2 cerrada con Patt (27-10-2026):**
+- **Ediciones de Patt:** la imagen de portada es una burbuja gris sólida (`#3D3D3D`) sin borde. En la nota en móvil, el talón lleva «159 días para el viaje» en grande y el código de barras debajo, a todo el ancho.
+- **Código de barras:** las barras se estiran hasta llenar siempre el ancho.
+- **Lugares con icono según su tipo** (la propiedad de la nota de lugar): templo o santuario, calle comercial, cruce, mercado, museo…; si no hay tipo, un pin. Va en una burbuja como la de las comidas.
+- **Comidas como pasos en todos los días,** también en los que no tienen planes: el desayuno incluido sale como paso y las que faltan, como huecos discontinuos que se rellenan al tocarlos.
+- **Camas de la habitación:** un número más un desplegable con el tipo (doble, individual, litera, futón…).
 
 **Markdown (ronda 4, a Patt le cuadra):**
 - **Portada:** frontmatter (`tipo`, `inicio`, `fin`, `destinos`, `viajeros`, `portada`) y un callout `[!cool-trip]` con una línea por destino (noches y viajeros).
