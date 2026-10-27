@@ -21,13 +21,18 @@ export function defaultSettings(lang: "es" | "en"): Settings {
     props: suggestedProps(lang),
     files: { cloud: true, wallet: true, device: false, vault: false, vaultFolder: lang === "es" ? "Archivos" : "Files" },
     maps: { app: "google", modes: ["walk", "transit"] },
-    bases: { folder: "" },
-    visited: [],
+    bases: { trips: "", places: "" },
+    done: [],
     countries: {},
     language: lang,
   };
 }
 
+/* antes había una sola carpeta para las dos bases («folder») */
+function mergeBases(d: Settings["bases"], saved: Partial<Settings["bases"]> & { folder?: string } | undefined): Settings["bases"] {
+  const old = typeof saved?.folder === "string" ? saved.folder : "";
+  return { trips: saved?.trips ?? old ?? d.trips, places: saved?.places ?? old ?? d.places };
+}
 /* mezcla lo guardado con los valores por defecto (los ajustes nuevos de versiones futuras se rellenan solos) */
 export function mergeSettings(saved: Partial<Settings> | null | undefined, lang: "es" | "en"): Settings {
   const d = defaultSettings(saved?.language || lang);
@@ -36,8 +41,8 @@ export function mergeSettings(saved: Partial<Settings> | null | undefined, lang:
     ...d, ...saved,
     trips: { ...d.trips, ...saved.trips }, places: { ...d.places, ...saved.places },
     props: { ...d.props, ...saved.props }, files: { ...d.files, ...saved.files },
-    maps: { ...d.maps, ...saved.maps }, bases: { ...d.bases, ...saved.bases },
-    visited: Array.isArray(saved.visited) ? saved.visited : [],
+    maps: { ...d.maps, ...saved.maps }, bases: mergeBases(d.bases, saved.bases),
+    done: Array.isArray(saved.done) ? saved.done : [],
     countries: saved.countries && typeof saved.countries === "object" ? saved.countries : {},
   };
 }

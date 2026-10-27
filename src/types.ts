@@ -19,8 +19,8 @@ export interface Settings {
   props: PropNames;
   files: { cloud: boolean; wallet: boolean; device: boolean; vault: boolean; vaultFolder: string };
   maps: { app: MapsApp; modes: string[] };
-  bases: { folder: string };
-  visited: number[];           // pasos de los ajustes ya revisados (número en verde)
+  bases: { trips: string; places: string };   // la carpeta de cada base («» = raíz)
+  done: number[];              // pasos de los ajustes ya hechos (con «Siguiente»: número en verde)
   countries: Record<string, string>;   // el país de cada ciudad que ya has usado (para ponerlo solo)
   language: "es" | "en";       // el idioma con el que se crearon las sugerencias
   coolBar?: BarSettings;

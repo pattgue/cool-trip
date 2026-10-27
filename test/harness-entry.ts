@@ -2,6 +2,7 @@
 import { TripView } from "../src/view";
 import { NewTripModal } from "../src/modal";
 import { defaultSettings } from "../src/settings";
+import { registry } from "../src/cool-kit/kit";
 import { CoolTripSettingTab } from "../src/settings-tab";
 import { TFile } from "obsidian";
 declare const window: Window & { __sample: string; __phone: boolean; __mode: string };
@@ -23,10 +24,15 @@ const app = {
   workspace: { openLinkText: () => {}, getLeaf: () => ({ openFile: () => {} }) },
   fileManager: {},
 };
-const plugin = { settings: defaultSettings("es"), app, isTrip: () => true,
+const plugin = { settings: defaultSettings("es"), app, isTrip: () => true, manifest: { id: "cool-trip" },
   coverSrc: (c: string) => /^(https?|data):/.test(c) ? c : null,
   askDest: async () => ({ city: "Roma", country: "Italia" }) };
 if (window.__mode.startsWith("settings")) {
+  /* la Cool Bar con dos plugins Cool, para el paso 6 */
+  const reg = registry();
+  const tool = (id: string, label: string, order: number) => ({ id, label: () => label, order, appliesTo: () => id === "cool-trip", isOpen: () => false, toggle: () => {} });
+  reg.tools["cool-trip"] = tool("cool-trip", "Cool Trip", 30);
+  reg.tools["cool-bases"] = tool("cool-bases", "Cool Bases", 20);
   const tab = new CoolTripSettingTab(app as never, plugin as never);
   tab.step = Number(window.__mode.slice(8)) || 1;
   document.body.appendChild(tab.containerEl);
