@@ -16,7 +16,9 @@ const DARK = "--background-primary: #1e1e1e; --background-secondary: #262626; --
 const LIGHT = "--background-primary: #ffffff; --background-secondary: #f6f6f6; --background-modifier-border: #e0e0e0; --text-normal: #222; --text-muted: #5c5c5c; --text-faint: #ababab; --interactive-accent: #8a5cf5; --text-on-accent: #fff; color-scheme: light";
 const STEP_NAMES = ["Tus notas", "Propiedades", "Archivos", "Mapas", "Bases", "Cool Bar", "Listo"];
 const BOARDS = [
-  ...STEP_NAMES.map((n, i) => ({ file: `Plugin-Ajustes-${i + 1}.dc.html`, title: `Ajustes · ${i + 1} ${n}`, w: 1440, mode: "settings" + (i + 1), phone: false })),
+  /* los ajustes: solo el hueco que deja Obsidian para la pestaña del plugin (la ventana de Ajustes mide como mucho 1100px y su
+     barra lateral 250: quedan 850; en el móvil, toda la pantalla) */
+  ...STEP_NAMES.map((n, i) => ({ file: `Plugin-Ajustes-${i + 1}.dc.html`, title: `Ajustes · ${i + 1} ${n}`, w: 850, vw: 1100, mode: "settings" + (i + 1), phone: false })),
   ...STEP_NAMES.map((n, i) => ({ file: `Plugin-Ajustes-Movil-${i + 1}.dc.html`, title: `Ajustes móvil · ${i + 1} ${n}`, w: 390, mode: "settings" + (i + 1), phone: true })),
   { file: "NuevoViaje-A.dc.html", title: "Nuevo viaje", w: 1440, mode: "modal", phone: false },
   { file: "NuevoViaje-Movil.dc.html", title: "Nuevo viaje · móvil", w: 390, mode: "modal", phone: true },
@@ -29,7 +31,7 @@ writeFileSync(join(dest, "obsidian-settings.css"), readFileSync(join(here, "obsi
 const b = await chromium.launch();
 const sizes = {};
 for (const bd of BOARDS) {
-  const p = await b.newPage({ viewport: { width: bd.w, height: 1000 } });
+  const p = await b.newPage({ viewport: { width: bd.vw || bd.w, height: 1000 } });
   await p.addInitScript(ph => { window.__phone = ph; }, bd.phone);
   await p.goto(pathToFileURL(join(out, bd.mode + ".html")).href);
   await p.waitForTimeout(400);
@@ -46,8 +48,10 @@ for (const bd of BOARDS) {
       el.querySelector(".modal")?.style.setProperty("position", "relative");
       el.querySelector(".modal")?.style.setProperty("margin", "0 auto");
     } else if (mode.startsWith("settings")) {
-      el = document.querySelector(".modal.mod-settings");
-      el.style.minHeight = "0";
+      /* la pestaña sola, con el relleno y el fondo que le da Obsidian en ese hueco */
+      el = document.querySelector(".ct-settings");
+      const cs = getComputedStyle(el);
+      for (const k of ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "backgroundColor"]) el.style[k] = cs[k];
     } else el = document.querySelector(".ct-view");
     return { html: el.outerHTML, h: Math.ceil(el.getBoundingClientRect().height) };
   }, bd.mode);
