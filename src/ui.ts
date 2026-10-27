@@ -24,6 +24,7 @@ export const accentOf = (cover: string, accent: string) => paletteId(cover) || (
 export function useAccent(id: string) { scheme = SCHEMES[id] || SCHEMES.bermellon; }
 const PEOPLE_ORDER = ["lavanda", "pistacho", "rosa", "mostaza", "cielo", "bermellon"];
 const hexOf = (id: string) => PALETTE.find(p => p.id === id)!.hex;
+export const hexOfPalette = (id: string) => (PALETTE.find(p => p.id === id) || PALETTE[0]).hex;
 export const plain = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 /* «bermellón», «Bermellon», «vermilion»… → id de la paleta, o null si la portada es una imagen */
 export function paletteId(cover: string): string | null {

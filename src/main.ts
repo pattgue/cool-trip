@@ -10,12 +10,14 @@ import { promptDest } from "./prompt";
 import { adaptToVault, mergeSettings } from "./settings";
 import { CoolTripSettingTab } from "./settings-tab";
 import { NewTripModal } from "./modal";
+import { BaseKeeper } from "./keeper";
 import { TripView, VIEW_TYPE } from "./view";
 import type { Settings } from "./types";
 
 export default class CoolTripPlugin extends Plugin {
   settings: Settings = mergeSettings(null, "es");
   bar: CoolKitHandle | null = null;
+  keeper = new BaseKeeper(this);
   /* notas de viaje que el usuario ha pedido ver como Markdown (hasta que vuelva a pulsar COOL TRIP) */
   asMarkdown = new Set<string>();
 
@@ -55,12 +57,12 @@ export default class CoolTripPlugin extends Plugin {
 
     /* las notas de viaje se abren pintadas */
     this.registerEvent(this.app.workspace.on("file-open", () => this.syncLeaves()));
-    this.registerEvent(this.app.metadataCache.on("changed", file => { this.marked.delete(file.path); this.syncLeaves(); }));
-    this.app.workspace.onLayoutReady(() => { void this.adapt(); this.syncLeaves(); });
+    this.registerEvent(this.app.metadataCache.on("changed", file => { this.marked.delete(file.path); this.syncLeaves(); this.keeper.schedule(); }));
+    this.app.workspace.onLayoutReady(() => { void this.adapt(); this.syncLeaves(); this.keeper.schedule(); });
     this.registerEvent(this.app.metadataCache.on("resolved", () => { void this.adapt(); }));
     /* las bases que creó Cool Trip siguen siendo suyas aunque se muevan o se renombren (y dejan de serlo si se borran) */
-    this.registerEvent(this.app.vault.on("rename", (f, old) => this.followBase(old, f.path)));
-    this.registerEvent(this.app.vault.on("delete", f => this.followBase(f.path, "")));
+    this.registerEvent(this.app.vault.on("rename", (f, old) => { this.followBase(old, f.path); this.keeper.schedule(); }));
+    this.registerEvent(this.app.vault.on("delete", f => { this.followBase(f.path, ""); this.keeper.schedule(); }));
   }
   private followBase(from: string, to: string) {
     const made = this.settings.basesMade;
@@ -85,6 +87,7 @@ export default class CoolTripPlugin extends Plugin {
   }
 
   onunload() {
+    this.keeper.cancel();
     /* las pestañas pintadas vuelven a ser notas normales */
     for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) {
       const file = (leaf.view as TripView).file;

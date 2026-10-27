@@ -6,7 +6,7 @@ export interface Recog { mode: RecogMode; key: string; value: string; folder: st
 
 export interface PropNames {
   start: string; end: string; destinations: string; travelers: string; cover: string;
-  location: string; city: string; country: string; category: string; price: string; rating: string; visited: string;
+  location: string; city: string; country: string; category: string; price: string; rating: string; visited: string; photo: string;
 }
 
 export type MapsApp = "google" | "apple" | "organic";
@@ -20,6 +20,7 @@ export interface Settings {
   files: { cloud: boolean; wallet: boolean; device: boolean; vault: boolean; vaultFolder: string };
   maps: { app: MapsApp; modes: string[] };
   bases: { trips: string; places: string };   // la carpeta de cada base («» = raíz)
+  baseCities: string[];        // las ciudades que ya tienen (o tuvieron) su vista en la base de lugares, en minúsculas
   basesMade: { trips: string; places: string };   // el archivo de cada base que ya creó Cool Trip («» = ninguno)
   done: number[];              // pasos de los ajustes ya hechos (con «Siguiente»: número en verde)
   countries: Record<string, string>;   // el país de cada ciudad que ya has usado (para ponerlo solo)

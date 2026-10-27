@@ -13,7 +13,7 @@ import { KIT_VERSION, devicePrefs, registry, saveBarSettings, sortedTools, thisD
 import type { BarAlign, BarLocation, BarMode, Device, ToolVisibility } from "./cool-kit/kit";
 import { kt } from "./cool-kit/i18n";
 import { AUTO_FOLDERS, defaultSettings, propKey, suggestedProps, tripFolder } from "./settings";
-import { allPlaces, ensureFolder, iconFor, isTripFile } from "./places";
+import { allPlaces, catColor, iconFor, isTripFile } from "./places";
 import { promptText } from "./prompt";
 import { spanLabel } from "./dates";
 import { parseTrip, serializeTrip, toList } from "./md";
@@ -22,7 +22,7 @@ import { bookingCard, fitRoutes } from "./plan";
 import type { PlanCtx } from "./plan";
 import { ticket } from "./ticket";
 import type { Doc, MapsApp, PropNames, Recog, RecogMode, Trip, Where } from "./types";
-import { PALETTE, button, coverHex, icon } from "./ui";
+import { button, coverHex, hexOfPalette, icon } from "./ui";
 
 const STEPS = 7;
 
@@ -277,7 +277,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
       h("div", { cls: "ct-set-thead" }, h("span", null, t("s2.data")), h("span", null, t("s2.type")), h("span", null, t("s2.yours")), h("span", null, t("s2.state"))),
       group(t("s2.trip"), "plane"), row("start", "date", true), row("end", "date", true), row("destinations", "list", true), row("travelers", "list", false), row("cover", "text", false),
       group(t("s2.place"), "map-pin"), row("location", "list", true), row("city", "text", true), row("country", "text", false), row("category", "text", false),
-      row("price", "text", false), row("rating", "number", false), row("visited", "checkbox", false)));
+      row("price", "text", false), row("rating", "number", false), row("visited", "checkbox", false), row("photo", "text", false)));
   }
 
   /* 3 · Archivos */
@@ -359,7 +359,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
     return null;
   }
   private s5(body: HTMLElement) {
-    const s = this.plugin.settings;
+    const s = this.plugin.settings, keeper = this.plugin.keeper, env = keeper.env();
     this.head(body, t("s5.h"), t("s5.p"));
     body.appendChild(h("div", { cls: "ct-set-promo" },
       h("span", { cls: "ct-set-promo-icon" }, icon("id-card")),
@@ -370,69 +370,129 @@ export class CoolTripSettingTab extends PluginSettingTab {
       const made = this.madeBase(kind), exists = !!made, name = t("s5." + kind);
       const open = () => { if (made) void this.app.workspace.getLeaf("tab").openFile(made); };
       const create = async () => {
-        const folder = this.baseFolder(kind), p = this.basePath(kind);
-        await ensureFolder(this.app, folder);
-        if (!(this.app.vault.getAbstractFileByPath(p) instanceof TFile)) await this.app.vault.create(p, this.baseYaml(kind, name));
-        s.basesMade[kind] = p;
-        this.save();
+        const p = this.basePath(kind);
+        await keeper.create(kind, this.baseFolder(kind), p);
         new Notice(t("s5.created", { p }));
         this.display();
       };
+      /* lo que se puede añadir a una base que ya existe (si después se instala Maps o Cool Bases) */
+      const ups = h("div", { cls: "ct-set-base-ups" });
+      if (made) void keeper.missing(kind).then(m => {
+        const up = (label: string, what: { addMap?: boolean; useCool?: boolean }) => button(label, "ct-set-btn is-small", () => {
+          void keeper.upgrade(kind, what).then(() => { new Notice(t("s5.updated", { p: made.path })); this.display(); });
+        });
+        if (m.cool) ups.appendChild(up(t("s5.useCool"), { useCool: true }));
+        if (m.map) ups.appendChild(up(t("s5.addMap"), { addMap: true }));
+      });
       const left = h("div", { cls: "ct-set-base-main" },
         h("label", { cls: "ct-set-base-on" }, this.check(exists, on => { if (on && !exists) void create(); }, exists ? { disabled: "" } : {}), h("b", { cls: "is-caps" }, name)),
         h("span", { cls: "ct-set-base-desc" }, t(`s5.${kind}D`)),
         made ? h("span", { cls: "ct-set-base-path" }, icon("table"), h("span", null, made.path), button(t("s5.open"), "ct-set-btn is-small", open))
           : h("div", { cls: "ct-f" }, h("span", { cls: "ct-label" }, t("s5.saveIn")),
-            this.folderPicker(this.baseFolder(kind), v => { s.bases[kind] = v; this.save(); this.display(); }, t("s5.saveIn") + " · " + name)));
+            this.folderPicker(this.baseFolder(kind), v => { s.bases[kind] = v; this.save(); this.display(); }, t("s5.saveIn") + " · " + name)),
+        ups);
       return h("div", { cls: "ct-set-card ct-set-base" }, left,
-        h("div", { cls: "ct-set-base-prev" }, this.label(t("s5.table")), kind === "trips" ? this.tripTable() : this.placeTable()),
-        h("div", { cls: "ct-set-base-prev" }, this.label(t("s5.cards")), kind === "trips" ? this.tripCards() : this.placeCards()));
+        h("div", { cls: "ct-set-base-prev" }, this.label(t(`s5.${kind}Native`)), kind === "trips" ? this.tripCards() : this.placeTable()),
+        h("div", { cls: "ct-set-base-prev" }, this.label(t(`s5.${kind}Cool`)), kind === "trips" ? this.tripTickets() : this.placeRows()));
     };
-    body.append(card("trips"), card("places"),
+    /* el mapa es de otro plugin (Maps) y necesita internet: si no está, se explica y la vista no se crea */
+    const maps = h("div", { cls: "ct-set-maps" }, h("span", { cls: "ct-set-maps-icon" }, icon("map")),
+      h("span", { cls: "ct-set-card-text" }, h("b", null, t(env.maps ? "s5.mapsOn" : "s5.mapsH")), h("span", null, t(env.maps ? "s5.mapsOnD" : "s5.maps"))),
+      env.maps ? null : button(t("s5.mapsBtn"), "ct-set-btn is-small", () => { window.open("obsidian://show-plugin?id=maps"); }));
+    body.append(card("trips"), card("places"), maps,
       h("div", { cls: "ct-set-why" }, h("b", null, t("s5.why")), h("ul", null, h("li", null, t("s5.why1")), h("li", null, t("s5.why2")))));
   }
-  /* los viajes y lugares del vault para las vistas previas de las bases */
+  /* los viajes y lugares del vault para las vistas previas de las bases (sin ninguno, los del viaje de ejemplo) */
   private trips() {
     const s = this.plugin.settings;
-    return this.app.vault.getMarkdownFiles().filter(f => isTripFile(this.app, s, f)).map(f => {
+    const list = this.app.vault.getMarkdownFiles().filter(f => isTripFile(this.app, s, f)).map(f => {
       const fm: Record<string, unknown> = this.app.metadataCache.getFileCache(f)?.frontmatter || {};
       const get = (k: keyof PropNames): unknown => fm[propKey(s, k, fm)];
       const str = (v: unknown) => typeof v === "string" ? v : "";
-      return { name: f.basename, start: str(get("start")), end: str(get("end")), dests: toList(get("destinations")), cover: str(get("cover")) };
-    }).sort((a, b) => b.start.localeCompare(a.start));
+      return { name: f.basename, start: str(get("start")), end: str(get("end")), dests: toList(get("destinations")), travelers: toList(get("travelers")), cover: str(get("cover")) };
+    }).filter(tr => tr.start).sort((a, b) => a.start.localeCompare(b.start));
+    if (list.length) {
+      const today = new Date().toISOString().slice(0, 10), next = list.filter(tr => (tr.end || tr.start) >= today);
+      return [...next, ...list.filter(tr => !next.includes(tr)).reverse()];
+    }
+    const d = this.demo();
+    return [{ name: d.name, start: d.start, end: d.end, dests: d.dests.map(x => x.city), travelers: d.travelers, cover: d.cover }];
+  }
+  private places() {
+    const list = allPlaces(this.app, this.plugin.settings);
+    if (list.length) return list.sort((a, b) => a.city.localeCompare(b.city));
+    const city = t("demo.c1"), country = t("demo.country");
+    return [{ name: t("demo.p1"), city, country, category: t("demo.cat1"), price: t("demo.free"), rating: 0, visited: false },
+      { name: t("demo.p2"), city, country, category: t("demo.cat2"), price: "€€", rating: 0, visited: false }];
+  }
+  /* lo que dicen las tarjetas: «Faltan 38 días», «En curso», «Hace 4 meses» (lo mismo que las fórmulas de la base) */
+  private when(start: string, end: string) {
+    const day = (iso: string) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d).getTime(); };
+    const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const until = Math.round((day(start) - today) / 864e5), since = Math.round((today - day(end || start)) / 864e5);
+    if (until > 0) return { label: t(until === 1 ? "s5.left1" : "s5.left", { n: until }), pill: t(until === 1 ? "s5.in1" : "s5.in", { n: until }) };
+    if (since <= 0) { const n = Math.round((today - day(start)) / 864e5) + 1, all = Math.round((day(end || start) - day(start)) / 864e5) + 1; return { label: t("s5.dayOf", { d: n, n: all }), pill: t("s5.now") }; }
+    const [n, u] = since < 26 ? [since, since === 1 ? "s5.day" : "s5.days"] : since < 320 ? [Math.max(1, Math.round(since / 30.44)), "s5.months"] : [Math.max(1, Math.floor(since / 365.25)), "s5.years"];
+    const unit = n === 1 ? t(u.replace(/s$/, "1")) : t(u);
+    const ago = t("s5.ago", { n, u: unit });
+    return { label: ago, pill: ago };
+  }
+  private nights(start: string, end: string) {
+    const day = (iso: string) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d).getTime(); };
+    return Math.round((day(end || start) - day(start)) / 864e5);
   }
   private miniTable(head: string[], rows: string[][]): HTMLElement {
     const cells = [...head.map(c => h("span", { cls: "is-head" }, c)), ...(rows.length ? rows : [["…", "", ""]]).slice(0, 2).flatMap(r => r.map((c, i) => h("span", { cls: i ? "" : "is-first" }, c)))];
     return h("span", { cls: "ct-set-mini-table" }, cells);
   }
-  private tripTable() {
-    return this.miniTable([t("s5.colTrip"), t("s5.colDates"), t("s5.colDests")], this.trips().map(tr => [tr.name, spanLabel(tr.start, tr.end), tr.dests.join(", ")]));
-  }
-  private placeTable() {
-    return this.miniTable([t("s5.colPlace"), t("s5.colCity"), t("s5.colCat")], allPlaces(this.app, this.plugin.settings).map(p => [p.name, p.city, p.category]));
-  }
+  /* sin Cool Bases: las tarjetas de Bases, con el color del viaje (o su foto) de portada */
   private tripCards() {
-    const list = this.trips().slice(0, 3);
-    return h("span", { cls: "ct-set-mini-cards" }, list.length ? list.map(tr => h("span", { cls: "ct-set-mini-trip", attr: { style: `background: ${coverHex(tr.cover)}` } },
-      h("span", null, (spanLabel(tr.start, tr.end) || t("s5.noDates")).toUpperCase()), h("b", null, tr.name.replace(/^\d{4}\s*-\s*/, "").toUpperCase()), h("span", null, tr.dests.join(" · "))))
-      : h("span", { cls: "ct-set-mini-empty" }, "…"));
+    return h("span", { cls: "ct-set-mini-cards is-2" }, this.trips().slice(0, 2).map(tr => {
+      const src = this.plugin.coverSrc(tr.cover, "");
+      return h("span", { cls: "ct-set-mini-ncard" },
+        h("span", { cls: "ct-set-mini-ncard-top", attr: { style: `background: ${coverHex(tr.cover)}` } }, src ? h("img", { attr: { src, alt: "" } }) : null),
+        h("span", { cls: "ct-set-mini-ncard-text" }, h("b", null, tr.name), h("strong", null, this.when(tr.start, tr.end).label),
+          h("span", null, [spanLabel(tr.start, tr.end), t("s5.nights", { n: this.nights(tr.start, tr.end) })].join(" · "))));
+    }));
   }
-  private placeCards() {
-    const list = allPlaces(this.app, this.plugin.settings).slice(0, 3);
-    return h("span", { cls: "ct-set-mini-cards" }, list.length ? list.map((p, i) => h("span", { cls: "ct-set-mini-place" },
-      h("span", { cls: "ct-set-mini-place-top", attr: { style: `background: ${PALETTE[(i + 1) % PALETTE.length].hex}` } }, icon(iconFor(p.category))),
-      h("span", { cls: "ct-set-mini-place-text" }, h("b", null, p.name), h("span", null, [p.city, p.category].filter(Boolean).join(" · ")))))
-      : h("span", { cls: "ct-set-mini-empty" }, "…"));
+  /* con Cool Bases: el billete (vertical; en el móvil, apaisado con la matriz) */
+  private tripTickets() {
+    const tk = (tr: ReturnType<CoolTripSettingTab["trips"]>[number]) => {
+      const w = this.when(tr.start, tr.end), n = this.nights(tr.start, tr.end), title = tr.name.replace(/^\d{4}\s*-\s*/, "").toUpperCase();
+      const yy = (tr.start || "").slice(0, 4), dates = spanLabel(tr.start, tr.end).replace(/\s*\d{4}$/, "").toUpperCase();
+      return h("span", { cls: "ct-set-mini-ticket", attr: { style: `--ct-c: ${coverHex(tr.cover)}` } },
+        h("span", { cls: "ct-set-mini-ticket-top" }, h("span", null, t("s5.daysN", { n: n + 1 }).toUpperCase(), h("br"), t("s5.nights", { n }).toUpperCase()), h("i", null, w.pill.toUpperCase())),
+        h("b", { attr: { style: `--n: ${Math.max(4, title.length)}` } }, title), h("span", { cls: "ct-set-mini-ticket-route" }, tr.dests.join(" → ").toUpperCase()),
+        h("span", { cls: "ct-set-mini-ticket-cut" }),
+        h("span", { cls: "ct-set-mini-ticket-who" }, tr.travelers.slice(0, 3).map(p => h("i", null, p.toUpperCase()))),
+        h("span", { cls: "ct-set-mini-ticket-dates" }, h("span", null, dates), h("b", null, yy)));
+    };
+    /* el apaisado del móvil: a la derecha, la matriz con «38 DÍAS», «EN CURSO» o «HACE 4 MESES» */
+    const wide = (tr: ReturnType<CoolTripSettingTab["trips"]>[number]) => {
+      const w = this.when(tr.start, tr.end), n = this.nights(tr.start, tr.end), title = tr.name.replace(/^\d{4}\s*-\s*/, "").toUpperCase();
+      const m = /(\d+)/.exec(w.pill), num = m ? m[1] : "", [top, unit] = m ? w.pill.split(num).map(x => x.trim().toUpperCase()) : ["", ""];
+      return h("span", { cls: "ct-set-mini-wticket", attr: { style: `--ct-c: ${coverHex(tr.cover)}` } },
+        h("span", { cls: "ct-set-mini-wticket-main" }, h("span", { cls: "ct-set-mini-ticket-route" }, [(tr.start || "").slice(0, 4), tr.dests.join(" → ")].filter(Boolean).join(" · ").toUpperCase()),
+          h("b", { attr: { style: `--n: ${Math.max(4, title.length)}` } }, title), h("span", { cls: "ct-set-mini-wticket-dates" }, [spanLabel(tr.start, tr.end), t("s5.nights", { n })].join(" · ")),
+          h("span", { cls: "ct-set-mini-ticket-who" }, tr.travelers.slice(0, 3).map(p => h("i", null, p.toUpperCase())))),
+        h("span", { cls: "ct-set-mini-wticket-stub" }, num ? [top && !/^(EN|IN)$/.test(top) ? h("small", null, top) : null, h("b", null, num), h("small", null, unit)] : h("i", null, w.pill.toUpperCase())));
+    };
+    const list = this.trips().slice(0, 2);
+    return h("span", { cls: "ct-set-mini-tickets" }, h("span", { cls: "ct-set-mini-cards is-2 is-desk" }, list.map(tk)), h("span", { cls: "ct-set-mini-wide" }, list.slice(0, 1).map(wide)));
   }
-  private baseYaml(kind: "trips" | "places", name: string): string {
-    const s = this.plugin.settings, r = kind === "trips" ? s.trips : s.places, P = s.props;
-    const q = (v: string) => JSON.stringify(v);
-    const filter = r.mode === "folder" ? `file.inFolder(${q(r.folder)})` : r.mode === "tag" ? `file.hasTag(${q(r.value.replace(/^#/, ""))})` : `note[${q(r.key)}] == ${q(r.value)}`;
-    const cols = (kind === "trips" ? ["file.name", P.start && `note.${P.start}`, P.end && `note.${P.end}`, P.destinations && `note.${P.destinations}`, P.travelers && `note.${P.travelers}`]
-      : ["file.name", P.city && `note.${P.city}`, P.category && `note.${P.category}`, P.rating && `note.${P.rating}`, P.visited && `note.${P.visited}`]).filter(Boolean);
-    const sortKey = kind === "trips" ? P.start : P.city;
-    const sort = sortKey ? `    sort:\n      - property: note.${sortKey}\n        direction: ${kind === "trips" ? "DESC" : "ASC"}\n` : "";
-    return `filters:\n  and:\n    - ${filter}\nviews:\n  - type: table\n    name: ${q(name)}\n    order:\n${cols.map(c => `      - ${c}`).join("\n")}\n${sort}`;
+  /* sin Cool Bases: la tabla de la guía, por ciudad */
+  private placeTable() {
+    const list = this.places(), first = list[0];
+    const rows = list.filter(p => p.city === first.city).map(p => [p.name, [p.category, p.price].filter(Boolean).join(" · "), p.visited ? "☑" : "☐"]);
+    return h("span", { cls: "ct-set-mini-guide" }, h("b", null, [first.city, first.country].filter(Boolean).join(" · ")),
+      this.miniTable([t("s5.colPlace"), t("s5.colCat"), t("s5.colSeen")], rows));
+  }
+  /* con Cool Bases: las filas oscuras, con el icono de la categoría en su color */
+  private placeRows() {
+    return h("span", { cls: "ct-set-mini-rows" }, this.places().slice(0, 3).map(p => h("span", { cls: "ct-set-mini-row" },
+      h("span", { cls: "ct-set-mini-row-ico", attr: { style: `background: ${hexOfPalette(catColor(p.category))}` } }, icon(iconFor(p.category))),
+      h("span", { cls: "ct-set-mini-row-text" }, h("b", null, p.name), h("span", null, [p.category, p.price].filter(Boolean).join(" · "))),
+      h("span", { cls: "ct-set-mini-row-check" + (p.visited ? " is-on" : "") }, p.visited ? icon("check") : null))));
   }
 
   /* 6 · Cool Bar: los ajustes compartidos del Cool Kit (los mismos datos que en los demás plugins Cool) */

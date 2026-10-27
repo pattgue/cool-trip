@@ -17,11 +17,31 @@ tablero, `path: "project/<Tablero>.dc.html"`). Patt edita el canvas a mano: lo q
 | 2 | Nuevo viaje y la nota del viaje (ordenador, móvil y Markdown), generados desde el plugin | hechos en el plugin |
 | 3 | El viaje en el escritorio, planteamiento antiguo | descartado |
 | 4 | Durante el viaje en el móvil (Hoy, ficha de lugar, mapa sin conexión), planteamiento antiguo | sin cerrar · **Decide Patt** si entra en la 1.0 |
-| 5 · 5b | Bases de viajes y de lugares | **diseño cerrado, falta hacerlo en el plugin** |
+| 5 · 5b | Bases de viajes y de lugares | hechas en el plugin (fase 1, versión 0.2.0) |
 
 Los tableros de las bases se generan con `design/bases/` (ver su README); son la especificación visual de la fase 1.
 
-## Fase 1 · Las bases en el plugin
+## Fase 1 · Las bases en el plugin · hecha (0.2.0)
+
+**Cómo quedó.** `src/bases.ts` escribe las dos bases (fórmulas, vistas nativas, vistas de Cool Bases con su modelo y su CSS libre,
+Mapa si está Maps, una vista por ciudad) y `src/keeper.ts` las mantiene: copia a cada viaje sin ubicación la de un lugar de su
+primera ciudad, escribe el color de cada billete en el bloque `/* cool-trip:colores */` del CSS libre y añade la vista de cada
+ciudad nueva (una vez; si se borra, no vuelve). En Ajustes › 5, si después se instala Maps o Cool Bases, salen los botones
+«Añadir el mapa» y «Usar el diseño de Cool Bases». `npm test` lee todas las fórmulas con un evaluador propio
+(`test/bases-eval.mjs`) y comprueba que dan lo del canvas; `node test/bases.mjs <carpeta de cool-bases compilado>` pinta las vistas
+de Cool Bases con el Cool Bases de verdad (`test/out/bases-*.png`). Las fórmulas siguen la documentación de Bases, pero solo
+Obsidian dice la última palabra: se comprueban en la beta.
+
+**Decidido con Patt (27-10-2026):** los lugares usan «portada» (`cover`) para su foto, como los viajes (fila «Foto» en Ajustes › 2,
+se puede cambiar); los viajes toman la ubicación de un lugar de su primera ciudad; sin Maps, la vista Mapa no se crea y el paso 5
+lo explica; las vistas de ciudad se añaden al crear la base y con cada ciudad nueva. Cool Bases (rama `cool-bar`): la configuración
+de la vista va en la clave `coolbases` del `.base`, el CSS libre se aplica anidado bajo la vista, no distingue el móvil (el billete
+apaisado sale con `.is-phone &`) y acepta imágenes `data:` desde una fórmula (así se dibujan los iconos de las categorías).
+
+**Lo que no se puede como en el canvas:** el menú de vistas de Bases no tiene secciones (las ciudades van después de Guía y Mapa),
+y en las tarjetas de ciudad con foto no sale la insignia redonda de la categoría (Cool Bases no superpone una segunda imagen).
+
+**Plan original:**
 
 Hoy `baseYaml()` (`src/settings-tab.ts`) crea cada base con una sola tabla. Hay que crear las vistas del canvas, con y sin
 Cool Bases, y rehacer las vistas previas del paso 5 de los ajustes para que se parezcan a ellas.
