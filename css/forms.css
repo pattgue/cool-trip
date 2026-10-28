@@ -51,3 +51,7 @@
 .ct-bag-pick[open] .ct-bag-menu { position: absolute; left: 0; bottom: calc(100% + 4px); z-index: 5; min-width: 220px; }
 .ct-input-other { width: 170px; height: 30px; font-size: 13px; }
 .ct-inline .ct-select { width: auto; flex: none; }
+/* el precio: su fila con la moneda y, debajo, «aún sin pagar» */
+.ct-price-f { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ct-price-f .ct-inline > input { flex: 1 1 auto; min-width: 70px; }
+.ct-unpaid input { margin: 0; }

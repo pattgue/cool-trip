@@ -224,7 +224,7 @@ export function tripsBase(s: Settings, env: BaseEnv): BaseDoc {
 /* la imagen de un lugar sin foto: el color de su categoría con su icono en el centro (un SVG en una URL data:) */
 export function tileUrl(env: BaseEnv, ico: string, col: string, w: number, h: number, size: number): string {
   const k = size / 24, x = (w - size) / 2, y = (h - size) / 2;
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w * 4}' height='${h * 4}' viewBox='0 0 ${w} ${h}'><rect width='${w}' height='${h}' fill='${HEX[col]}'/>` +
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w * 4}' height='${h * 4}' viewBox='0 0 ${w} ${h}'><rect width='${w}' height='${h}' fill='${col.startsWith("#") ? col : HEX[col]}'/>` +
     `<g transform='translate(${x} ${y}) scale(${k})' fill='none' stroke='${INK}' stroke-width='${size > 30 ? 1.8 : 1.9}' stroke-linecap='round' stroke-linejoin='round'>${env.iconSvg(ico).replace(/"/g, "'")}</g></svg>`;
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg).replace(/'/g, "%27");
 }
@@ -259,7 +259,7 @@ function placeFormulas(s: Settings, env: BaseEnv): Record<string, string> {
   const rating = P.rating ? `number(list(${nv(P.rating)})[0])` : "0";
   const f: Record<string, string> = {
     icon: byCat(e => q(e[1]), q(OTHER_ICON[0])),
-    color: byCat(e => q(HEX[e[2]]), q(HEX[OTHER_ICON[1]])),
+    color: byCat(e => q(e[2]), q(OTHER_ICON[1])),
     family: byCat(e => q(w.fam[e[3]]), q(w.fam[OTHER_ICON[2]])),
     cityCountry: P.country ? `${nv(P.city)} + if(${nv(P.country)}, " · " + ${nv(P.country)}, "")` : nv(P.city),
     catPrice: P.category && P.price ? `[${nv(P.category)}, ${nv(P.price)}].filter(value).join(" · ")` : P.category ? `${cat}` : '""',

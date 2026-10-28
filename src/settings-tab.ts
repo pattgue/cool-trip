@@ -22,7 +22,7 @@ import { bookingCard, fitRoutes } from "./plan";
 import type { PlanCtx } from "./plan";
 import { ticket } from "./ticket";
 import type { Doc, MapsApp, PropNames, Recog, RecogMode, Trip, Where } from "./types";
-import { button, coverHex, hexOfPalette, icon } from "./ui";
+import { button, coverHex, icon } from "./ui";
 
 const STEPS = 7;
 
@@ -493,7 +493,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
   /* con Cool Bases: las filas oscuras, con el icono de la categoría en su color */
   private placeRows() {
     return h("span", { cls: "ct-set-mini-rows" }, this.places().slice(0, 3).map(p => h("span", { cls: "ct-set-mini-row" },
-      h("span", { cls: "ct-set-mini-row-ico", attr: { style: `background: ${hexOfPalette(catColor(p.category))}` } }, icon(iconFor(p.category))),
+      h("span", { cls: "ct-set-mini-row-ico", attr: { style: `background: ${catColor(p.category)}` } }, icon(iconFor(p.category))),
       h("span", { cls: "ct-set-mini-row-text" }, h("b", null, p.name), h("span", null, [p.category, p.price].filter(Boolean).join(" · "))),
       h("span", { cls: "ct-set-mini-row-check" + (p.visited ? " is-on" : "") }, p.visited ? icon("check") : null))));
   }
