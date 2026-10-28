@@ -153,7 +153,10 @@
   color: var(--ct-strong); display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; text-align: left; }
 .ct-doc.is-paper { border-color: var(--ct-mustard) !important; }
 .ct-doc-name { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ct-doc-where { flex: none; font-size: 11px; font-weight: 600; color: var(--ct-muted); }
+.ct-doc-where { flex: none; display: inline-flex; gap: 4px; color: var(--ct-muted); }
+.ct-doc-where .ct-ico svg { width: 13px; height: 13px; }
+.is-phone .ct-paper-t { display: none; }
+.is-phone .ct-paper-tag { padding: 0 5px; }
 .ct-doc-para { flex: none; display: inline-flex; margin-left: 2px; }
 .ct-doc-para .ct-avatar-tag { width: 15px; height: 15px; font-size: 8px; }
 .ct-doc-para > * + * { margin-left: -4px; box-shadow: 0 0 0 1.5px var(--ct-page); }
@@ -189,7 +192,7 @@
 .ct-io-time { font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }
 /* entrada de toda la vida */
 .ct-admission { display: flex; }
-.ct-admit { flex: none; width: 40px; background: var(--ct-berm); color: var(--ct-ink); display: flex; align-items: center; justify-content: center; }
+.ct-admit { flex: none; width: 40px; background: var(--ct-acc, var(--ct-berm)); color: var(--ct-ink); display: flex; align-items: center; justify-content: center; }
 .ct-admit span { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; font-weight: 800; letter-spacing: .4em; white-space: nowrap; }
 .ct-notch-l, .ct-notch-r { position: absolute; top: 50%; margin-top: -12px; width: 24px; height: 24px; border-radius: 50%; background: var(--ct-page); }
 .ct-notch-l { left: -12px; } .ct-notch-r { right: -12px; }
@@ -228,3 +231,5 @@
 .ct-view.is-phone .ct-docs-row { flex-direction: column; align-items: stretch; gap: 12px; }
 .ct-view.is-phone .ct-card-collapsed { padding: 12px 14px; gap: 10px; }
 .ct-view.is-phone .ct-collapsed-title { font-size: 22px; }
+.ct-unpaid { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ct-muted); white-space: nowrap; }
+.ct-cost-budget.is-over .ct-num { color: var(--ct-berm); }

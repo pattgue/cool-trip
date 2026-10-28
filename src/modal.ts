@@ -65,6 +65,7 @@ export class NewTripModal extends Modal {
     const path = normalizePath((folder ? folder + "/" : "") + done.name.replace(/[\\/:*?"<>|]/g, "") + ".md");
     if (this.app.vault.getAbstractFileByPath(path)) { new Notice(t("new.exists")); return; }
     await ensureFolder(this.app, folder);
+    done.budget = tr.budget;
     const file = await this.app.vault.create(path, serializeTrip(done, s));
     this.close();
     const leaf = this.app.workspace.getLeaf("tab");

@@ -345,18 +345,20 @@ function lodgingCard(ctx: PlanCtx, it: Item, di: number, index: number, key: str
   card.setCssProps({ "--ct-key": color });
   return card;
 }
-function ticketCard(ctx: PlanCtx, it: Item, di: number, index: number, key: string): HTMLElement {
+function ticketCard(ctx: PlanCtx, it: Item, di: number, index: number, key: string, color: string): HTMLElement {
   const date = ctx.trip.days[di].date;
   const name = it.link || it.title, info = placeOf(ctx, it.link);
   if (ctx.collapsed.has(key)) return collapsedCard(ctx, key, it.time, name, t("k.ticket"), money(ctx, it.price));
-  const strip = h("div", { cls: "ct-admit", attr: { "aria-hidden": "true" } }, h("span", null, `${t("k.ticket")} · ${t("k.ticket")}`.toUpperCase()));
+  const strip = h("div", { cls: "ct-admit", attr: { "aria-hidden": "true" } }, h("span", null, t("k.ticket").toUpperCase()));
   const body = h("div", { cls: "ct-card-main" },
     kindRow(ctx, t("k.ticket"), it, di, index),
     h("div", { cls: "ct-name-row" }, h("span", { cls: "ct-name-col" }, placeLink(ctx, name, it.link, "ct-place-link is-big"),
-      h("span", { cls: "ct-sub" }, [info?.category, info?.city].filter(Boolean).join(" · "))), mapButton(ctx, name, info, date)),
+      h("span", { cls: "ct-sub" }, [info?.category, info?.city].filter(Boolean).join(" · "))), mapButton(ctx, name, info, date, "ct-map is-tinted")),
     details([[t("f.time"), it.time], [t("f.tickets"), field(it, "tickets")], [t("f.text"), field(it, "note")]]),
     docsRow(ctx, it, key, (() => { const n = peopleLabel(ctx, it).length; return n ? plural(n, t("k.ticket").toLowerCase(), t("f.tickets").toLowerCase()) : ""; })()));
-  return h("article", { cls: "ct-card ct-admission" }, strip, body, h("span", { cls: "ct-notch-l" }), h("span", { cls: "ct-notch-r" }));
+  const card = h("article", { cls: "ct-card ct-admission" }, strip, body, h("span", { cls: "ct-notch-l" }), h("span", { cls: "ct-notch-r" }));
+  card.setCssProps({ "--ct-key": color });
+  return card;
 }
 
 /* ---------- mover pasos: se arrastran por el asa (ratón o dedo) a otro sitio del mismo día o de otro ---------- */
@@ -429,7 +431,7 @@ function itemRow(ctx: PlanCtx, di: number, row: Extract<Row, { r: "item" }>): HT
   };
   if (isTransport(it.kind)) return card(transportIcon[it.kind], transportCard(ctx, it, di, index, key));
   if (it.kind === "lodging") return card("bed-double", lodgingCard(ctx, it, di, index, key, color));
-  if (it.kind === "ticket") return card("ticket", ticketCard(ctx, it, di, index, key));
+  if (it.kind === "ticket") return card("ticket", ticketCard(ctx, it, di, index, key, color));
   const priceSub = ctx.phone && it.price ? ` · ${money(ctx, it.price)}` : "";
   const handle = it.time ? h("span", { cls: "ct-grip-gap" }) : grip(ctx, di, index);   // lo que tiene hora se coloca solo
   let out: HTMLElement;
@@ -438,7 +440,8 @@ function itemRow(ctx: PlanCtx, di: number, row: Extract<Row, { r: "item" }>): HT
     const main = h("span", { cls: "ct-name-col" }, placeLink(ctx, name, it.link),
       h("span", { cls: "ct-sub" }, [info?.category, info?.city].filter(Boolean).join(" · ") + priceSub));
     out = rowEl(check(it.done, toggle), stepLine(ctx, it.time, bubble(iconFor(info?.category || "")), main, money(ctx, it.price),
-      [mapButton(ctx, name, info, date), editBtn(ctx, di, index, it), handle]));
+      [mapButton(ctx, name, info, date, "ct-map is-tinted"), editBtn(ctx, di, index, it), handle]));
+    out.setCssProps({ "--ct-key": color });
   } else if (it.kind === "meal") {
     const info = placeOf(ctx, it.link);
     const where = it.link ? placeLink(ctx, it.link, it.link, "ct-place-link is-small") : it.place ? h("span", { cls: "ct-sub-strong" }, it.place) : null;

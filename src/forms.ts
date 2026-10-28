@@ -116,16 +116,20 @@ function priceField(ctx: FormCtx, d: Item, key: string): HTMLElement {
   const sync = () => { d.price = withCurrency(num, cur); };
   return lab(t(key), h("span", { cls: "ct-inline" },
     input(num, v => { num = v.replace(/[^\d.,]/g, ""); sync(); }, { placeholder: "0", inputmode: "decimal" }),
-    select(cur, CURRENCIES.map(c => [c, c]), v => { cur = v || "€"; sync(); }, true)));
+    select(cur, CURRENCIES.map(c => [c, c]), v => { cur = v || "€"; sync(); }, true),
+    /* aún sin pagar: se ve, pero no suma en el coste */
+    h("label", { cls: "ct-unpaid" }, (() => { const c = h("input", { attr: { type: "checkbox" } }); c.checked = d.unpaid; c.addEventListener("change", () => { d.unpaid = c.checked; }); return c; })(), t("f.unpaid"))));
 }
 
 /* el buscador de lugares: una nota tuya o una nueva */
 function placePicker(ctx: FormCtx, d: Item, city: string, country: string, labelKey = "f.placeNote"): HTMLElement {
   const wrap = h("div", { cls: "ct-picker" });
-  let query = d.link ? "" : d.title;
-  const field_ = input(d.link || d.title, v => { query = v; d.link = ""; d.title = v; drawList(); }, { placeholder: t("f.placeNote"), autocomplete: "off" });
+  /* en una comida, el título es la comida («Comida», «Cena»): el restaurante va en el enlace o en el sitio */
+  const meal = d.kind === "meal", typed = meal ? d.place.trim() : d.title;
+  let query = d.link ? "" : typed;
+  const field_ = input(d.link || typed, v => { query = v; d.link = ""; if (meal) d.place = v; else d.title = v; drawList(); }, { placeholder: t("f.placeNote"), autocomplete: "off" });
   const list = h("div", { cls: "ct-picker-list", attr: { role: "listbox" } });
-  const pick = (name: string) => { d.link = name; d.title = name; field_.value = name; query = ""; drawList(); };
+  const pick = (name: string) => { d.link = name; if (meal) d.place = ""; else d.title = name; field_.value = name; query = ""; drawList(); };
   const drawList = () => {
     list.empty();
     const q = query.trim().toLowerCase();

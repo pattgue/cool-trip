@@ -5,7 +5,7 @@ export type RecogMode = "property" | "tag" | "folder";
 export interface Recog { mode: RecogMode; key: string; value: string; folder: string }
 
 export interface PropNames {
-  start: string; end: string; destinations: string; travelers: string; cover: string;
+  start: string; end: string; destinations: string; travelers: string; cover: string; budget: string;
   location: string; city: string; country: string; category: string; price: string; rating: string; visited: string; photo: string;
 }
 
@@ -32,7 +32,7 @@ export interface Settings {
 export type Where = "cloud" | "wallet" | "device" | "vault" | "paper";
 /* un documento: dónde está (el primero manda: su enlace o su etiqueta), en qué otros sitios lo llevas y de quién es */
 export interface Doc { name: string; where: Where; url: string; also: Where[]; para: string[] }
-export interface Task { text: string; done: boolean }
+export interface Task { text: string; done: boolean; due?: string }   // due: fecha límite (AAAA-MM-DD)
 export interface Dest { city: string; country: string; nights: number; travelers: string[] }
 
 export type TransportKind = "flight" | "train" | "bus" | "car" | "boat";
@@ -50,6 +50,7 @@ export interface Item {
   link: string;                // [[nota]] del lugar (alojamiento, entrada, comida, vuelta…), o «»
   place: string;               // texto del sitio si no es una nota (una comida «en casa», un restaurante sin nota)
   price: string;               // «920 €»
+  unpaid: boolean;             // con precio, pero aún sin pagar (no suma en el coste)
   para: string[];              // para quién es (vacío = todos)
   fields: Field[];             // los subelementos «- Clave: valor · Clave: valor», menos los documentos
   docs: Doc[];
@@ -67,9 +68,11 @@ export interface Trip {
   dests: Dest[];
   travelers: string[];
   cover: string;               // nombre de la paleta, o ruta / URL de una imagen
+  budget: number;              // lo que se espera gastar (0: sin presupuesto)
   accent: string;              // id de la paleta del viaje (si la portada es una imagen, el último color elegido)
   mochila: Doc[];
   tasks: Task[];
+  packing: Task[];             // la maleta: hecho = ya dentro
   hidden: string[];            // sugerencias de «Por hacer» que se han quitado (no vuelven a salir)
   days: Day[];                 // uno por fecha, más los que quedaron fuera de las fechas
   intro: string[];             // lo que haya antes de las secciones (se respeta)

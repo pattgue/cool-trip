@@ -6,10 +6,10 @@
 import { getIcon, normalizePath, parseYaml, stringifyYaml, TFile } from "obsidian";
 import type { App } from "obsidian";
 import type CoolTripPlugin from "./main";
-import { oldFilter, placesBase, syncBase, tripColorsCss, tripsBase } from "./bases";
+import { CITY_CSS, CSS_START, oldFilter, placeBadgesCss, placesBase, syncBase, tripColorsCss, tripsBase } from "./bases";
 import type { BaseDoc, BaseEnv, BaseKind } from "./bases";
 import type { Settings } from "./types";
-import { allPlaces, ensureFolder, isTripFile } from "./places";
+import { allPlaces, catColor, ensureFolder, iconFor, isTripFile } from "./places";
 import { propKey } from "./settings";
 import { coverHex } from "./ui";
 import { toList } from "./md";
@@ -37,6 +37,19 @@ function fixFilter(doc: BaseDoc, kind: BaseKind, s: Settings, env: BaseEnv): boo
   if (!isOldFilter(doc, kind, s)) return false;
   doc.filters = (kind === "trips" ? tripsBase(s, env) : placesBase(s, env, [])).filters;
   return true;
+}
+/* lo que cambia de una versión a otra en lo que es de Cool Trip: sus fórmulas, las coordenadas del mapa y el CSS de las ciudades */
+function refresh(doc: BaseDoc, kind: BaseKind, s: Settings, env: BaseEnv): boolean {
+  const fresh = kind === "trips" ? tripsBase(s, env) : placesBase(s, env, []);
+  let ch = false;
+  const f = doc.formulas ??= {};
+  for (const [k, v] of Object.entries(fresh.formulas || {})) if (f[k] !== v) { f[k] = v; ch = true; }
+  for (const view of doc.views || []) {
+    if (view.type === "map" && view.coordinates === "note." + s.props.location) { view.coordinates = "formula.loc"; ch = true; }
+    const m = view.coolbases as { css?: unknown } | undefined;
+    if (view.type === "cool-bases" && m && typeof m.css === "string" && m.css.startsWith(CITY_CSS.slice(0, 40)) && !m.css.includes(CSS_START)) { m.css = CITY_CSS; ch = true; }
+  }
+  return ch;
 }
 
 export class BaseKeeper {
@@ -142,8 +155,12 @@ export class BaseKeeper {
     try {
       await this.locateTrips();
       const s = this.plugin.settings, env = this.env();
-      if (this.file("trips")) { const colors = await this.colors(); await this.edit("trips", doc => { const a = fixFilter(doc, "trips", s, env), b = syncBase(doc, "trips", s, env, { colors }); return a || b; }); }
-      if (this.file("places")) await this.edit("places", doc => fixFilter(doc, "places", s, env));
+      if (this.file("trips")) { const colors = await this.colors(); await this.edit("trips", doc => [fixFilter(doc, "trips", s, env), refresh(doc, "trips", s, env), syncBase(doc, "trips", s, env, { colors })].some(Boolean)); }
+      if (this.file("places")) {
+        const colors = placeBadgesCss(env, allPlaces(this.app, s).filter(p => p.photo).sort((a, b) => a.file.path.localeCompare(b.file.path))
+          .map(p => ({ path: p.file.path, icon: iconFor(p.category), color: catColor(p.category) })));
+        await this.edit("places", doc => [fixFilter(doc, "places", s, env), refresh(doc, "places", s, env), syncBase(doc, "places", s, env, { colors })].some(Boolean));
+      }
       if (this.file("places")) {
         const fresh = this.cities().filter(c => !s.baseCities.includes(c.toLowerCase()));
         if (fresh.length) {

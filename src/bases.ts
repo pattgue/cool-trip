@@ -5,7 +5,7 @@
    Lo que Cool Trip vuelve a tocar después (syncBase) es solo lo suyo: el bloque marcado del CSS libre y las vistas de ciudades nuevas. */
 import type { Recog, Settings } from "./types";
 import { ICONS, OTHER_ICON } from "./places";
-import { twinRecog } from "./settings";
+import { twinProp, twinRecog } from "./settings";
 import type { Family } from "./places";
 import { locale } from "./i18n";
 
@@ -42,6 +42,8 @@ export const viewNames = () => { const w = words(); return { upcoming: w.upcomin
 /* ---------- piezas de las fórmulas ---------- */
 const q = (v: string) => JSON.stringify(v);
 const note = (p: string) => `note[${q(p)}]`;
+/* una propiedad de los ajustes o, si la nota la tiene con el nombre del otro idioma, esa */
+const nv = (p: string) => { const t = twinProp(p); return t ? `if(${note(p)}, ${note(p)}, ${note(t)})` : note(p); };
 /* un if() encadenado: [condición, valor]… y lo que queda */
 const chain = (cases: [string, string][], last: string) => cases.reduceRight((acc, [c, v]) => `if(${c}, ${v}, ${acc})`, last);
 const DAY = 86400000;
@@ -68,8 +70,8 @@ export function oldFilter(r: Recog): string {
 /* ---------- base de viajes ---------- */
 function tripFormulas(s: Settings): Record<string, string> {
   const P = s.props, w = words();
-  const S = `date(${note(P.start)})`, E = `date(${note(P.end || P.start)})`;
-  const cover = P.cover ? note(P.cover) : '""';
+  const S = `date(${nv(P.start)})`, E = `date(${nv(P.end || P.start)})`;
+  const cover = P.cover ? nv(P.cover) : '""';
   const swatch = chain([[`!${cover}`, q(HEX.bermellon)], ...PAL_RE.map(([id, re]) => [`/${re}/i.matches(${cover}.toString())`, q(HEX[id])] as [string, string])], '""');
   const f: Record<string, string> = {
     nights: days(E, S),
@@ -93,14 +95,14 @@ function tripFormulas(s: Settings): Record<string, string> {
     nightsLabel: `formula.nights + " " + if(formula.nights == 1, ${q(w.night)}, ${q(w.nights)})`,
     /* «Italia y Grecia» (el nombre sin el año) y «LISBOA → OPORTO» */
     title: 'file.basename.replace(/^\\d{4}\\s*-\\s*/, "")',
-    route: `list(${note(P.destinations)}).join(" → ")`,
+    route: `list(${nv(P.destinations)}).join(" → ")`,
     /* «24 – 30 oct» y el año aparte; en el móvil, «24 – 30 oct 2026 · 6 noches» */
     dates: `(if(${S}.format("YYYY-MM") == ${E}.format("YYYY-MM"), ${S}.format("D"), ${S}.format("D MMM")) + " – " + ${E}.format("D MMM")).replace(".", "")`,
     year: `${S}.format("YYYY")`,
     datesYear: 'formula.dates + " " + formula.year',
     datesNights: 'formula.datesYear + " · " + formula.nightsLabel',
     yearRoute: 'formula.year + " · " + formula.route',
-    who: P.travelers ? `list(${note(P.travelers)}).join(", ")` : '""',
+    who: P.travelers ? `list(${nv(P.travelers)}).join(", ")` : '""',
     nightsWho: `formula.nightsLabel + if(formula.who, " · " + formula.who, "")`,
     /* el color del viaje (#rrggbb, el de su paleta) y la portada: el color, o la imagen si la portada es una foto */
     swatch,
@@ -108,6 +110,7 @@ function tripFormulas(s: Settings): Record<string, string> {
     cover: `if(formula.swatch, formula.swatch, ${cover})`,
     photo: `if(formula.swatch, "", ${cover})`,
     pin: '"plane"',
+    loc: P.location ? nv(P.location) : '""',
   };
   return f;
 }
@@ -200,7 +203,7 @@ function ticketModel(s: Settings): Record<string, unknown> {
 
 export function tripsBase(s: Settings, env: BaseEnv): BaseDoc {
   const P = s.props, v = viewNames();
-  const S = note(P.start), E = note(P.end || P.start);
+  const S = nv(P.start), E = nv(P.end || P.start);
   const cards = (name: string, filter: string, o: Record<string, unknown>, ratio: number, lines: string[]): View => env.cool
     ? { type: "cool-bases", name, filters: { and: [filter] }, ...o, order: ["file.name"], coolbases: ticketModel(s) }
     : { type: "cards", name, filters: { and: [filter] }, ...o, order: ["file.name", ...lines], image: "formula.cover", imageFit: "cover", imageAspectRatio: ratio, cardSize: 240 };
@@ -219,40 +222,51 @@ export function tripsBase(s: Settings, env: BaseEnv): BaseDoc {
 
 /* ---------- base de lugares ---------- */
 /* la imagen de un lugar sin foto: el color de su categoría con su icono en el centro (un SVG en una URL data:) */
+export function tileUrl(env: BaseEnv, ico: string, col: string, w: number, h: number, size: number): string {
+  const k = size / 24, x = (w - size) / 2, y = (h - size) / 2;
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w * 4}' height='${h * 4}' viewBox='0 0 ${w} ${h}'><rect width='${w}' height='${h}' fill='${HEX[col]}'/>` +
+    `<g transform='translate(${x} ${y}) scale(${k})' fill='none' stroke='${INK}' stroke-width='${size > 30 ? 1.8 : 1.9}' stroke-linecap='round' stroke-linejoin='round'>${env.iconSvg(ico).replace(/"/g, "'")}</g></svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg).replace(/'/g, "%27");
+}
+/* el icono de la categoría encima de la foto de cada lugar (las tarjetas no pueden pintar dos imágenes): un bloque por icono */
+export function placeBadgesCss(env: BaseEnv, places: { path: string; icon: string; color: string }[]): string {
+  const by = new Map<string, string[]>();
+  for (const p of places) { const k = p.icon + "|" + p.color; by.set(k, [...(by.get(k) || []), p.path]); }
+  return [...by].map(([k, paths]) => { const [ico, col] = k.split("|");
+    return `& .cb-card:is(${paths.map(x => `[data-path=${JSON.stringify(x)}]`).join(", ")}) .cb-media::after { content: ""; background-image: url("${tileUrl(env, ico, col, 30, 30, 16)}"); }`; }).join("\n");
+}
 function tileUrls(env: BaseEnv, w: number, h: number, size: number): string {
   const all = [...ICONS.map(([, i, c]) => [i, c] as [string, string]), [OTHER_ICON[0], OTHER_ICON[1]] as [string, string]];
   const seen = new Set<string>(), cases: [string, string][] = [];
   for (const [ico, col] of all) {
     if (seen.has(ico)) continue;
     seen.add(ico);
-    const k = size / 24, x = (w - size) / 2, y = (h - size) / 2;
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w * 4}' height='${h * 4}' viewBox='0 0 ${w} ${h}'><rect width='${w}' height='${h}' fill='${HEX[col]}'/>` +
-      `<g transform='translate(${x} ${y}) scale(${k})' fill='none' stroke='${INK}' stroke-width='${size > 30 ? 1.8 : 1.9}' stroke-linecap='round' stroke-linejoin='round'>${env.iconSvg(ico).replace(/"/g, "'")}</g></svg>`;
-    cases.push([`formula.icon == ${q(ico)}`, q("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg).replace(/'/g, "%27"))]);
+    cases.push([`formula.icon == ${q(ico)}`, q(tileUrl(env, ico, col, w, h, size))]);
   }
   return chain(cases.slice(0, -1), cases[cases.length - 1][1]);
 }
 function placeFormulas(s: Settings, env: BaseEnv): Record<string, string> {
   const P = s.props, w = words();
-  const cat = P.category ? `${note(P.category)}.toString()` : '""';
+  const cat = P.category ? `${nv(P.category)}.toString()` : '""';
   const byCat = (pick: (e: (typeof ICONS)[number]) => string, last: string) =>
     P.category ? chain(ICONS.map(e => [`/${e[0].source}/i.matches(${cat})`, pick(e)] as [string, string]), last) : last;
-  const rating = P.rating ? `number(list(${note(P.rating)})[0])` : "0";
+  const rating = P.rating ? `number(list(${nv(P.rating)})[0])` : "0";
   const f: Record<string, string> = {
     icon: byCat(e => q(e[1]), q(OTHER_ICON[0])),
     color: byCat(e => q(HEX[e[2]]), q(HEX[OTHER_ICON[1]])),
     family: byCat(e => q(w.fam[e[3]]), q(w.fam[OTHER_ICON[2]])),
-    cityCountry: P.country ? `${note(P.city)} + if(${note(P.country)}, " · " + ${note(P.country)}, "")` : note(P.city),
-    catPrice: P.category && P.price ? `[${note(P.category)}, ${note(P.price)}].filter(value).join(" · ")` : P.category ? `${cat}` : '""',
-    stars: P.rating ? `if(${note(P.rating)}, "★".repeat(${rating}) + "☆".repeat(5 - ${rating}), "")` : '""',
-    seen: P.visited ? `if(${note(P.visited)}, ${q(w.visited)}, ${q(w.toVisit)})` : '""',
+    cityCountry: P.country ? `${nv(P.city)} + if(${nv(P.country)}, " · " + ${nv(P.country)}, "")` : nv(P.city),
+    catPrice: P.category && P.price ? `[${nv(P.category)}, ${nv(P.price)}].filter(value).join(" · ")` : P.category ? `${cat}` : '""',
+    stars: P.rating ? `if(${nv(P.rating)}, "★".repeat(${rating}) + "☆".repeat(5 - ${rating}), "")` : '""',
+    seen: P.visited ? `if(${nv(P.visited)}, ${q(w.visited)}, ${q(w.toVisit)})` : '""',
     /* los viajes que enlazan este lugar (los reconoce igual que los ajustes) */
     trips: `file.backlinks.filter(${recogOf(s.trips, "file(value)")})`,
     tripNames: "formula.trips.map(file(value).basename).join(\", \")",
     tile: tileUrls(env, 52, 52, 24),
     thumb: tileUrls(env, 212, 130, 34),
-    photo: P.photo ? `if(${note(P.photo)}, ${note(P.photo)}, formula.thumb)` : "formula.thumb",
-    cover: P.photo ? `if(${note(P.photo)}, ${note(P.photo)}, formula.color)` : "formula.color",
+    photo: P.photo ? `if(${nv(P.photo)}, ${nv(P.photo)}, formula.thumb)` : "formula.thumb",
+    cover: P.photo ? `if(${nv(P.photo)}, ${nv(P.photo)}, formula.color)` : "formula.color",
+    loc: P.location ? nv(P.location) : '""',
   };
   return f;
 }
@@ -275,7 +289,7 @@ const ROW_CSS = `/* Cool Trip · filas oscuras: el icono de la categoría en su 
 & .cb-ck { width: 26px !important; height: 26px !important; border-radius: 7px; border-width: 2px !important; }
 & .cb-st:not(.is-on) .cb-ck { border-color: #5a5a5e; }
 .is-phone & .cb-grid { gap: 8px !important; }`;
-const CITY_CSS = `/* Cool Trip · tarjetas de una ciudad: la foto (o el color de la categoría) arriba y la casilla encima */
+export const CITY_CSS = `/* Cool Trip · tarjetas de una ciudad: la foto (o el color de la categoría) arriba y la casilla encima */
 & .cb-card .cb-media { flex: none !important; height: 130px; min-height: 0 !important; }
 & .cb-card .cb-body { padding: 12px 14px 14px !important; gap: 6px; }
 & .cb-l { margin: 0 !important; padding: 0 !important; line-height: 1.25; }
@@ -287,7 +301,12 @@ const CITY_CSS = `/* Cool Trip · tarjetas de una ciudad: la foto (o el color de
 & .cb-ck { width: 26px !important; height: 26px !important; border-radius: 7px; border-width: 2px !important; }
 & .cb-st:not(.is-on) .cb-ck { background: rgba(20, 20, 20, .35); }
 .is-phone & .cb-grid { --cb-cw: 150px !important; gap: 10px !important; }
-.is-phone & .cb-card .cb-media { height: 104px; }`;
+.is-phone & .cb-card .cb-media { height: 104px; }
+& .cb-card .cb-media { position: relative; }
+& .cb-card .cb-media::after { position: absolute; left: 10px; bottom: 10px; width: 30px; height: 30px; border-radius: 8px; background-size: cover; box-shadow: 0 1px 4px rgba(0, 0, 0, .35); }
+.is-phone & .cb-card .cb-media::after { left: 8px; bottom: 8px; width: 26px; height: 26px; border-radius: 7px; }
+${CSS_START}
+${CSS_END}`;
 
 function placeModel(s: Settings, city: boolean): Record<string, unknown> {
   const P = s.props;
@@ -314,7 +333,7 @@ function placeModel(s: Settings, city: boolean): Record<string, unknown> {
 /* la vista de una ciudad: sus lugares por tipo (ver, comer, pasear…) */
 export function cityView(s: Settings, env: BaseEnv, city: string): View {
   const w = words(), P = s.props;
-  const base = { name: city, filters: { and: [`${note(P.city)} == ${q(city)}`] },
+  const base = { name: city, filters: { and: [`${nv(P.city)} == ${q(city)}`] },
     groupBy: { property: "formula.family", direction: "ASC" }, groupOrder: (["see", "eat", "walk", "sleep", "other"] as Family[]).map(f => w.fam[f]) };
   return env.cool
     ? { type: "cool-bases", ...base, order: ["file.name"], coolbases: placeModel(s, true) }
@@ -337,7 +356,7 @@ export function placesBase(s: Settings, env: BaseEnv, cities: string[]): BaseDoc
 export function mapView(s: Settings, kind: BaseKind): View {
   const P = s.props;
   return { type: "map", name: viewNames().map, order: kind === "trips" ? ["file.name", "formula.datesNights", "note." + P.destinations] : ["file.name", "formula.catPrice"],
-    coordinates: "note." + P.location, markerIcon: kind === "trips" ? "formula.pin" : "formula.icon", markerColor: "formula.color" };
+    coordinates: "formula.loc", markerIcon: kind === "trips" ? "formula.pin" : "formula.icon", markerColor: "formula.color" };
 }
 const displayNames = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, { displayName: v }]));
 

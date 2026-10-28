@@ -2,9 +2,9 @@
 import type { PropNames, Recog, Settings } from "./types";
 
 const PROPS: Record<"es" | "en", PropNames> = {
-  es: { start: "inicio", end: "fin", destinations: "destinos", travelers: "viajeros", cover: "portada",
+  es: { start: "inicio", end: "fin", destinations: "destinos", travelers: "viajeros", cover: "portada", budget: "presupuesto",
     location: "ubicación", city: "ciudad", country: "país", category: "categoría", price: "precio", rating: "valoración", visited: "visitado", photo: "portada" },
-  en: { start: "start", end: "end", destinations: "destinations", travelers: "travelers", cover: "cover",
+  en: { start: "start", end: "end", destinations: "destinations", travelers: "travelers", cover: "cover", budget: "budget",
     location: "location", city: "city", country: "country", category: "category", price: "price", rating: "rating", visited: "visited", photo: "cover" },
 };
 export const suggestedProps = (lang: "es" | "en"): PropNames => ({ ...PROPS[lang] });
@@ -116,4 +116,12 @@ export function tripFolder(s: Settings): string {
 export function placeFolder(s: Settings, city: string): string {
   if (s.autoOrganize) return [AUTO_FOLDERS[s.language].places, city.trim()].filter(Boolean).join("/");
   return s.placeFolder.replace(/^\/+|\/+$/g, "");
+}
+/* el nombre de la misma propiedad en el otro idioma («categoría» ↔ «category»), o "" si no es uno de los nombres por defecto */
+export function twinProp(name: string): string {
+  for (const l of ["es", "en"] as const) {
+    const k = (Object.keys(PROPS[l]) as (keyof PropNames)[]).find(x => PROPS[l][x] === name);
+    if (k && PROPS[other(l)][k] !== name) return PROPS[other(l)][k];
+  }
+  return "";
 }
