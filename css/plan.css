@@ -194,6 +194,9 @@
 .ct-admission { display: flex; }
 .ct-admit { flex: none; width: 40px; background: var(--ct-acc, var(--ct-berm)); color: var(--ct-ink); display: flex; align-items: center; justify-content: center; }
 .ct-admit span { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; font-weight: 800; letter-spacing: .4em; white-space: nowrap; }
+/* la palabra a un lado y el lugar al otro */
+.ct-admit { flex-direction: column-reverse; justify-content: space-between; padding: 14px 0; overflow: hidden; }
+.ct-admit .ct-admit-name { min-height: 0; max-height: 60%; overflow: hidden; text-overflow: ellipsis; letter-spacing: .2em; opacity: .75; }
 .ct-notch-l, .ct-notch-r { position: absolute; top: 50%; margin-top: -12px; width: 24px; height: 24px; border-radius: 50%; background: var(--ct-page); }
 .ct-notch-l { left: -12px; } .ct-notch-r { right: -12px; }
 /* contraída */
@@ -227,9 +230,29 @@
 .ct-view.is-phone .ct-io-time { font-size: 19px; }
 .ct-view.is-phone .ct-admit { width: auto; height: 34px; }
 .ct-view.is-phone .ct-admit span { writing-mode: horizontal-tb; transform: none; }
+.ct-view.is-phone .ct-admit { flex-direction: row; align-items: center; padding: 0 14px; gap: 12px; }
+.ct-view.is-phone .ct-admit .ct-admit-name { max-height: none; min-width: 0; }
 .ct-view.is-phone .ct-notch-l { display: none; }
 .ct-view.is-phone .ct-docs-row { flex-direction: column; align-items: stretch; gap: 12px; }
 .ct-view.is-phone .ct-card-collapsed { padding: 12px 14px; gap: 10px; }
 .ct-view.is-phone .ct-collapsed-title { font-size: 22px; }
 .ct-unpaid { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ct-muted); white-space: nowrap; }
 .ct-cost-budget.is-over .ct-num { color: var(--ct-berm); }
+
+/* los sitios de un documento: icono; el nombre solo en la mochila del ordenador */
+.ct-where { display: inline-flex; align-items: center; gap: 3px; }
+.ct-where-t, .ct-paper-t { display: none; }
+.ct-doc.is-full .ct-where-t, .ct-doc.is-full .ct-paper-t { display: inline; font-size: 11px; font-weight: 600; }
+.ct-doc.is-full .ct-paper-t { font-size: inherit; font-weight: inherit; }
+.ct-view.is-phone .ct-doc .ct-where-t, .ct-view.is-phone .ct-doc .ct-paper-t { display: none; }
+.ct-doc:not(.is-full) .ct-paper-tag, .ct-view.is-phone .ct-paper-tag { padding: 0 5px; }
+/* traer un documento de la mochila: un botón con borde, cuántos hay y su flecha */
+.ct-bag-pick > summary.ct-bag-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 12px; border-radius: 999px;
+  border: 1.5px solid var(--ct-line); background: var(--ct-page); color: var(--ct-strong); font-size: 13px; font-weight: 700; }
+.ct-bag-pick > summary.ct-bag-btn:hover { border-color: var(--ct-muted); }
+.ct-bag-btn .ct-ico svg { width: 14px; height: 14px; }
+.ct-bag-btn > .ct-ico:last-child { color: var(--ct-muted); transition: transform .15s; }
+.ct-bag-pick:not([open]) .ct-bag-btn > .ct-ico:last-child { transform: rotate(180deg); }
+.ct-bag-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--ct-line); font-size: 11px; line-height: 18px; text-align: center; }
+/* sin pagar: el precio se apaga y lleva un subrayado de puntos */
+.is-unpaid :is(.ct-price, .ct-price-big) { opacity: .5; text-decoration: underline dotted; text-underline-offset: 4px; }

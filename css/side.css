@@ -48,9 +48,11 @@
 .ct-task-due.is-late { color: var(--ct-berm); }
 .ct-task-due input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
 .is-mobile .ct-task-due.ct-hover { opacity: 1; }
-/* la maleta, dentro de la mochila */
-.ct-pack { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--ct-line); }
-.ct-pack-head { all: unset; display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--ct-strong); }
+/* la maleta: un bolsillo dentro de la mochila (fondo un poco hundido y una costura de puntos) */
+.ct-pack { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; padding: 10px 12px 12px; border-radius: 14px;
+  background: color-mix(in srgb, var(--ct-strong) 4%, transparent); box-shadow: inset 0 1px 3px rgba(0, 0, 0, .12);
+  outline: 1.5px dashed color-mix(in srgb, var(--ct-strong) 16%, transparent); outline-offset: -5px; }
+.ct-pack-head { all: unset; display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ct-muted); }
 .ct-pack-head .ct-ico svg { width: 14px; height: 14px; }
 .ct-pack-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .ct-pack-item { position: relative; display: inline-flex; }
@@ -60,5 +62,12 @@
 .ct-pack-item.is-in .ct-pack-pill { border-style: solid; border-color: transparent; background: color-mix(in srgb, var(--ct-acc) 22%, transparent); color: var(--ct-strong); }
 .ct-pack-x { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; }
 .ct-pack-item:hover .ct-pack-x { opacity: 1; }
-.ct-pack-input { height: 30px; font-size: 12px; }
+.ct-pack-input { height: 30px; font-size: 12px; background: transparent !important; }
 .is-mobile .ct-pack-x { opacity: .7; }
+.ct-task-due.is-soon { color: color-mix(in srgb, var(--ct-mustard) 55%, var(--ct-berm)); }
+/* el presupuesto: un botón propio (no edita la caja) y su barra, blanca hasta que queda poco */
+.ct-cost-budget { --ct-budget: var(--text-normal); }
+.ct-budget-btn { all: unset; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.ct-budget-btn:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
+.ct-budget-btn .ct-ico svg { width: 13px; height: 13px; }
+.ct-budget-add { align-self: flex-start; }

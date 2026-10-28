@@ -18,7 +18,8 @@ export const firstWhere = (s: Settings): Where => wheresOf(s)[0];
 const whereIcon = (w: Where) => w === "wallet" ? "wallet" : w === "vault" ? "file" : w === "paper" ? "file-text" : w === "device" ? "smartphone" : "cloud";
 
 /* un documento: un botón fino de una línea (los viajeros, como etiqueta; los sitios, a la derecha) */
-export function docButton(ctx: { openDoc(d: Doc): void }, d: Doc, travelers: string[] = []): HTMLElement {
+/* full: en la mochila del ordenador, los sitios llevan también su nombre; en las reservas y en el móvil, solo el icono */
+export function docButton(ctx: { openDoc(d: Doc): void }, d: Doc, travelers: string[] = [], full = false): HTMLElement {
   const all = docWheres(d), paper = all.includes("paper");
   const others = all.filter(w => w !== "paper");
   /* solo el formato, como icono (el nombre del servicio, sin el enlace, queda en la etiqueta) */
@@ -30,10 +31,10 @@ export function docButton(ctx: { openDoc(d: Doc): void }, d: Doc, travelers: str
       d.para.map(p => avatar(p, Math.max(0, travelers.indexOf(p)), "ct-avatar ct-avatar-tag"))) : null,
     h("span", { cls: "ct-grow" }),
     others.length ? h("span", { cls: "ct-doc-where", attr: { "aria-label": others.map(whereText).join(" · ") } },
-      others.map(w => { const e = icon(whereIcon(w)); e.setAttr("title", whereText(w)); return e; })) : null,
+      others.map(w => { const e = h("span", { cls: "ct-where", attr: { title: whereText(w) } }, icon(whereIcon(w)), h("span", { cls: "ct-where-t" }, whereText(w))); return e; })) : null,
     paper ? h("span", { cls: "ct-paper-tag", attr: { title: t("w.paper") } }, icon("file-text"), h("span", { cls: "ct-paper-t" }, t("paper"))) : null,
     d.where !== "paper" ? icon("arrow-up-right", "ct-ico ct-ico-xs") : null,
-  ], "ct-doc" + (paper ? " is-paper" : ""), () => ctx.openDoc(d));
+  ], "ct-doc" + (paper ? " is-paper" : "") + (full ? " is-full" : ""), () => ctx.openDoc(d));
 }
 
 export interface DocFormOpts {
@@ -87,7 +88,7 @@ export function docForm(o: DocFormOpts): HTMLElement {
     }
     const bag = (o.bag || []).filter(b => b.name);
     box.appendChild(h("div", { cls: "ct-form-foot" },
-      bag.length ? h("details", { cls: "ct-bag-pick" }, h("summary", { cls: "ct-link-btn" }, icon("backpack"), t("f.fromBag")),
+      bag.length ? h("details", { cls: "ct-bag-pick" }, h("summary", { cls: "ct-bag-btn" }, icon("backpack"), t("f.fromBag"), h("span", { cls: "ct-bag-n" }, String(bag.length)), icon("chevron-up")),
         h("div", { cls: "ct-bag-menu" }, bag.map(b => button([h("span", { cls: "ct-grow" }, b.name), b.para.length ? h("span", { cls: "ct-sub" }, b.para.join(", ")) : null], "ct-option", () => o.onSave({ ...b, also: [...b.also], para: [...b.para] }))))) : null,
       h("span", { cls: "ct-grow" }),
       button(t("f.cancel"), "ct-btn-ghost is-small", () => o.onCancel()),
