@@ -34,6 +34,8 @@ const boldRe = /^\*\*(.+)\*\*$/;
 /* «60 €», «$60», «¥3.000», «45 CHF»: un número con su moneda (símbolo o código ISO en mayúsculas) */
 export const CURRENCIES = ["€", "$", "£", "¥", "CHF", "₩", "฿", "kr", "zł", "R$", "MXN", "ARS", "COP", "CLP", "PEN", "MAD", "TRY", "CZK", "HUF", "INR", "AUD", "CAD"];
 const PREFIX = new Set(["$", "£", "¥", "₩", "฿", "R$"]);
+/* «por pagar» después del precio: cuesta, pero aún no se ha pagado */
+const UNPAID_RE = /^(?:por pagar|sin pagar|unpaid|to pay)$/i;
 const priceRe = /^(?:(?:R\$|[€$£¥₩฿])\s?\d[\d.,]*|\d[\d.,]*(?:\s?(?:€|\$|£|¥|₩|฿|kr|zł|[A-Z]{3}))?)$/;
 export const linkTarget = (s: string) => { const m = linkRe.exec(s.trim()); return m ? m[1] : ""; };
 export function splitNames(s: string): string[] {
@@ -203,7 +205,7 @@ export function joinWhen(date: string, time: string, at: string): string {
 
 /* ---------- un paso del plan ---------- */
 export const newItem = (kind: Kind, over: Partial<Item> = {}): Item => ({
-  kind, check: !isTransport(kind) && kind !== "lodging", done: false, time: "", title: "", link: "", place: "", price: "", para: [],
+  kind, check: !isTransport(kind) && kind !== "lodging", done: false, time: "", title: "", link: "", place: "", price: "", unpaid: false, para: [],
   fields: [], docs: [], extra: [], ...over,
 });
 function mealWord(s: string): string | null {
@@ -256,6 +258,7 @@ export function parseItem(line: string): Item {
     const para = /^(?:para|for)\s+(.+)$/i.exec(s);
     if (para) it.para = splitNames(para[1]);
     else if (priceRe.test(s)) it.price = s;
+    else if (UNPAID_RE.test(s)) it.unpaid = true;
     else it.extra.push(s);
   }
   return it;
@@ -293,7 +296,7 @@ export function itemMd(it: Item, v: Vocab = vocab()): string[] {
     default: head += `**${it.title}**`;
   }
   for (const e of it.extra) head += ` · ${e}`;
-  if (it.price) head += ` · ${it.price}`;
+  if (it.price) head += ` · ${it.price}` + (it.unpaid ? ` · ${v.unpaid}` : "");
   if (it.para.length) head += ` · ${v.for} ${joinNames(it.para)}`;
   const out = [head];
   const lines = new Map<number, Field[]>();
@@ -317,10 +320,11 @@ export function toList(x: unknown): string[] {
   if (typeof x === "string" && x.trim()) return x.split(",").map(s => s.trim()).filter(Boolean);
   return [];
 }
-const SECTION = (title: string): "bag" | "todo" | "plan" | null => {
+const SECTION = (title: string): "bag" | "pack" | "todo" | "plan" | null => {
   const t = low(title);
   for (const v of BOTH) {
     if (t === low(v.bag)) return "bag";
+    if (t === low(v.pack)) return "pack";
     if (t === low(v.todo)) return "todo";
     if (t === low(v.plan)) return "plan";
   }
@@ -364,10 +368,10 @@ export const tripDates = (t: Trip) => range(t.start, t.end);
 
 /* los nombres de las propiedades del viaje tal y como los usa esta nota */
 const props = (s: Settings, fm: Record<string, unknown>) =>
-  Object.fromEntries((["start", "end", "destinations", "travelers", "cover"] as const).map(k => [k, propKey(s, k, fm)])) as Pick<PropNames, "start" | "end" | "destinations" | "travelers" | "cover">;
+  Object.fromEntries((["start", "end", "destinations", "travelers", "cover", "budget"] as const).map(k => [k, propKey(s, k, fm)])) as Pick<PropNames, "start" | "end" | "destinations" | "travelers" | "cover" | "budget">;
 
 export function parseTrip(text: string, name: string, s: Settings): Trip {
-  const t: Trip = { fm: {}, name, start: "", end: "", dests: [], travelers: [], cover: "", accent: "", mochila: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
+  const t: Trip = { fm: {}, name, start: "", end: "", dests: [], travelers: [], cover: "", budget: 0, accent: "", mochila: [], packing: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
   let body = text;
   const m = fmRe.exec(text);
   if (m) {
@@ -379,11 +383,13 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
   t.end = toIso(t.fm[P.end]) || t.start;
   t.travelers = toList(t.fm[P.travelers]);
   t.cover = typeof t.fm[P.cover] === "string" ? String(t.fm[P.cover]) : "";
+  const bv = P.budget ? t.fm[P.budget] : null;
+  t.budget = typeof bv === "number" ? bv : typeof bv === "string" ? priceValue(bv) : 0;
   const fmDests = toList(t.fm[P.destinations]);
 
   const lines = body.split(/\r?\n/);
   const calloutDests: Dest[] = [];
-  let section: "intro" | "bag" | "todo" | "plan" | "outro" = "intro";
+  let section: "intro" | "bag" | "pack" | "todo" | "plan" | "outro" = "intro";
   let day: Day | null = null, item: Item | null = null;
   const parsedDays: Day[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -419,9 +425,16 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
       if (b && !/^\s{2,}/.test(line)) t.mochila.push(parseBagLine(b[1]));
       continue;
     }
+    if (section === "pack") {
+      const b = /^\s*-\s+\[([ xX])\]\s+(.+)$/.exec(line) || /^\s*-\s+()(.+)$/.exec(line);
+      if (b) t.packing.push({ text: b[2].trim(), done: !!b[1] && b[1] !== " " });
+      continue;
+    }
     if (section === "todo") {
       const b = /^\s*-\s+\[([ xX])\]\s+(.+)$/.exec(line) || /^\s*-\s+()(.+)$/.exec(line);
-      if (b) t.tasks.push({ text: b[2].trim(), done: !!b[1] && b[1] !== " " });
+      /* la fecha límite, como la escribe el plugin Tasks: «📅 2026-11-02» */
+      const due = b ? /\s*📅\s*(\d{4}-\d{2}-\d{2})\s*$/.exec(b[2]) : null;
+      if (b) t.tasks.push({ text: (due ? b[2].slice(0, due.index) : b[2]).trim(), done: !!b[1] && b[1] !== " ", ...(due ? { due: due[1] } : {}) });
       continue;
     }
     /* plan */
@@ -489,6 +502,7 @@ export function serializeTrip(t: Trip, s: Settings): string {
   fm[P.destinations] = t.dests.map(d => d.city);
   if (P.travelers) fm[P.travelers] = [...t.travelers];
   if (P.cover) { if (t.cover) fm[P.cover] = t.cover; else delete fm[P.cover]; }
+  if (P.budget) { if (t.budget > 0) fm[P.budget] = t.budget; else delete fm[P.budget]; }
   const out: string[] = ["---", stringifyYaml(fm).trimEnd(), "---"];
   out.push(`> [!cool-trip${t.accent ? "|" + t.accent : ""}] ${t.name}`);
   for (const d of t.dests) {
@@ -497,7 +511,8 @@ export function serializeTrip(t: Trip, s: Settings): string {
   out.push("");
   if (t.intro.length) out.push(...t.intro, "");
   out.push(`## ${v.bag}`, ...t.mochila.map(d => "- " + docMd(d, v)), "");
-  out.push(`## ${v.todo}`, ...t.tasks.map((x: Task) => `- [${x.done ? "x" : " "}] ${x.text}`), "");
+  if (t.packing.length) out.push(`## ${v.pack}`, ...t.packing.map(x => `- [${x.done ? "x" : " "}] ${x.text}`), "");
+  out.push(`## ${v.todo}`, ...t.tasks.map((x: Task) => `- [${x.done ? "x" : " "}] ${x.text}${x.due ? ` 📅 ${x.due}` : ""}`), "");
   out.push(`## ${v.plan}`, "");
   for (const d of t.days) {
     if (d.date) out.push(dayHeading(t, d.date));
@@ -513,7 +528,7 @@ export function serializeTrip(t: Trip, s: Settings): string {
 
 /* un viaje nuevo (Nuevo viaje) */
 export function blankTrip(name: string, start: string, end: string, dests: Dest[], travelers: string[], cover: string, accent = ""): Trip {
-  const t: Trip = { fm: {}, name, start, end, dests, travelers, cover, accent, mochila: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
+  const t: Trip = { fm: {}, name, start, end, dests, travelers, cover, budget: 0, accent, mochila: [], packing: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
   balanceNights(t);
   t.days = tripDates(t).map(date => ({ date, items: [], raw: [] }));
   return t;

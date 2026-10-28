@@ -3,7 +3,7 @@ import { Platform } from "obsidian";
 import { append, h } from "./dom";
 import { t } from "./i18n";
 import { dayNum, diffDays, isIso, longDate, spanLabel, todayIso, weekday, dayLabel } from "./dates";
-import { balanceNights, citiesOfDay, nightsTotal, redate, tripDates } from "./md";
+import { balanceNights, citiesOfDay, fmtMoney, nightsTotal, priceValue, redate, tripDates } from "./md";
 import type { Trip } from "./types";
 import { PALETTE, accentOf, avatar, barcode, button, coverHex, destHex, icon, iconButton, imageAccent, kicker, label, miniPerson, notchH, notchV, paletteId, paperPlane, personChip, plain, useAccent } from "./ui";
 
@@ -213,6 +213,13 @@ function travelersBox(ctx: TicketCtx): HTMLElement {
     }),
     iconButton("plus", t("addTraveler"), () => addTraveler(ctx), "ct-person-add"));
 }
+/* lo que se espera gastar (opcional): luego se compara con el coste */
+function budgetBox(ctx: TicketCtx): HTMLElement {
+  const tr = ctx.trip;
+  return button(tr.budget ? [h("span", null, fmtMoney(tr.budget, "€"))] : [icon("plus")], tr.budget ? "ct-person is-on" : "ct-person-add", () => {
+    void ctx.prompt(t("nt.budget"), "1500", tr.budget ? String(tr.budget) : "").then(v => { if (v == null) return; tr.budget = Math.max(0, priceValue(v)); ctx.changed(); });
+  }, { "aria-label": t("nt.budget") });
+}
 function noteName(ctx: TicketCtx, big: boolean): HTMLElement {
   const name = h("span", { cls: "ct-note-name" + (big ? " is-big" : "") }, ctx.trip.name || "—");
   const el = h("span", { cls: "ct-note" }, label(t("new.note")), name, h("span", { cls: "ct-note-path" }, ctx.path));
@@ -272,6 +279,7 @@ function desktop(ctx: TicketCtx): HTMLElement {
   const stub = h("div", { cls: "ct-stub" },
     noteName(ctx, true),
     h("div", { cls: "ct-stub-block" }, label(t("new.travelers")), travelersBox(ctx)),
+    ctx.mode === "create" ? h("div", { cls: "ct-stub-block" }, label(t("nt.budget")), budgetBox(ctx)) : null,
     h("div", { cls: "ct-stub-block" }, label(t("new.cover")), swatches(ctx)),       /* los colores se eligen siempre, también con la portada sellada */
     h("span", { cls: "ct-grow" }), end);
   return h("div", { cls: "ct-ticket" + (create ? " is-create" : editable(ctx) ? " is-editing" : " is-locked") }, band, main, notchV(), stub, lock);
@@ -310,6 +318,7 @@ function phone(ctx: TicketCtx): HTMLElement {
   const editor = h("div", { cls: "ct-phone-stub" },
     tr.dests.length ? h("div", { cls: "ct-stub-block" }, label(t("new.splitShort")), bar, destRows(ctx, true)) : null,
     h("div", { cls: "ct-stub-block" }, label(t("new.travelers")), travelersBox(ctx)),
+    ctx.mode === "create" ? h("div", { cls: "ct-stub-block" }, label(t("nt.budget")), budgetBox(ctx)) : null,
     portada);
   if (create) {
     const body = h("div", { cls: "ct-phone-body" }, noteName(ctx, true),

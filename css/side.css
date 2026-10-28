@@ -41,3 +41,24 @@
 .ct-cost-row { display: flex; flex-direction: column; gap: 6px; }
 .ct-cost-line { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; }
 .ct-missing { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; border: 2px dashed var(--ct-line); font-size: 13px; font-weight: 700; color: var(--ct-muted); }
+.ct-task-text.is-edit { all: unset; cursor: text; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--ct-strong); }
+.ct-task.is-done .ct-task-text.is-edit { color: var(--ct-muted); text-decoration: line-through; }
+.ct-task-due { position: relative; display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; font-size: 11px; line-height: 16px; font-weight: 600; color: var(--ct-muted); }
+.ct-task-due .ct-ico svg { width: 12px; height: 12px; }
+.ct-task-due.is-late { color: var(--ct-berm); }
+.ct-task-due input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.is-mobile .ct-task-due.ct-hover { opacity: 1; }
+/* la maleta, dentro de la mochila */
+.ct-pack { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--ct-line); }
+.ct-pack-head { all: unset; display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--ct-strong); }
+.ct-pack-head .ct-ico svg { width: 14px; height: 14px; }
+.ct-pack-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.ct-pack-item { position: relative; display: inline-flex; }
+.ct-pack-pill { all: unset; display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px; cursor: pointer;
+  border: 1.5px dashed var(--ct-line); font-size: 12px; font-weight: 600; color: var(--ct-muted); }
+.ct-pack-pill .ct-ico svg { width: 12px; height: 12px; }
+.ct-pack-item.is-in .ct-pack-pill { border-style: solid; border-color: transparent; background: color-mix(in srgb, var(--ct-acc) 22%, transparent); color: var(--ct-strong); }
+.ct-pack-x { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; }
+.ct-pack-item:hover .ct-pack-x { opacity: 1; }
+.ct-pack-input { height: 30px; font-size: 12px; }
+.is-mobile .ct-pack-x { opacity: .7; }

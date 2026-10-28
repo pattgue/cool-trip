@@ -1,7 +1,7 @@
 /* El lateral de la nota: la mochila (documentos de siempre), por hacer y el coste del viaje. */
 import { h } from "./dom";
-import { t } from "./i18n";
-import { addDays } from "./dates";
+import { locale, t } from "./i18n";
+import { addDays, todayIso } from "./dates";
 import { fmtMoney, newItem, priceValue, tripCurrency } from "./md";
 import { mapsUrl } from "./places";
 import type { PlanCtx } from "./plan";
@@ -10,6 +10,7 @@ import { blankDoc, docButton, docForm, docWheres, firstWhere } from "./docs";
 import type { Doc, Item, Task, Where } from "./types";
 import { isTransport } from "./types";
 import { avatar, button, destHex, icon, iconButton, label, plain } from "./ui";
+import { promptText } from "./prompt";
 
 export interface SideCtx extends PlanCtx {
   folded: Set<string>;            // cajas contraídas (en el móvil)
@@ -61,7 +62,12 @@ export function mochila(ctx: SideCtx): HTMLElement {
       ? docForm({
         s: ctx.s, travelers: ctx.trip.travelers, draft: ctx.bagDraft,
         onCancel: () => { editingBag = null; ctx.setBagDraft(null); },
-        onSave: nd => { docs[i] = nd; editingBag = null; ctx.setBagDraft(null, false); ctx.commit(); },
+        onSave: nd => {
+          /* el mismo documento elegido en las reservas (por nombre y enlace) cambia con él */
+          const same = (x: Doc) => x.name.trim().toLowerCase() === d.name.trim().toLowerCase() && x.url === d.url;
+          for (const it of ctx.trip.days.flatMap(day => day.items)) it.docs = it.docs.map(x => same(x) ? { ...nd, also: [...nd.also], para: [...nd.para] } : x);
+          docs[i] = nd; editingBag = null; ctx.setBagDraft(null, false); ctx.commit();
+        },
       })
       : h("div", { cls: "ct-doc-edit-row" }, docButton(ctx, d, ctx.trip.travelers),
         h("span", { cls: "ct-doc-acts ct-hover" },
@@ -79,7 +85,31 @@ export function mochila(ctx: SideCtx): HTMLElement {
       onCancel: () => ctx.setBagDraft(null),
       onSave: d => { ctx.trip.mochila.push(d); ctx.setBagDraft(null, false); ctx.commit(); },
     }) : button([icon("plus"), t("bag.add")], "ct-btn-ghost is-wide", () => ctx.setBagDraft(blankDoc(firstWhere(ctx.s)))),
+    packing(ctx),
   ], undefined, "backpack");
+}
+/* la maleta, dentro de la mochila y plegable: cada cosa es una pastilla; tocarla la mete (llena) o la saca (a rayas) */
+function packing(ctx: SideCtx): HTMLElement {
+  const list = ctx.trip.packing, inside = list.filter(x => x.done).length, folded = ctx.folded.has("pack");
+  const head = button([icon(folded ? "chevron-right" : "chevron-down"), icon("luggage"), h("span", null, t("pack")), h("span", { cls: "ct-grow" }),
+    list.length ? h("span", { cls: "ct-sub" }, `${inside}/${list.length}`) : null], "ct-pack-head", () => {
+    if (folded) ctx.folded.delete("pack"); else ctx.folded.add("pack");
+    ctx.rerender();
+  }, { "aria-expanded": String(!folded) });
+  if (folded) return h("div", { cls: "ct-pack" }, head);
+  const add = h("input", { cls: "ct-input ct-pack-input", attr: { type: "text", placeholder: t("pack.add") } });
+  add.addEventListener("keydown", ev => {
+    if (ev.key !== "Enter" || !add.value.trim()) return;
+    ev.preventDefault();
+    list.push({ text: add.value.trim(), done: false });
+    ctx.commit();
+  });
+  const pill = (x: Task) => h("span", { cls: "ct-pack-item" + (x.done ? " is-in" : "") },
+    button([icon(x.done ? "check" : "circle-dashed"), h("span", null, x.text)], "ct-pack-pill", () => { x.done = !x.done; ctx.commit(); },
+      { "aria-pressed": String(x.done), title: x.done ? t("pack.in") : t("pack.out") }),
+    iconButton("x", t("remove"), () => { list.splice(list.indexOf(x), 1); ctx.commit(); }, "ct-ibtn ct-pack-x ct-hover"));
+  return h("div", { cls: "ct-pack" }, head,
+    list.length ? h("div", { cls: "ct-pack-list" }, [...list.filter(x => !x.done), ...list.filter(x => x.done)].map(pill)) : null, add);
 }
 
 /* ---------- por hacer ---------- */
@@ -108,11 +138,24 @@ function todoSuggestions(ctx: SideCtx): Suggest[] {
   if (firstFlight) out.push({ text: t("todo.checkinOut"), done: false });
   return out.filter(s => !have.has(s.text.toLowerCase()) && !hidden.has(s.text.toLowerCase()));
 }
-function taskRow(text: string, done: boolean, onToggle: (() => void) | null, extra: HTMLElement | null, onRemove: () => void): HTMLElement {
+/* una tarea tuya: el texto se edita al tocarlo y la fecha límite sale con el calendario del sistema */
+function editText(ctx: SideCtx, x: Task): () => void {
+  return () => void promptText(ctx.app, t("todo.edit"), "", x.text).then(v => { if (v == null || !v.trim()) return; x.text = v.trim(); ctx.commit(); });
+}
+function dueButton(ctx: SideCtx, x: Task): HTMLElement {
+  const late = !!x.due && !x.done && x.due < todayIso();
+  const lab = x.due ? new Date(x.due + "T12:00").toLocaleDateString(locale(), { day: "numeric", month: "short" }) : "";
+  const wrap = h("span", { cls: "ct-task-due" + (x.due ? "" : " ct-hover") + (late ? " is-late" : "") });
+  const pick = h("input", { attr: { type: "date", value: x.due || "", "aria-label": t("todo.due") } });
+  pick.addEventListener("change", () => { if (pick.value) x.due = pick.value; else delete x.due; ctx.commit(); });
+  wrap.append(icon(x.due ? "calendar" : "calendar-plus"), x.due ? h("span", null, lab) : "", pick);
+  return wrap;
+}
+function taskRow(text: string, done: boolean, onToggle: (() => void) | null, extra: HTMLElement | null, onRemove: () => void, onEdit?: () => void): HTMLElement {
   return h("div", { cls: "ct-task" + (done ? " is-done" : "") },
     button(done ? icon("check") : null, "ct-task-check" + (done ? " is-done" : ""), onToggle || undefined,
       { role: "checkbox", "aria-checked": String(done), "aria-label": text, ...(onToggle ? {} : { disabled: "" }) }),
-    h("span", { cls: "ct-task-body" }, h("span", { cls: "ct-task-text" }, text), extra),
+    h("span", { cls: "ct-task-body" }, onEdit ? button(text, "ct-task-text is-edit", onEdit) : h("span", { cls: "ct-task-text" }, text), extra),
     iconButton("x", t("remove"), onRemove, "ct-ibtn ct-task-x ct-hover"));
 }
 export function porHacer(ctx: SideCtx): HTMLElement {
@@ -137,11 +180,12 @@ export function porHacer(ctx: SideCtx): HTMLElement {
   const pendingRows = [
     ...open.map(s => taskRow(s.text, false, () => { tr.tasks.push({ text: s.text, done: true }); ctx.commit(); },
       s.action ? button([h("span", null, s.action[0]), icon("arrow-right")], "ct-task-action", s.action[1]) : h("span", { cls: "ct-task-meta" }, t("todo.suggested")), () => hide(s.text))),
-    ...pending.map(x => taskRow(x.text, false, () => { x.done = true; ctx.commit(); }, null, () => drop(x))),
+    ...[...pending].sort((a, b) => (a.due || "9").localeCompare(b.due || "9"))
+      .map(x => taskRow(x.text, false, () => { x.done = true; ctx.commit(); }, dueButton(ctx, x), () => drop(x), editText(ctx, x))),
   ];
   const doneRows = [
     ...auto.map(s => taskRow(s.text, true, null, null, () => hide(s.text))),
-    ...done.map(x => taskRow(x.text, true, () => { x.done = false; ctx.commit(); }, null, () => drop(x))),
+    ...done.map(x => taskRow(x.text, true, () => { x.done = false; ctx.commit(); }, null, () => drop(x), editText(ctx, x))),
   ];
   const next = pendingRows.length ? (open[0]?.text || pending[0]?.text) : "";
   return box(ctx, "todo", t("todo"), right, () => [
@@ -154,11 +198,12 @@ export function porHacer(ctx: SideCtx): HTMLElement {
 }
 
 /* ---------- coste ---------- */
-const CAT = (it: Item): string => isTransport(it.kind) ? "transport" : it.kind === "lodging" ? "lodging" : it.kind === "meal" ? "meals" : it.kind === "ticket" ? "tickets" : it.kind === "place" ? "places" : "other";
+const CAT = (it: Item): string => isTransport(it.kind) ? "transport" : it.kind === "lodging" ? "lodging" : it.kind === "meal" ? "meals" : it.kind === "ticket" || it.kind === "place" ? "places" : "other";
 export function coste(ctx: SideCtx): HTMLElement {
   const tr = ctx.trip;
-  const items = tr.days.flatMap(d => d.items).filter(i => i.price);
+  const all = tr.days.flatMap(d => d.items).filter(i => i.price), items = all.filter(i => !i.unpaid);
   const cur = tripCurrency(tr);
+  const unpaid = all.filter(i => i.unpaid).reduce((a, i) => a + priceValue(i.price), 0);
   const total = items.reduce((a, i) => a + priceValue(i.price), 0);
   const per: Record<string, number> = {};
   for (const p of tr.travelers) per[p] = 0;
@@ -181,8 +226,22 @@ export function coste(ctx: SideCtx): HTMLElement {
     return h("div", { cls: "ct-cost-row" }, h("span", { cls: "ct-cost-line" }, h("span", null, t("cost." + k)), h("span", { cls: "ct-num" }, fmtMoney(v, cur))),
       h("span", { cls: "ct-progress is-thin" }, fill));
   });
-  return box(ctx, "cost", t("cost"), null, () => [
+  /* el presupuesto: se pone o se cambia con el lápiz; lo pagado se compara con él */
+  const setBudget = iconButton("pencil", t("cost.budget"), () => {
+    void promptText(ctx.app, t("cost.budget"), "1500", tr.budget ? String(tr.budget) : "").then(v => { if (v == null) return; tr.budget = Math.max(0, priceValue(v)); ctx.commit(); });
+  }, "ct-ibtn ct-ibtn-sm");
+  const budget = tr.budget > 0 ? (() => {
+    const fill = h("span", null), over = total > tr.budget;
+    fill.setCssProps({ "--ct-p": `${Math.min(100, (total / tr.budget) * 100)}%`, "--ct-accent-fill": over ? "var(--ct-berm)" : "var(--ct-acc)" });
+    return h("div", { cls: "ct-cost-row ct-cost-budget" + (over ? " is-over" : "") },
+      h("span", { cls: "ct-cost-line" }, h("span", null, t("cost.budget") + " · " + fmtMoney(tr.budget, cur)),
+        h("span", { cls: "ct-num" }, over ? t("cost.over", { n: fmtMoney(total - tr.budget, cur) }) : t("cost.left", { n: fmtMoney(tr.budget - total, cur) }))),
+      h("span", { cls: "ct-progress" }, fill));
+  })() : null;
+  return box(ctx, "cost", t("cost"), setBudget, () => [
     h("div", { cls: "ct-cost-total" }, h("span", { cls: "ct-h-total" }, fmtMoney(total, cur)), h("span", { cls: "ct-sub" }, t("cost.sub"))),
+    budget,
+    unpaid ? h("div", { cls: "ct-missing" }, icon("clock"), h("span", null, t("cost.unpaid", { n: fmtMoney(unpaid, cur) }))) : null,
     tr.travelers.length > 1 ? h("div", { cls: "ct-cost-people" }, tr.travelers.map((p, i) => h("span", { cls: "ct-cost-person" }, avatar(p, i, "ct-avatar ct-avatar-lg"),
       h("span", { cls: "ct-name-col" }, h("b", { cls: "ct-num" }, fmtMoney(per[p], cur)), h("span", { cls: "ct-sub" }, p))))) : null,
     tr.travelers.length > 1 ? h("span", { cls: "ct-sub" }, t("cost.who")) : null,

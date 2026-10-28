@@ -16,3 +16,12 @@ cambie el texto que lo promete.
       Bases esté publicado en el directorio de plugins de la comunidad.
 - [x] **Vistas previas de las bases** (Ajustes › 5 Bases, con y sin Cool Bases): el diseño de las bases ya está cerrado (filas 5 y
       5b del canvas, `design/bases/`); rehechas a su imagen junto con las vistas de verdad (`docs/publicar.md`, fase 1, 0.2.0).
+
+## Peticiones de Patt (28 oct 2026) que quedan para la siguiente ronda
+
+- [ ] **Lugares y entradas, un solo paso.** La entrada pasa a ser una opción del lugar («necesita entrada o cuesta dinero»), con sus
+      documentos. Con entrada, el diseño de billete de ahora; sin ella, una tarjeta más sencilla con la portada del lugar. Hay que
+      dibujarla antes en el canvas. (Ya hecho en 0.2.3: la banda dice una sola vez «ENTRADA», va del color del viaje, el botón de
+      Maps lleva el color del destino y en el coste entradas y lugares son la misma barra.)
+- [ ] **Diseño de las notas de lugar** (opcional en los ajustes): empieza por el tipo y cambia según él (comer: precio medio, tipo de
+      comida; museo: entradas, qué incluye, datos útiles…), con la portada. Primero se plantea en el canvas.

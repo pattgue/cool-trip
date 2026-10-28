@@ -21,15 +21,17 @@ const whereIcon = (w: Where) => w === "wallet" ? "wallet" : w === "vault" ? "fil
 export function docButton(ctx: { openDoc(d: Doc): void }, d: Doc, travelers: string[] = []): HTMLElement {
   const all = docWheres(d), paper = all.includes("paper");
   const others = all.filter(w => w !== "paper");
-  const whereText = (w: Where) => w === "cloud" ? (cloudName(d.url) || t("w.cloud")) : t("w." + w);
+  /* solo el formato, como icono (el nombre del servicio, sin el enlace, queda en la etiqueta) */
+  const whereText = (w: Where) => { const n = w === "cloud" ? cloudName(d.url) : ""; return n && !n.includes(".") ? n : t("w." + w); };
   return button([
     icon(d.where === "wallet" ? "wallet" : d.where === "vault" ? "file" : "file-text"),
     h("span", { cls: "ct-doc-name" }, d.name),
     d.para.length ? h("span", { cls: "ct-doc-para", attr: { "aria-label": d.para.join(", ") } },
       d.para.map(p => avatar(p, Math.max(0, travelers.indexOf(p)), "ct-avatar ct-avatar-tag"))) : null,
     h("span", { cls: "ct-grow" }),
-    others.length ? h("span", { cls: "ct-doc-where" }, others.map(whereText).join(" · ")) : null,
-    paper ? h("span", { cls: "ct-paper-tag" }, icon("file-text"), t("paper")) : null,
+    others.length ? h("span", { cls: "ct-doc-where", attr: { "aria-label": others.map(whereText).join(" · ") } },
+      others.map(w => { const e = icon(whereIcon(w)); e.setAttr("title", whereText(w)); return e; })) : null,
+    paper ? h("span", { cls: "ct-paper-tag", attr: { title: t("w.paper") } }, icon("file-text"), h("span", { cls: "ct-paper-t" }, t("paper"))) : null,
     d.where !== "paper" ? icon("arrow-up-right", "ct-ico ct-ico-xs") : null,
   ], "ct-doc" + (paper ? " is-paper" : ""), () => ctx.openDoc(d));
 }
