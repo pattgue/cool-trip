@@ -69,7 +69,7 @@ export function mochila(ctx: SideCtx): HTMLElement {
           docs[i] = nd; editingBag = null; ctx.setBagDraft(null, false); ctx.commit();
         },
       })
-      : h("div", { cls: "ct-doc-edit-row" }, docButton(ctx, d, ctx.trip.travelers),
+      : h("div", { cls: "ct-doc-edit-row" }, docButton(ctx, d, ctx.trip.travelers, true),
         h("span", { cls: "ct-doc-acts ct-hover" },
           iconButton("pencil", t("edit"), () => {
             const draft: Doc = { ...d, also: [...d.also], para: [...d.para] };
@@ -143,9 +143,9 @@ function editText(ctx: SideCtx, x: Task): () => void {
   return () => void promptText(ctx.app, t("todo.edit"), "", x.text).then(v => { if (v == null || !v.trim()) return; x.text = v.trim(); ctx.commit(); });
 }
 function dueButton(ctx: SideCtx, x: Task): HTMLElement {
-  const late = !!x.due && !x.done && x.due < todayIso();
+  const late = !!x.due && !x.done && x.due < todayIso(), soon = !!x.due && !x.done && x.due === todayIso();   // vence hoy: menos de 24 h
   const lab = x.due ? new Date(x.due + "T12:00").toLocaleDateString(locale(), { day: "numeric", month: "short" }) : "";
-  const wrap = h("span", { cls: "ct-task-due" + (x.due ? "" : " ct-hover") + (late ? " is-late" : "") });
+  const wrap = h("span", { cls: "ct-task-due" + (x.due ? "" : " ct-hover") + (late ? " is-late" : soon ? " is-soon" : "") });
   const pick = h("input", { attr: { type: "date", value: x.due || "", "aria-label": t("todo.due") } });
   pick.addEventListener("change", () => { if (pick.value) x.due = pick.value; else delete x.due; ctx.commit(); });
   wrap.append(icon(x.due ? "calendar" : "calendar-plus"), x.due ? h("span", null, lab) : "", pick);
@@ -227,20 +227,21 @@ export function coste(ctx: SideCtx): HTMLElement {
       h("span", { cls: "ct-progress is-thin" }, fill));
   });
   /* el presupuesto: se pone o se cambia con el lápiz; lo pagado se compara con él */
-  const setBudget = iconButton("pencil", t("cost.budget"), () => {
+  const setBudget = () => {
     void promptText(ctx.app, t("cost.budget"), "1500", tr.budget ? String(tr.budget) : "").then(v => { if (v == null) return; tr.budget = Math.max(0, priceValue(v)); ctx.commit(); });
-  }, "ct-ibtn ct-ibtn-sm");
+  };
   const budget = tr.budget > 0 ? (() => {
-    const fill = h("span", null), over = total > tr.budget;
-    fill.setCssProps({ "--ct-p": `${Math.min(100, (total / tr.budget) * 100)}%`, "--ct-accent-fill": over ? "var(--ct-berm)" : "var(--ct-acc)" });
-    return h("div", { cls: "ct-cost-row ct-cost-budget" + (over ? " is-over" : "") },
-      h("span", { cls: "ct-cost-line" }, h("span", null, t("cost.budget") + " · " + fmtMoney(tr.budget, cur)),
+    /* blanca; roja cuando queda poco (menos del 10 %) o te has pasado */
+    const fill = h("span", null), over = total > tr.budget, near = total >= tr.budget * 0.9;
+    fill.setCssProps({ "--ct-p": `${Math.min(100, (total / tr.budget) * 100)}%`, "--ct-accent-fill": near ? "var(--ct-berm)" : "var(--ct-budget)" });
+    return h("div", { cls: "ct-cost-row ct-cost-budget" + (near ? " is-over" : "") },
+      h("span", { cls: "ct-cost-line" }, button([icon("target"), h("span", null, t("cost.budget") + " · " + fmtMoney(tr.budget, cur))], "ct-budget-btn", setBudget, { "aria-label": t("cost.budget") }),
         h("span", { cls: "ct-num" }, over ? t("cost.over", { n: fmtMoney(total - tr.budget, cur) }) : t("cost.left", { n: fmtMoney(tr.budget - total, cur) }))),
       h("span", { cls: "ct-progress" }, fill));
   })() : null;
-  return box(ctx, "cost", t("cost"), setBudget, () => [
+  return box(ctx, "cost", t("cost"), null, () => [
     h("div", { cls: "ct-cost-total" }, h("span", { cls: "ct-h-total" }, fmtMoney(total, cur)), h("span", { cls: "ct-sub" }, t("cost.sub"))),
-    budget,
+    budget || button([icon("plus"), h("span", null, t("cost.setBudget"))], "ct-pill is-dashed is-small ct-budget-add", setBudget),
     unpaid ? h("div", { cls: "ct-missing" }, icon("clock"), h("span", null, t("cost.unpaid", { n: fmtMoney(unpaid, cur) }))) : null,
     tr.travelers.length > 1 ? h("div", { cls: "ct-cost-people" }, tr.travelers.map((p, i) => h("span", { cls: "ct-cost-person" }, avatar(p, i, "ct-avatar ct-avatar-lg"),
       h("span", { cls: "ct-name-col" }, h("b", { cls: "ct-num" }, fmtMoney(per[p], cur)), h("span", { cls: "ct-sub" }, p))))) : null,

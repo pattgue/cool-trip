@@ -349,7 +349,7 @@ function ticketCard(ctx: PlanCtx, it: Item, di: number, index: number, key: stri
   const date = ctx.trip.days[di].date;
   const name = it.link || it.title, info = placeOf(ctx, it.link);
   if (ctx.collapsed.has(key)) return collapsedCard(ctx, key, it.time, name, t("k.ticket"), money(ctx, it.price));
-  const strip = h("div", { cls: "ct-admit", attr: { "aria-hidden": "true" } }, h("span", null, t("k.ticket").toUpperCase()));
+  const strip = h("div", { cls: "ct-admit", attr: { "aria-hidden": "true" } }, h("span", null, t("k.ticket").toUpperCase()), h("span", { cls: "ct-admit-name" }, name.toUpperCase()));
   const body = h("div", { cls: "ct-card-main" },
     kindRow(ctx, t("k.ticket"), it, di, index),
     h("div", { cls: "ct-name-row" }, h("span", { cls: "ct-name-col" }, placeLink(ctx, name, it.link, "ct-place-link is-big"),
@@ -427,6 +427,7 @@ function itemRow(ctx: PlanCtx, di: number, row: Extract<Row, { r: "item" }>): HT
   const key = itemKey(di, index, it);
   const card = (ico: string, el: HTMLElement) => {
     const r = rowEl(h("span", { cls: "ct-node-stack" }, nodeIcon(ico, color), foldBtn(ctx, key)), h("div", { cls: "ct-card-wrap" }, el), true, "is-card");
+    if (it.unpaid) r.addClass("is-unpaid");
     return dropTarget(r, di, index);
   };
   if (isTransport(it.kind)) return card(transportIcon[it.kind], transportCard(ctx, it, di, index, key));
@@ -460,6 +461,7 @@ function itemRow(ctx: PlanCtx, di: number, row: Extract<Row, { r: "item" }>): HT
     const main = h("span", { cls: "ct-name-col" }, h("span", { cls: "ct-note-text" }, it.title), it.extra.length ? h("span", { cls: "ct-sub" }, it.extra.join(" · ")) : null);
     out = rowEl(it.check ? check(it.done, toggle) : dot(), stepLine(ctx, it.time, bubble("sticky-note"), main, money(ctx, it.price), [editBtn(ctx, di, index, it), handle]));
   }
+  if (it.unpaid) out.addClass("is-unpaid");
   return dropTarget(out, di, index);
 }
 function dropTarget(el: HTMLElement, di: number, index: number, kind = "item"): HTMLElement {
