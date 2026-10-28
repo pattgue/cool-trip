@@ -116,7 +116,7 @@ ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md
     [F("2026 - Alemania", "dates"), F("2026 - Portugal", "datesNights"), F("2027 - Japón", "yearRoute")].join(" | "));
   ok("color y portada", [F("2027 - Japón", "color"), F("2026 - Portugal", "cover"), F("2027 - Reino Unido", "photo"), F("2026 - Portugal", "photo")].join(" ") === "#E8613C #C2B3F5 [[highlands.jpg]] ");
   const Pl = name => X.PLACES.find(x => x.basename === name), G = (name, k) => run(pb, Pl(name), k);
-  ok("lugares: icono, color y familia", [G("Senso-ji", "icon"), G("Senso-ji", "color"), G("Omoide Yokocho", "family"), G("Shibuya Crossing", "family")].join(" ") === "landmark #C2B3F5 Comer Pasear");
+  ok("lugares: icono, color y familia", [G("Senso-ji", "icon"), G("Senso-ji", "color"), G("Omoide Yokocho", "family"), G("Shibuya Crossing", "family")].join(" ") === "church #C2B3F5 Comer Pasear");
   ok("lugares: categoría y precio, estrellas, viajes", [G("Senso-ji", "catPrice"), G("Da Enzo al 29", "stars"), G("Senso-ji", "tripNames"), G("Pastéis de Belém", "cityCountry")].join(" | ")
     === "Templo · Gratis | ★★★★☆ | 2027 - Japón | Lisboa · Portugal", [G("Senso-ji", "catPrice"), G("Da Enzo al 29", "stars"), G("Senso-ji", "tripNames"), G("Pastéis de Belém", "cityCountry")].join(" | "));
   ok("lugares: la foto o el icono", String(G("Senso-ji", "photo")) === "[[senso-ji.jpg]]" && String(G("Meiji Jingu", "photo")).startsWith("data:image/svg+xml"));

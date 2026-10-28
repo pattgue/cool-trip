@@ -53,3 +53,32 @@ Se elige **una** de estas tres formas por tipo de nota:
 | `## Maleta` · `## Packing` | Lo que hay que meter: `- [x]` ya está dentro, `- [ ]` falta. |
 | `## Por hacer` · `## To do` | Tus tareas, con fecha límite opcional `📅 2026-11-02`. |
 | `## Plan` | Un `###` por día con sus pasos: lugares, comidas, transporte, alojamiento, entradas, notas. Cada paso puede llevar hora, precio (con `· por pagar` si falta pagarlo), «para» quién y sus documentos. |
+
+## Tipos de lugar (la `categoría`)
+
+Cool Trip mira las palabras de la categoría (da igual mayúsculas, plural o idioma) y gana el primer tipo que encaja, en este orden. Si ninguna encaja: pin gris, grupo «otros».
+
+| Icono | Color | Grupo | Palabras que lo reconocen |
+|---|---|---|---|
+| `church` | #C2B3F5 | ver | templo, santuario, temple, shrine, iglesia, church, catedral, cathedral, mezquita, mosque, basilica, sinagoga, synagogue, monasterio, monastery, ermita |
+| `palette` | #9CC9F0 | ver | museo, museum, galeria, gallery, exposicion, exhibition, arte, art |
+| `book-open` | #E3D3A8 | ver | libreria, bookstore, bookshop, biblioteca, library, libros, books |
+| `music` | #F07A8C | ver | musica, music, concierto, concert, sala, teatro, theat, opera, jazz |
+| `clapperboard` | #F2E27A | ver | cine, cinema, movie, film |
+| `disc-3` | #9C8CE0 | comer | discoteca, club, nightclub, fiesta, party |
+| `beer` | #D9805F | comer | bar, bares, pub, taberna, tavern, cerveceria, brewery, beer, cocteleria, cocktail, vino, wine, vermut, izakaya |
+| `utensils` | #E8613C | comer | restaurante, restaurant, comida, food, ramen, sushi, tapas, tasca, pizzeria, bistro, trattoria, marisqueria |
+| `coffee` | #F5AFC0 | comer | cafe, coffee, cafeteria, brunch, pasteleria, bakery, panaderia, heladeria, ice cream, dulces |
+| `store` | #EDC14B | comer | mercado, market |
+| `shopping-bag` | #F7C59F | pasear | tienda, shop, calle comercial, shopping, compras, mall |
+| `binoculars` | #6CC5C9 | ver | mirador, viewpoint, vista, torre, tower, observatorio, observatory |
+| `trees` | #B5D69A | pasear | parque, park, jardin, garden, bosque, forest |
+| `waves` | #7C9CD8 | pasear | playa, beach, costa, coast, lago, lake, rio, river, cala, bay |
+| `mountain` | #A8C3A0 | pasear | montaña, mountain, volcan, ruta, hike, senderismo, excursion |
+| `castle` | #B07CC6 | ver | castillo, castle, palacio, palace, fortaleza, fortress |
+| `landmark` | #C9A27E | ver | monumento, monument, ruinas, ruins, historic, cementerio, cemetery |
+| `paw-print` | #F2A65A | ver | zoo, acuario, aquarium, animales, animals |
+| `trophy` | #B8C26A | ver | estadio, stadium, deporte, sport, futbol, football |
+| `droplets` | #A6DCD8 | ver | onsen, spa, baños, bath, termas |
+| `signpost` | #B9B4AA | pasear | cruce, crossing, plaza, square, calle, street, barrio, neighbo |
+| `bed` | #8FD8C4 | dormir | hotel, alojamiento, hostal, ryokan, apartamento, lodging, hostel |

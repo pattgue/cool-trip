@@ -114,11 +114,11 @@ function priceField(ctx: FormCtx, d: Item, key: string): HTMLElement {
   const used = ctx.trip.days.flatMap(x => x.items).find(i => i.price)?.price;
   let cur = d.price ? currencyOf(d.price) : used ? currencyOf(used) : "€", num = priceNumber(d.price);
   const sync = () => { d.price = withCurrency(num, cur); };
-  return lab(t(key), h("span", { cls: "ct-inline" },
+  /* el precio y su moneda en una fila; «aún sin pagar» debajo */
+  return h("div", { cls: "ct-price-f" }, lab(t(key), h("span", { cls: "ct-inline" },
     input(num, v => { num = v.replace(/[^\d.,]/g, ""); sync(); }, { placeholder: "0", inputmode: "decimal" }),
-    select(cur, CURRENCIES.map(c => [c, c]), v => { cur = v || "€"; sync(); }, true),
-    /* aún sin pagar: se ve, pero no suma en el coste */
-    h("label", { cls: "ct-unpaid" }, (() => { const c = h("input", { attr: { type: "checkbox" } }); c.checked = d.unpaid; c.addEventListener("change", () => { d.unpaid = c.checked; }); return c; })(), t("f.unpaid"))));
+    select(cur, CURRENCIES.map(c => [c, c]), v => { cur = v || "€"; sync(); }, true))),
+    h("label", { cls: "ct-unpaid" }, (() => { const c = h("input", { attr: { type: "checkbox" } }); c.checked = d.unpaid; c.addEventListener("change", () => { d.unpaid = c.checked; }); return c; })(), t("f.unpaid")));
 }
 
 /* el buscador de lugares: una nota tuya o una nueva */

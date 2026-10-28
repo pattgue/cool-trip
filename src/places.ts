@@ -75,26 +75,33 @@ export async function createPlace(app: App, s: Settings, name: string, city: str
 /* ---------- iconos según la categoría (iconos Lucide que trae Obsidian), con su color y su familia ---------- */
 /* el color es un id de la paleta del billete; la familia agrupa las vistas por ciudad de la base de lugares (ver, comer, pasear…) */
 export type Family = "see" | "eat" | "walk" | "sleep" | "other";
+/* cada tipo de lugar: las palabras que lo reconocen (es · en), su icono, su color (uno distinto por tipo) y su grupo.
+   El orden importa: gana el primero que encaja («bar de tapas» es bar; «sala de conciertos», música). */
 export const ICONS: [RegExp, string, string, Family][] = [
-  [/templo|santuario|temple|shrine|iglesia|church|catedral|cathedral|mezquita|mosque|bas[ií]lica/i, "landmark", "lavanda", "see"],
-  [/museo|museum|galer[ií]a|gallery|arte|art/i, "palette", "cielo", "see"],
-  [/restaurante|restaurant|comida|food|ramen|sushi|tapas|bar\b|tasca|izakaya/i, "utensils", "bermellon", "eat"],
-  [/caf[eé]|coffee|cafeter[ií]a|brunch/i, "coffee", "rosa", "eat"],
-  [/mercado|market/i, "store", "mostaza", "eat"],
-  [/tienda|shop|calle comercial|shopping|compras/i, "shopping-bag", "mostaza", "walk"],
-  [/mirador|viewpoint|vista|torre|tower/i, "binoculars", "pistacho", "see"],
-  [/parque|park|jard[ií]n|garden|bosque|forest/i, "trees", "pistacho", "walk"],
-  [/playa|beach|costa|lago|lake|\br[ií]o\b|river/i, "waves", "cielo", "walk"],
-  [/monta[ñn]a|mountain|volc[aá]n|ruta|hike|senderismo/i, "mountain", "pistacho", "walk"],
-  [/castillo|castle|palacio|palace|fortaleza/i, "castle", "lavanda", "see"],
-  [/cruce|crossing|plaza|square|calle|street|barrio|neighbo/i, "signpost", "cielo", "walk"],
-  [/m[uú]sica|music|concierto|concert|teatro|theat/i, "music", "rosa", "see"],
-  [/noche|night|discoteca|club|cocteler[ií]a|cocktail|vino|wine/i, "wine", "bermellon", "eat"],
-  [/hotel|alojamiento|hostal|ryokan|apartamento|lodging/i, "bed", "lavanda", "sleep"],
-  [/monumento|monument|ruinas|ruins|hist[oó]ric/i, "landmark", "lavanda", "see"],
-  [/onsen|spa|ba[ñn]os|bath/i, "droplets", "cielo", "see"],
+  [/templo|santuario|temple|shrine|iglesia|church|catedral|cathedral|mezquita|mosque|bas[ií]lica|sinagoga|synagogue|monasterio|monastery|ermita/i, "church", "#C2B3F5", "see"],
+  [/museo|museum|galer[ií]a|gallery|exposici[oó]n|exhibition|\barte\b|\bart\b/i, "palette", "#9CC9F0", "see"],
+  [/librer[ií]a|bookstore|bookshop|biblioteca|library|libros|books/i, "book-open", "#E3D3A8", "see"],
+  [/m[uú]sica|music|concierto|concert|sala|teatro|theat|[oó]pera|jazz/i, "music", "#F07A8C", "see"],
+  [/cine|cinema|movie|film/i, "clapperboard", "#F2E27A", "see"],
+  [/discoteca|club|nightclub|fiesta|party/i, "disc-3", "#9C8CE0", "eat"],
+  [/\bbar\b|\bbares\b|\bpub\b|taberna|tavern|cervecer[ií]a|brewery|beer|cocteler[ií]a|cocktail|vino|wine|vermut|izakaya/i, "beer", "#D9805F", "eat"],
+  [/restaurante|restaurant|comida|food|ramen|sushi|tapas|tasca|pizzer[ií]a|bistr[oó]|trattoria|marisquer[ií]a/i, "utensils", "#E8613C", "eat"],
+  [/caf[eé]|coffee|cafeter[ií]a|brunch|pasteler[ií]a|bakery|panader[ií]a|helader[ií]a|ice cream|dulces/i, "coffee", "#F5AFC0", "eat"],
+  [/mercado|market/i, "store", "#EDC14B", "eat"],
+  [/tienda|shop|calle comercial|shopping|compras|\bmall\b/i, "shopping-bag", "#F7C59F", "walk"],
+  [/mirador|viewpoint|vista|torre|tower|observatorio|observatory/i, "binoculars", "#6CC5C9", "see"],
+  [/parque|park|jard[ií]n|garden|bosque|forest/i, "trees", "#B5D69A", "walk"],
+  [/playa|beach|costa|coast|lago|lake|\br[ií]o\b|river|\bcala\b|\bbay\b/i, "waves", "#7C9CD8", "walk"],
+  [/monta[ñn]a|mountain|volc[aá]n|\bruta\b|hike|senderismo|excursi[oó]n/i, "mountain", "#A8C3A0", "walk"],
+  [/castillo|castle|palacio|palace|fortaleza|fortress/i, "castle", "#B07CC6", "see"],
+  [/monumento|monument|ruinas|ruins|hist[oó]ric|cementerio|cemetery/i, "landmark", "#C9A27E", "see"],
+  [/zoo|acuario|aquarium|animales|animals/i, "paw-print", "#F2A65A", "see"],
+  [/estadio|stadium|deporte|sport|f[uú]tbol|football/i, "trophy", "#B8C26A", "see"],
+  [/onsen|\bspa\b|ba[ñn]os|bath|termas/i, "droplets", "#A6DCD8", "see"],
+  [/cruce|crossing|plaza|square|calle|street|barrio|neighbo/i, "signpost", "#B9B4AA", "walk"],
+  [/hotel|alojamiento|hostal|ryokan|apartamento|lodging|hostel/i, "bed", "#8FD8C4", "sleep"],
 ];
-export const OTHER_ICON: [string, string, Family] = ["map-pin", "cielo", "other"];
+export const OTHER_ICON: [string, string, Family] = ["map-pin", "#8E8E93", "other"];
 const catOf = (category: string) => ICONS.find(([re]) => re.test(category));
 export function iconFor(category: string): string { return catOf(category)?.[1] || OTHER_ICON[0]; }
 export function catColor(category: string): string { return catOf(category)?.[2] || OTHER_ICON[1]; }
