@@ -45,7 +45,9 @@ function refresh(doc: BaseDoc, kind: BaseKind, s: Settings, env: BaseEnv): boole
   const f = doc.formulas ??= {};
   for (const [k, v] of Object.entries(fresh.formulas || {})) if (f[k] !== v) { f[k] = v; ch = true; }
   for (const view of doc.views || []) {
-    if (view.type === "map" && view.coordinates === "note." + s.props.location) { view.coordinates = "formula.loc"; ch = true; }
+    /* el mapa usa la propiedad de ubicación elegida en los ajustes */
+    const loc = "note." + s.props.location;
+    if (view.type === "map" && s.props.location && typeof view.coordinates === "string" && /^(note\.|formula\.loc$)/.test(view.coordinates) && view.coordinates !== loc) { view.coordinates = loc; ch = true; }
     const m = view.coolbases as { css?: unknown } | undefined;
     if (view.type === "cool-bases" && m && typeof m.css === "string" && m.css.startsWith(CITY_CSS.slice(0, 40)) && !m.css.includes(CSS_START)) { m.css = CITY_CSS; ch = true; }
   }
