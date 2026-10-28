@@ -240,7 +240,7 @@ export function coste(ctx: SideCtx): HTMLElement {
       h("span", { cls: "ct-progress" }, fill));
   })() : null;
   return box(ctx, "cost", t("cost"), null, () => [
-    h("div", { cls: "ct-cost-total" }, h("span", { cls: "ct-h-total" }, fmtMoney(total, cur)), h("span", { cls: "ct-sub" }, t("cost.sub"))),
+    h("div", { cls: "ct-cost-total" }, h("span", { cls: "ct-h-total" }, fmtMoney(total, cur))),
     budget || button([icon("plus"), h("span", null, t("cost.setBudget"))], "ct-pill is-dashed is-small ct-budget-add", setBudget),
     unpaid ? h("div", { cls: "ct-missing" }, icon("clock"), h("span", null, t("cost.unpaid", { n: fmtMoney(unpaid, cur) }))) : null,
     tr.travelers.length > 1 ? h("div", { cls: "ct-cost-people" }, tr.travelers.map((p, i) => h("span", { cls: "ct-cost-person" }, avatar(p, i, "ct-avatar ct-avatar-lg"),
