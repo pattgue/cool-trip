@@ -19,14 +19,16 @@ const whereIcon = (w: Where) => w === "wallet" ? "wallet" : w === "vault" ? "fil
 
 /* un documento: un botón fino de una línea (los viajeros, como etiqueta; los sitios, a la derecha) */
 /* full: en la mochila del ordenador, los sitios llevan también su nombre; en las reservas y en el móvil, solo el icono */
+const KNOWN_CLOUDS = ["Google Drive", "iCloud", "Dropbox", "OneDrive", "Box", "Proton Drive"];
 export function docButton(ctx: { openDoc(d: Doc): void }, d: Doc, travelers: string[] = [], full = false): HTMLElement {
   const all = docWheres(d), paper = all.includes("paper");
   const others = all.filter(w => w !== "paper");
   /* solo el formato, como icono (el nombre del servicio, sin el enlace, queda en la etiqueta) */
-  const whereText = (w: Where) => { const n = w === "cloud" ? cloudName(d.url) : ""; return n && !n.includes(".") ? n : t("w." + w); };
-  return button([
+  const whereText = (w: Where) => { const n = w === "cloud" ? cloudName(d.url) : ""; return KNOWN_CLOUDS.includes(n) ? n : t("w." + w); };
+  const nameEl = h("span", { cls: "ct-doc-name" }, d.name);
+  const btn = button([
     icon(d.where === "wallet" ? "wallet" : d.where === "vault" ? "file" : "file-text"),
-    h("span", { cls: "ct-doc-name" }, d.name),
+    nameEl,
     d.para.length ? h("span", { cls: "ct-doc-para", attr: { "aria-label": d.para.join(", ") } },
       d.para.map(p => avatar(p, Math.max(0, travelers.indexOf(p)), "ct-avatar ct-avatar-tag"))) : null,
     h("span", { cls: "ct-grow" }),
@@ -35,6 +37,12 @@ export function docButton(ctx: { openDoc(d: Doc): void }, d: Doc, travelers: str
     paper ? h("span", { cls: "ct-paper-tag", attr: { title: t("w.paper") } }, icon("file-text"), h("span", { cls: "ct-paper-t" }, t("paper"))) : null,
     d.where !== "paper" ? icon("arrow-up-right", "ct-ico ct-ico-xs") : null,
   ], "ct-doc" + (paper ? " is-paper" : "") + (full ? " is-full" : ""), () => ctx.openDoc(d));
+  /* el nombre manda: si no cabe entero, los sitios se quedan solo en icono */
+  if (full) {
+    const fit = () => { btn.removeClass("is-tight"); if (btn.isConnected && nameEl.scrollWidth > nameEl.clientWidth + 1) btn.addClass("is-tight"); };
+    new ResizeObserver(fit).observe(btn);
+  }
+  return btn;
 }
 
 export interface DocFormOpts {

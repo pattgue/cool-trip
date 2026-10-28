@@ -245,11 +245,17 @@ function tileUrls(env: BaseEnv, w: number, h: number, size: number): string {
   }
   return chain(cases.slice(0, -1), cases[cases.length - 1][1]);
 }
+/* las palabras de una expresión de ICONS: «caf[eé]» → «cafe», «café»; «\\bbar\\b» → « bar » (palabra suelta) */
+export function catWords(re: RegExp): string[] {
+  const expand = (w: string): string[] => { const m = /\[([^\]]+)\]/.exec(w); return m ? [...m[1]].flatMap(c => expand(w.slice(0, m.index) + c + w.slice(m.index + m[0].length))) : [w]; };
+  return re.source.split("|").flatMap(a => expand(a.replace(/^\\b/, " ").replace(/\\b$/, " ")));
+}
 function placeFormulas(s: Settings, env: BaseEnv): Record<string, string> {
   const P = s.props, w = words();
-  const cat = P.category ? `${nv(P.category)}.toString()` : '""';
+  /* la categoría en minúsculas y entre espacios (sin expresiones regulares: se buscan las palabras de cada icono) */
+  const cat = P.category ? `(" " + list(${nv(P.category)}).join(" ").lower() + " ")` : '""';
   const byCat = (pick: (e: (typeof ICONS)[number]) => string, last: string) =>
-    P.category ? chain(ICONS.map(e => [`/${e[0].source}/i.matches(${cat})`, pick(e)] as [string, string]), last) : last;
+    P.category ? chain(ICONS.map(e => [catWords(e[0]).map(w => `${cat}.contains(${q(w)})`).join(" || "), pick(e)] as [string, string]), last) : last;
   const rating = P.rating ? `number(list(${nv(P.rating)})[0])` : "0";
   const f: Record<string, string> = {
     icon: byCat(e => q(e[1]), q(OTHER_ICON[0])),
@@ -356,7 +362,7 @@ export function placesBase(s: Settings, env: BaseEnv, cities: string[]): BaseDoc
 export function mapView(s: Settings, kind: BaseKind): View {
   const P = s.props;
   return { type: "map", name: viewNames().map, order: kind === "trips" ? ["file.name", "formula.datesNights", "note." + P.destinations] : ["file.name", "formula.catPrice"],
-    coordinates: "formula.loc", markerIcon: kind === "trips" ? "formula.pin" : "formula.icon", markerColor: "formula.color" };
+    coordinates: "note." + P.location, markerIcon: kind === "trips" ? "formula.pin" : "formula.icon", markerColor: "formula.color" };
 }
 const displayNames = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, { displayName: v }]));
 

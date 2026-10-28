@@ -358,6 +358,13 @@ function ticketCard(ctx: PlanCtx, it: Item, di: number, index: number, key: stri
     docsRow(ctx, it, key, (() => { const n = peopleLabel(ctx, it).length; return n ? plural(n, t("k.ticket").toLowerCase(), t("f.tickets").toLowerCase()) : ""; })()));
   const card = h("article", { cls: "ct-card ct-admission" }, strip, body, h("span", { cls: "ct-notch-l" }), h("span", { cls: "ct-notch-r" }));
   card.setCssProps({ "--ct-key": color });
+  /* el nombre del lugar cabe entero en la banda: se achica la letra y, si aun así no cabe, va en dos líneas */
+  const nm = strip.lastElementChild as HTMLElement;
+  window.requestAnimationFrame(() => {
+    const over = () => nm.scrollHeight > nm.clientHeight + 1 || nm.scrollWidth > nm.clientWidth + 1;
+    for (let fs = 11; over() && fs > 7.5; fs -= 0.5) nm.setCssProps({ "--ct-admit-fs": fs - 0.5 + "px" });
+    if (over()) nm.addClass("is-wrap");
+  });
   return card;
 }
 
