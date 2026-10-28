@@ -402,6 +402,7 @@
 .ct-settings[data-bw="s"] .ct-set-base { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
 .ct-settings[data-bw="s"] .ct-set-base-main { display: contents; }
 .ct-settings[data-bw="s"] .ct-set-base-main > .ct-f, .ct-settings[data-bw="s"] .ct-set-base-path { order: 5; }
+.ct-settings[data-bw="s"] .ct-set-base-ups { order: 6; }
 .ct-settings[data-bw="s"] .ct-set-promo-btn { height: 44px; font-size: 15px; }
 /* Propiedades, estrecho: cada grupo, su tarjeta (con el título fuera) y cada dato en bloque (nombre y estado, descripción, tipo y desplegable) */
 .ct-settings[data-bw="s"] .ct-set-req { order: 0; }

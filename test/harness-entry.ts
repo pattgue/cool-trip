@@ -28,7 +28,7 @@ const app = {
 const plugin = { settings: defaultSettings("es"), app, isTrip: () => true, manifest: { id: "cool-trip" },
   coverSrc: (c: string) => /^(https?|data):/.test(c) ? c : null,
   askDest: async () => ({ city: "Roma", country: "Italia" }),
-  keeper: { env: () => ({ cool: false, maps: false, iconSvg: () => "" }), missing: async () => ({ map: false, cool: false }), create: async () => {}, upgrade: async () => {} } };
+  keeper: { env: () => ({ cool: false, maps: false, iconSvg: () => "" }), missing: async () => ({ old: false, map: false, cool: false }), create: async () => {}, upgrade: async () => {} } };
 if (window.__mode.startsWith("settings")) {
   /* la Cool Bar con dos plugins Cool, para el paso 6 */
   const reg = registry();

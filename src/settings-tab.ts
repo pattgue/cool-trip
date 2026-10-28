@@ -381,6 +381,9 @@ export class CoolTripSettingTab extends PluginSettingTab {
         const up = (label: string, what: { addMap?: boolean; useCool?: boolean }) => button(label, "ct-set-btn is-small", () => {
           void keeper.upgrade(kind, what).then(() => { new Notice(t("s5.updated", { p: made.path })); this.display(); });
         });
+        if (m.old) ups.append(h("span", { cls: "ct-set-base-desc" }, t("s5.oldD")), button(t("s5.rebuild"), "ct-set-btn is-small is-primary", () => {
+          void keeper.rebuild(kind, name).then(() => { new Notice(t("s5.updated", { p: made.path })); this.display(); });
+        }));
         if (m.cool) ups.appendChild(up(t("s5.useCool"), { useCool: true }));
         if (m.map) ups.appendChild(up(t("s5.addMap"), { addMap: true }));
       });
