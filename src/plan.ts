@@ -5,7 +5,7 @@ import { h } from "./dom";
 import { t, vocab } from "./i18n";
 import { addDays, dayLabel, dayNum, diffDays, isIso, monthShort, range, spanLabel, weekday } from "./dates";
 import { citiesOfDay, field, fmtMoney, joinWhen, showPrice, tripCurrency, lineFor, newItem, priceValue, setField, splitWhen } from "./md";
-import { iconFor, mapsUrl, placeInfo, resolve } from "./places";
+import { catColor, iconFor, mapsUrl, placeInfo, resolve } from "./places";
 import type { PlaceInfo } from "./places";
 import { docButton, docForm } from "./docs";
 import type { Day, Doc, Item, Kind, Settings, Trip } from "./types";
@@ -29,6 +29,7 @@ export interface PlanCtx {
   openDoc(d: Doc): void;
   openUrl(url: string): void;
   move(fromDay: number, fromIndex: number, toDay: number, toIndex: number): void;
+  src?(cover: string): string | null;             // la URL de la foto de un lugar
 }
 
 /* ---------- lo que se calcula ---------- */
@@ -444,11 +445,15 @@ function itemRow(ctx: PlanCtx, di: number, row: Extract<Row, { r: "item" }>): HT
   const handle = it.time ? h("span", { cls: "ct-grip-gap" }) : grip(ctx, di, index);   // lo que tiene hora se coloca solo
   let out: HTMLElement;
   if (it.kind === "place") {
-    const info = placeOf(ctx, it.link), name = it.link || it.title;
+    /* sin entrada: una tarjeta sencilla con su foto (o el color y el icono de su tipo) */
+    const info = placeOf(ctx, it.link), name = it.link || it.title, src = info?.photo ? ctx.src?.(info.photo) : null;
     const main = h("span", { cls: "ct-name-col" }, placeLink(ctx, name, it.link),
       h("span", { cls: "ct-sub" }, [info?.category, info?.city].filter(Boolean).join(" · ") + priceSub));
-    out = rowEl(check(it.done, toggle), stepLine(ctx, it.time, bubble(iconFor(info?.category || "")), main, money(ctx, it.price),
+    const thumb = h("span", { cls: "ct-pthumb", attr: { "aria-hidden": "true" } }, src ? h("img", { attr: { src, alt: "" } }) : icon(iconFor(info?.category || "")));
+    thumb.setCssProps({ "--ct-cat": catColor(info?.category || "") });
+    out = rowEl(check(it.done, toggle), stepLine(ctx, it.time, thumb, main, money(ctx, it.price),
       [mapButton(ctx, name, info, date, "ct-map is-tinted"), editBtn(ctx, di, index, it), handle]));
+    out.addClass("is-pcard");
     out.setCssProps({ "--ct-key": color });
   } else if (it.kind === "meal") {
     const info = placeOf(ctx, it.link);

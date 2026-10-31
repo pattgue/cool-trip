@@ -19,9 +19,9 @@ cambie el texto que lo promete.
 
 ## Peticiones de Patt (28 oct 2026) que quedan para la siguiente ronda
 
-- [ ] **Lugares y entradas, un solo paso.** La entrada pasa a ser una opción del lugar («necesita entrada o cuesta dinero»), con sus
+- [x] **Lugares y entradas, un solo paso** (0.2.10, propuesta en el canvas: fila 2, nota del viaje). La entrada pasa a ser una opción del lugar («necesita entrada o cuesta dinero»), con sus
       documentos. Con entrada, el diseño de billete de ahora; sin ella, una tarjeta más sencilla con la portada del lugar. Hay que
       dibujarla antes en el canvas. (Ya hecho en 0.2.3: la banda dice una sola vez «ENTRADA», va del color del viaje, el botón de
       Maps lleva el color del destino y en el coste entradas y lugares son la misma barra.)
-- [ ] **Diseño de las notas de lugar** (opcional en los ajustes): empieza por el tipo y cambia según él (comer: precio medio, tipo de
+- [x] **Diseño de las notas de lugar** (0.2.10, propuesta en el canvas: fila 6; falta el visto bueno de Patt). (opcional en los ajustes): empieza por el tipo y cambia según él (comer: precio medio, tipo de
       comida; museo: entradas, qué incluye, datos útiles…), con la portada. Primero se plantea en el canvas.

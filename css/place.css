@@ -1,0 +1,66 @@
+/* ---------- la nota de un lugar ---------- */
+.ct-place { display: flex; flex-direction: column; gap: 20px; max-width: 880px; width: 100%; margin: 0 auto; }
+/* la cabecera: la foto, o el color de su tipo con el icono grande (colores propios, sin transparencias, como el billete) */
+.ct-phero { position: relative; overflow: hidden; height: 260px; border-radius: 22px; background: var(--ct-cat); color: var(--ct-ink); display: flex; align-items: flex-end; }
+.ct-phero-art { position: absolute; right: -28px; top: -24px; color: var(--ct-ink); opacity: .14; }
+.ct-root .ct-phero-art .ct-ico svg { width: 260px; height: 260px; stroke-width: 1.5; }
+.ct-phero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ct-phero.has-photo { color: #fff; }
+.ct-phero.has-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.62), rgba(0,0,0,0) 62%); }
+.ct-phero-text { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 6px; padding: 24px 28px; min-width: 0; }
+.ct-phero-kind { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.ct-root .ct-phero-kind .ct-ico svg { width: 14px; height: 14px; }
+.ct-phero-name { margin: 0; font-size: 38px; line-height: 1; font-weight: 800; letter-spacing: -.02em; color: inherit; overflow-wrap: anywhere; }
+.ct-phero-where { font-size: 14px; font-weight: 600; opacity: .8; }
+
+/* la fila de datos: Maps (del color del tipo), visitado, precio y estrellas */
+.ct-pfacts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ct-pmaps, .ct-pchip { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 15px; border-radius: 999px;
+  font: 600 13px var(--ct-font); cursor: pointer; background: none !important; box-shadow: none !important; border: 0 !important; }
+.ct-pmaps { background: var(--ct-cat) !important; color: var(--ct-ink); }
+.ct-pchip { border: 1.5px solid var(--ct-line) !important; color: var(--ct-strong); }
+.ct-pchip.is-on { border-color: var(--color-green) !important; color: var(--color-green); }
+.ct-pchip.is-empty { color: var(--ct-muted); border-style: dashed !important; }
+.ct-root .ct-pmaps .ct-ico svg, .ct-root .ct-pchip .ct-ico svg { width: 16px; height: 16px; }
+.ct-pstars { display: inline-flex; gap: 2px; margin-left: auto; }
+.ct-pstar { all: unset; cursor: pointer; padding: 3px; color: var(--ct-line); background: none !important; box-shadow: none !important; border: 0 !important; }
+.ct-root .ct-pstar .ct-ico svg { width: 20px; height: 20px; }
+.ct-pstar.is-on { color: var(--ct-mustard); }
+.ct-root .ct-pstar.is-on .ct-ico svg { fill: currentColor; }
+
+/* las secciones de su tipo: tarjetas que se tocan para escribir */
+.ct-psecs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ct-psec { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; border-radius: 16px; background: var(--ct-ticket) !important;
+  cursor: text; min-height: 96px; font: 500 14px/1.5 var(--ct-font); color: var(--ct-strong); box-shadow: none !important; border: 0 !important; }
+.ct-psec.is-wide { grid-column: 1 / -1; }
+.ct-psec.is-own { cursor: default; }
+.ct-psec.is-empty { background: none !important; border: 1.5px dashed var(--ct-line) !important; cursor: pointer; }
+.ct-psec-head { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ct-muted); }
+.ct-root .ct-psec-head .ct-ico svg { width: 15px; height: 15px; }
+.ct-psec-empty { color: var(--ct-faint); }
+.ct-psec-text p { margin: 0 0 4px; }
+.ct-psec-text ul { margin: 0; padding-left: 18px; }
+.ct-psec-input { width: 100%; min-height: 110px; resize: vertical; font: 500 14px/1.5 var(--ct-font); border-radius: 10px; }
+.ct-psec-foot { display: flex; justify-content: flex-end; align-items: center; gap: 14px; }
+
+/* los viajes que lo llevan */
+.ct-ptrips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ct-ptrips .ct-label { width: 100%; }
+.ct-ptrip { all: unset; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: 500 13px var(--ct-font);
+  background: var(--ct-ticket) !important; box-shadow: none !important; border: 0 !important; }
+.ct-root .ct-ptrip .ct-ico svg { width: 15px; height: 15px; }
+
+/* móvil: la cabecera más baja y una columna */
+.ct-place.is-phone { gap: 14px; }
+.ct-place.is-phone .ct-phero { height: 220px; border-radius: 18px; }
+.ct-place.is-phone .ct-phero-text { padding: 18px 20px; }
+.ct-place.is-phone .ct-phero-name { font-size: 30px; }
+.ct-place.is-phone .ct-psecs { grid-template-columns: 1fr; gap: 10px; }
+.ct-place.is-phone .ct-pstars { margin-left: 0; width: 100%; }
+
+/* ---------- el plan: un lugar sin entrada, en una tarjeta sencilla con su foto o su tipo ---------- */
+.ct-pthumb { flex: none; width: 52px; height: 52px; border-radius: 12px; background: var(--ct-cat); color: var(--ct-ink); display: grid; place-items: center; overflow: hidden; }
+.ct-pthumb img { width: 100%; height: 100%; object-fit: cover; }
+.ct-root .ct-pthumb .ct-ico svg { width: 22px; height: 22px; }
+.ct-row.is-pcard .ct-step { background: var(--ct-ticket); border-radius: 16px; padding: 8px 10px 8px 8px; }
+.ct-view.is-phone .ct-pthumb { width: 46px; height: 46px; border-radius: 10px; }

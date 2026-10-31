@@ -16,6 +16,7 @@ export interface Settings {
   tripFolder: string;          // dónde se guardan los viajes nuevos («» = raíz)
   placeFolder: string;         // dónde se guardan los lugares nuevos (con organización automática, + /Ciudad)
   autoOrganize: boolean;
+  placeView: boolean;          // las notas de lugar, con el diseño de Cool Trip
   props: PropNames;
   files: { cloud: boolean; wallet: boolean; device: boolean; vault: boolean; vaultFolder: string };
   maps: { app: MapsApp; modes: string[]; geocode: boolean };   // geocode: buscar las coordenadas de los lugares en OpenStreetMap

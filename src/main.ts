@@ -5,13 +5,14 @@ import type { WorkspaceLeaf } from "obsidian";
 import { joinCoolKit } from "./cool-kit/kit";
 import type { CoolKitHandle } from "./cool-kit/kit";
 import { locale, t } from "./i18n";
-import { allPlaces, isTripFile, resolve, tagsOf } from "./places";
+import { isPlaceFile, isTripFile, resolve, tagsOf } from "./places";
 import { promptDest } from "./prompt";
 import { adaptToVault, mergeSettings } from "./settings";
 import { CoolTripSettingTab } from "./settings-tab";
 import { NewTripModal } from "./modal";
 import { BaseKeeper } from "./keeper";
 import { TripView, VIEW_TYPE } from "./view";
+import { PlaceView, PLACE_VIEW } from "./placeview";
 import type { Settings } from "./types";
 
 export default class CoolTripPlugin extends Plugin {
@@ -24,6 +25,7 @@ export default class CoolTripPlugin extends Plugin {
   async onload() {
     this.settings = mergeSettings(await this.loadData() as Partial<Settings> | null, locale());
     this.registerView(VIEW_TYPE, leaf => new TripView(leaf, this));
+    this.registerView(PLACE_VIEW, leaf => new PlaceView(leaf, this));
     this.addSettingTab(new CoolTripSettingTab(this.app, this));
 
     this.addCommand({ id: "new-trip", name: t("cmd.new"), callback: () => new NewTripModal(this).open() });
@@ -32,7 +34,7 @@ export default class CoolTripPlugin extends Plugin {
       checkCallback: checking => {
         const leaf = this.app.workspace.getMostRecentLeaf();
         const v = leaf?.view;
-        const ok = v instanceof TripView || (v instanceof MarkdownView && !!v.file);
+        const ok = v instanceof TripView || v instanceof PlaceView || (v instanceof MarkdownView && !!v.file);
         if (ok && !checking && leaf) void this.toggleLeaf(leaf);
         return ok;
       },
@@ -44,11 +46,11 @@ export default class CoolTripPlugin extends Plugin {
       icon: "plane",
       order: 30,
       appliesTo: () => true,
-      isOpen: leaf => leaf.view instanceof TripView,
+      isOpen: leaf => leaf.view instanceof TripView || leaf.view instanceof PlaceView,
       kind: "view",
       toggle: leaf => {
         const v = leaf.view;
-        if (v instanceof TripView || (v instanceof MarkdownView && this.isTrip(v.file))) void this.toggleLeaf(leaf);
+        if (v instanceof TripView || v instanceof PlaceView || (v instanceof MarkdownView && (this.isTrip(v.file) || this.isPlace(v.file)))) void this.toggleLeaf(leaf);
         else new NewTripModal(this).open();
       },
       saveShared: async data => { this.settings.coolBar = data; await this.saveData(this.settings); },
@@ -89,8 +91,8 @@ export default class CoolTripPlugin extends Plugin {
   onunload() {
     this.keeper.cancel();
     /* las pestañas pintadas vuelven a ser notas normales */
-    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) {
-      const file = (leaf.view as TripView).file;
+    for (const leaf of [...this.app.workspace.getLeavesOfType(VIEW_TYPE), ...this.app.workspace.getLeavesOfType(PLACE_VIEW)]) {
+      const file = (leaf.view as TripView | PlaceView).file;
       if (file) void leaf.setViewState({ type: "markdown", state: { file: file.path } });
     }
   }
@@ -116,6 +118,10 @@ export default class CoolTripPlugin extends Plugin {
     return f instanceof TFile ? this.app.vault.getResourcePath(f) : null;
   }
 
+  /* una nota de lugar que se abre pintada (si está activado en los ajustes) */
+  isPlace(f: TFile | null | undefined): f is TFile {
+    return !!f && f.extension === "md" && this.settings.placeView && isPlaceFile(this.app, this.settings, f);
+  }
   /* una nota de viaje: la reconocen los ajustes o lleva el bloque del plugin (> [!cool-trip…]), aunque los ajustes no la reconozcan */
   marked = new Map<string, boolean>();
   isTrip(f: TFile | null | undefined): f is TFile {
@@ -136,9 +142,8 @@ export default class CoolTripPlugin extends Plugin {
       const v = leaf.view;
       if (!(v instanceof MarkdownView) || !v.file || this.asMarkdown.has(v.file.path)) return;
       if (!this.marked.has(v.file.path)) void this.checkMarker(v.file);
-      if (this.isTrip(v.file)) {
-        void leaf.setViewState({ type: VIEW_TYPE, state: { file: v.file.path }, active: leaf === ws.getMostRecentLeaf() });
-      }
+      const type = this.isTrip(v.file) ? VIEW_TYPE : this.isPlace(v.file) ? PLACE_VIEW : "";
+      if (type) void leaf.setViewState({ type, state: { file: v.file.path }, active: leaf === ws.getMostRecentLeaf() });
     });
     this.bar?.refresh();
   }
@@ -146,12 +151,13 @@ export default class CoolTripPlugin extends Plugin {
   /* entre el viaje pintado y su Markdown */
   async toggleLeaf(leaf: WorkspaceLeaf) {
     const v = leaf.view;
-    if (v instanceof TripView && v.file) {
+    if ((v instanceof TripView || v instanceof PlaceView) && v.file) {
       this.asMarkdown.add(v.file.path);
       await leaf.setViewState({ type: "markdown", state: { file: v.file.path, mode: "source" }, active: true });
     } else if (v instanceof MarkdownView && v.file) {
       this.asMarkdown.delete(v.file.path);
-      await leaf.setViewState({ type: VIEW_TYPE, state: { file: v.file.path }, active: true });
+      const place = !this.isTrip(v.file) && isPlaceFile(this.app, this.settings, v.file);
+      await leaf.setViewState({ type: place ? PLACE_VIEW : VIEW_TYPE, state: { file: v.file.path }, active: true });
     }
     this.bar?.refresh();
   }

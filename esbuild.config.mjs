@@ -4,7 +4,7 @@ import esbuild from "esbuild";
 import { readFileSync, writeFileSync } from "node:fs";
 
 const prod = process.argv[2] === "production";
-const CSS = ["css/font.css", "css/cool-kit.css", "css/base.css", "css/ticket.css", "css/plan.css", "css/side.css", "css/forms.css", "css/settings.css"];
+const CSS = ["css/font.css", "css/cool-kit.css", "css/base.css", "css/ticket.css", "css/plan.css", "css/side.css", "css/forms.css", "css/place.css", "css/settings.css"];
 /* Inter (la fuente de Cool Trip), incrustada: Obsidian solo descarga main.js, manifest.json y styles.css.
    fonts/Inter-latin.woff2 es la variable de @fontsource-variable/inter 5.1.0 (licencia OFL, fonts/OFL.txt), solo latín.
    La familia se llama «Cool Trip Inter» para no chocar con una Inter instalada en el sistema. */

@@ -235,6 +235,9 @@ export class CoolTripSettingTab extends PluginSettingTab {
         h("p", { cls: "ct-set-autoorg-text ct-if-ms" }, h("b", null, t("s1.autoB")), " ", t("s1.autoDShort")),
         button([icon(s.autoOrganize ? "check" : "smile"), h("span", null, s.autoOrganize ? t("s1.usingAuto") : t("s1.useAuto"))], "ct-set-btn ct-set-autoorg-btn" + (s.autoOrganize ? " is-on" : ""),
           () => { s.autoOrganize = !s.autoOrganize; this.save(); this.display(); }))));
+    /* las notas de lugar con el diseño de Cool Trip (opcional) */
+    body.appendChild(h("label", { cls: "ct-set-card is-check" + (s.placeView ? " is-on" : "") }, this.check(s.placeView, v => { s.placeView = v; this.save(); this.display(); this.plugin.syncLeaves(); }),
+      h("span", { cls: "ct-set-card-text" }, h("span", { cls: "ct-set-opt-title" }, h("b", null, t("pl.view"))), h("span", null, t("pl.viewD")))));
   }
   /* el explorador de archivos con la organización automática (el ejemplo del boceto) */
   private tree(): HTMLElement {

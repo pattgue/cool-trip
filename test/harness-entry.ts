@@ -5,6 +5,8 @@ import { defaultSettings } from "../src/settings";
 import { registry } from "../src/cool-kit/kit";
 import { CoolTripSettingTab } from "../src/settings-tab";
 import { TFile } from "obsidian";
+import { parsePlace, placePage } from "../src/place-page";
+import { placeInfo } from "../src/places";
 declare const window: Window & { __sample: string; __phone: boolean; __mode: string };
 
 const places: Record<string, Record<string, unknown>> = {
@@ -25,7 +27,7 @@ const app = {
   workspace: { openLinkText: () => {}, getLeaf: () => ({ openFile: () => {} }) },
   fileManager: {},
 };
-const plugin = { settings: defaultSettings("es"), app, isTrip: () => true, manifest: { id: "cool-trip" },
+const plugin = { settings: defaultSettings("es"), app, isTrip: () => true, syncLeaves: () => {}, manifest: { id: "cool-trip" },
   coverSrc: (c: string) => /^(https?|data):/.test(c) ? c : null,
   askDest: async () => ({ city: "Roma", country: "Italia" }),
   keeper: { env: () => ({ cool: false, maps: false, iconSvg: () => "" }), missing: async () => ({ old: false, map: false, cool: false }), create: async () => {}, upgrade: async () => {} } };
@@ -69,6 +71,24 @@ if (window.__mode.startsWith("settings")) {
   }
   if (location.hash === "#img") (tr as unknown as { cover: string; accent: string }).cover = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200"><rect width="400" height="200" fill="#4a7fb5"/><circle cx="300" cy="60" r="50" fill="#f3d36b"/><rect y="140" width="400" height="60" fill="#2f5d3a"/></svg>');
   m.open();
+} else if (window.__mode.startsWith("place")) {
+  /* la nota de un lugar: un museo (ordenador) y un restaurante (móvil), con alguna sección ya escrita */
+  plugin.settings.countries = { tokio: "Japón" };
+  const eat = window.__mode === "place-eat";
+  const f = files.find(x => x.basename === (eat ? "Omoide Yokocho" : "teamLab Planets"))!;
+  (f as unknown as { fm: Record<string, unknown> }).fm = { ...(f as unknown as { fm: Record<string, unknown> }).fm,
+    ...(eat ? { "categoría": "Izakaya", precio: "€€", "valoración": 4 } : { precio: "3.800 ¥", "valoración": 5, visitado: true }) };
+  const md = eat ? "## Qué pedir\n- Yakitori de muslo con sal\n- Motsuni (guiso de casquería)\n\n## Horario\nTodos los días, de 17:00 a 24:00. Mejor llegar pronto: los puestos son de 6 u 8 sitios.\n"
+    : "## Entradas\nCon hora fija: comprarlas en la web una semana antes. Incluye todas las salas; hay que ir descalzo.\n\n## Horario\n- Lunes a viernes, 9:00–22:00\n- Sábados y domingos, 8:00–22:00\n\n## Tras la visita\nCenar en Toyosu, al lado.\n";
+  const root = document.createElement("div");
+  root.className = "ct-root ct-view" + (window.__phone ? " is-phone" : "");
+  const pg = document.createElement("div");
+  pg.className = "ct-page";
+  pg.appendChild(placePage({ place: placeInfo(app as never, plugin.settings, f), doc: parsePlace(md), phone: window.__phone, lang: "es", photo: null,
+    trips: [{ name: "2027 - Japón", dates: "3 – 14 abr 2027", open: () => {} }], mapsUrl: "", editing: null,
+    openUrl: () => {}, edit: () => {}, saveSection: () => {}, setRating: () => {}, setVisited: () => {}, setPrice: () => {} }));
+  root.appendChild(pg);
+  document.body.appendChild(root);
 } else {
   const view = new TripView({ app } as never, plugin as never);
   (view as unknown as { file: TFile }).file = trip;
