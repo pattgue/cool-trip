@@ -95,6 +95,10 @@ const tB = md.parseTrip("---\ntipo: viaje\ninicio: 2026-12-01\nfin: 2026-12-02\n
 tB.budget = 1500;
 const outB = md.serializeTrip(tB, S), tB2 = md.parseTrip(outB, "b", S);
 ok("presupuesto y color dentro de la nota", !/portada|presupuesto:|viajeros/.test(outB.split("> [!")[0]) && /\[!cool-trip\|mostaza\]/.test(outB) && tB2.budget === 1500 && tB2.cover === "mostaza", outB.split("\n").slice(0, 9).join(" | "));
+/* respeta la forma de tus propiedades: una lista como texto, [[enlaces]] y fechas con hora */
+const tK = md.parseTrip("---\ntipo: viaje\ninicio: 2026-12-01T10:00\nfin: 2026-12-03\ndestinos: Roma, Nápoles\nviajeros:\n  - \"[[Ana]]\"\n---\n", "k", S);
+const outK = md.serializeTrip(tK, S);
+ok("respeta la forma de tus propiedades", /inicio: 2026-12-01T10:00/.test(outK) && /destinos: Roma, Nápoles/.test(outK) && /\[\[Ana\]\]/.test(outK), outK.split("\n").slice(0, 8).join(" | "));
 ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md.showPrice("$5", "€") === "$5" && md.showPrice("", "€") === "");
 
 /* ---------- las bases (src/bases.ts): cada fórmula se lee y da lo del canvas ---------- */

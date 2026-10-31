@@ -14,10 +14,10 @@ import type { BarAlign, BarLocation, BarMode, Device, ToolVisibility } from "./c
 import { kt } from "./cool-kit/i18n";
 import { locateAll, unlocated } from "./geo";
 import { AUTO_FOLDERS, defaultSettings, propKey, suggestedProps, tripFolder } from "./settings";
-import { allPlaces, catColor, iconFor, isTripFile } from "./places";
+import { allPlaces, catColor, iconFor, isPlaceFile, isTripFile, readLoc } from "./places";
 import { promptText } from "./prompt";
 import { spanLabel } from "./dates";
-import { parseTrip, serializeTrip, toList } from "./md";
+import { parseTrip, serializeTrip, toIso, toList } from "./md";
 import { blankDoc } from "./docs";
 import { bookingCard, fitRoutes } from "./plan";
 import type { PlanCtx } from "./plan";
@@ -260,6 +260,21 @@ export class CoolTripSettingTab extends PluginSettingTab {
     const FITS: Record<string, string[]> = { date: ["date", "datetime"], list: ["multitext", "tags", "aliases", "text"], text: ["text", "multitext", "number"],
       number: ["number", "text"], checkbox: ["checkbox"] };
     const fits = (p: string, type: string) => { const ty = this.propType(p); return !ty || (FITS[type] || []).includes(ty); };
+    /* un valor que Cool Trip no sabe leer (una fecha como «2 nov», unas coordenadas sin números): el primero que encuentre */
+    const PLACE_KEYS: (keyof PropNames)[] = ["location", "city", "category", "price", "rating", "visited", "photo"];
+    const unreadable = (k: keyof PropNames): string => {
+      const read = k === "start" || k === "end" ? (v: unknown) => !!toIso(v) : k === "location" ? (v: unknown) => !!readLoc(v) : null;
+      if (!read || !s.props[k]) return "";
+      const isMine = PLACE_KEYS.includes(k) ? isPlaceFile : isTripFile;
+      for (const f of this.app.vault.getMarkdownFiles()) {
+        if (!isMine(this.app, s, f)) continue;
+        const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
+        const v: unknown = fm?.[propKey(s, k, fm)];
+        const txt = (x: unknown) => typeof x === "string" || typeof x === "number" || typeof x === "boolean" ? String(x) : "";
+        if (v != null && v !== "" && !read(v)) return Array.isArray(v) ? v.map(txt).join(", ") : txt(v);
+      }
+      return "";
+    };
     const row = (k: keyof PropNames, type: string, need: boolean) => {
       const val = s.props[k], isUsed = !!val && used.has(val);
       const others = [...used].filter(p => p !== sug[k] && fits(p, type)).sort((a, b) => a.localeCompare(b));
@@ -275,10 +290,11 @@ export class CoolTripSettingTab extends PluginSettingTab {
           this.display();
         });
       }, t("s2.yours") + " · " + t("p." + k));
-      const odd = !!val && isUsed && !fits(val, type);
-      const state = !val ? ["", t("s2.unused")] : odd ? ["is-warn", t("s2.odd")] : isUsed ? ["is-used", t("s2.used")] : ["", t("s2.new")];
+      const odd = !!val && isUsed && !fits(val, type), bad = val && isUsed ? unreadable(k) : "";
+      const state = !val ? ["", t("s2.unused")] : bad ? ["is-warn", t("s2.bad")] : odd ? ["is-warn", t("s2.odd")] : isUsed ? ["is-used", t("s2.used")] : ["", t("s2.new")];
       const st = h("span", { cls: "ct-set-state " + state[0] + (val ? "" : " is-off") }, state[1]);
-      if (odd) st.setAttr("aria-label", t("s2.oddD", { t: t("t." + type) }));
+      if (bad) st.setAttr("aria-label", t("s2.badD", { v: bad, e: k === "location" ? "41.39, 2.17" : "2026-11-02" }));
+      else if (odd) st.setAttr("aria-label", t("s2.oddD", { t: t("t." + type) }));
       return h("div", { cls: "ct-set-prop" },
         h("span", { cls: "ct-set-prop-name" }, t("p." + k), need ? h("span", { cls: "ct-req", attr: { "aria-label": t("s2.reqShort") } }, "*") : null),
         h("span", { cls: "ct-set-prop-desc" }, t(`p.${k}D`)),
