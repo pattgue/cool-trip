@@ -97,12 +97,9 @@ export default class CoolTripPlugin extends Plugin {
 
   async saveSettings() { await this.saveData(this.settings); this.bar?.refresh(); }
 
-  /* el país de una ciudad: el que ya usaste, o el de tus notas de lugar de esa ciudad */
+  /* el país de una ciudad: el que ya usaste */
   guessCountry(city: string): string {
-    const c = city.trim().toLowerCase();
-    if (!c) return "";
-    if (this.settings.countries[c]) return this.settings.countries[c];
-    return allPlaces(this.app, this.settings).find(p => p.city.toLowerCase() === c && p.country)?.country || "";
+    return this.settings.countries[city.trim().toLowerCase()] || "";
   }
   async askDest(city: string, country: string, fallback: string): Promise<{ city: string; country: string } | null> {
     const v = await promptDest(this.app, t("addDest"), locale(), city, country || this.guessCountry(city) || fallback,

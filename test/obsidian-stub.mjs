@@ -7,3 +7,4 @@ export const moment = { locale: () => globalThis.__lang || "es" };
 export const normalizePath = p => p.replace(/\/+/g, "/").replace(/^\/|\/$/g, "");
 export const Platform = { isPhone: false, isMobile: false, isIosApp: false, isAndroidApp: false };
 export class TFile {}
+export const setIcon = () => {};

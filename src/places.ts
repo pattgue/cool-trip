@@ -32,7 +32,7 @@ const isYes = (v: unknown): boolean => v === true || /^(true|s[ií]|yes|x|1|✓)
 export function placeInfo(app: App, s: Settings, f: TFile): PlaceInfo {
   const fm = fmOf(app, f) || {};
   const get = (k: keyof PropNames) => { const v = fm[propKey(s, k, fm)]; return (Array.isArray(v) ? v.map(str).join(", ") : str(v)).replace(/^\[\[|\]\]$/g, ""); };
-  return { file: f, name: f.basename, city: get("city"), country: get("country"), category: get("category"),
+  return { file: f, name: f.basename, city: get("city"), country: s.countries[get("city").trim().toLowerCase()] || "", category: get("category"),
     price: get("price"), loc: readLoc(fm[propKey(s, "location", fm)]), rating: stars(fm[propKey(s, "rating", fm)]),
     visited: isYes(fm[propKey(s, "visited", fm)]), photo: get("photo") };
 }
@@ -67,7 +67,6 @@ export async function createPlace(app: App, s: Settings, name: string, city: str
   if (s.places.mode === "property" && s.places.key) fm.push(`${s.places.key}: ${q(s.places.value)}`);
   if (s.places.mode === "tag" && s.places.value) fm.push(`tags:\n  - ${s.places.value.replace(/^#/, "")}`);
   if (city) fm.push(`${s.props.city}: ${q(city)}`);
-  if (country && s.props.country) fm.push(`${s.props.country}: ${q(country)}`);
   const body = fm.length ? `---\n${fm.join("\n")}\n---\n` : "";
   return app.vault.create(path, body);
 }
@@ -112,7 +111,8 @@ export function mapsUrl(app: MapsApp, name: string, city: string, loc: [number, 
   const q = encodeURIComponent([name, city].filter(Boolean).join(", "));
   if (app === "apple") return `https://maps.apple.com/?q=${encodeURIComponent(name)}` + (loc ? `&ll=${loc[0]},${loc[1]}` : city ? `&near=${encodeURIComponent(city)}` : "");
   if (app === "organic") return loc ? `om://map?v=1&ll=${loc[0]},${loc[1]}&n=${encodeURIComponent(name)}` : `om://search?query=${q}`;
-  return `https://www.google.com/maps/search/?api=1&query=${loc ? `${loc[0]},${loc[1]}` : q}`;
+  /* Google: con el nombre abre la ficha del sitio (horario, reseñas); las coordenadas solas, solo un pin */
+  return `https://www.google.com/maps/search/?api=1&query=${name || !loc ? q : `${loc[0]},${loc[1]}`}`;
 }
 /* abrir la Wallet del móvil (no hay enlace a un pase concreto) */
 export function walletUrl(): string | null {

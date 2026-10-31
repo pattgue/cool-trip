@@ -454,3 +454,4 @@
 .ct-settings.is-phone .ct-set-picker-btn { height: 44px; padding: 0 12px; font-size: 15px; }
 .ct-settings.is-phone .ct-set-picker-opt { height: 44px; font-size: 15px; }
 .ct-settings.is-phone .ct-set-prop-in .ct-input { padding: 0 28px 0 12px !important; }
+.ct-set-state.is-warn { background: color-mix(in srgb, var(--color-orange) 22%, var(--ct-set-page)); color: color-mix(in srgb, var(--color-orange) 70%, var(--text-normal)); }

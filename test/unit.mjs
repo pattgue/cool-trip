@@ -13,7 +13,10 @@ await esbuild.build({
   plugins: [{ name: "stub", setup: b => b.onResolve({ filter: /^obsidian$/ }, () => ({ path: join(here, "obsidian-stub.mjs") })) }],
 });
 const md = await import(pathToFileURL(outfile).href + "?" + Date.now());
-const S = md.defaultSettings("es");
+/* las pruebas reconocen las notas por la propiedad «tipo» (por defecto, Cool Trip usa carpetas) */
+const prop = x => { x.trips.mode = x.places.mode = "property"; return x; };
+const S = prop(md.defaultSettings("es"));
+S.countries = { lisboa: "Portugal" };
 const sample = readFileSync(join(here, "sample.md"), "utf8");
 
 let fails = 0;
@@ -74,19 +77,24 @@ ok("el alojamiento no lleva hora", hotel2.kind === "lodging" && !md.itemMd(hotel
 /* ajustes en español (sincronizados desde el móvil) y una nota de viaje en inglés */
 const enNote = "---\ntype:\n  - trip\nstart: 2026-12-01\nend: 2026-12-03\ndestinations:\n  - Roma\n---\n";
 const fmEn = { type: ["trip"], start: "2026-12-01", end: "2026-12-03", destinations: ["Roma"] };
-const Ses = md.defaultSettings("es");
+const Ses = prop(md.defaultSettings("es"));
 ok("reconoce el viaje del otro idioma", md.recognizes(Ses.trips, "trip", "a.md", fmEn, []) && !md.recognizes(Ses.trips, "trip", "a.md", { type: "lugar" }, []));
 const tEn = md.parseTrip(enNote, "2026 - Roma", Ses);
 ok("lee las propiedades del otro idioma", tEn.start === "2026-12-01" && tEn.end === "2026-12-03", JSON.stringify([tEn.start, tEn.end]));
 const outEn = md.serializeTrip(tEn, Ses);
 ok("las escribe con los nombres de la nota", !/inicio|tipo|destinos/.test(outEn) && /start: '?2026-12-01/.test(outEn), outEn.split("\n").slice(0, 8).join(" | "));
-const Sad = md.defaultSettings("es");
+const Sad = prop(md.defaultSettings("es"));
 ok("se adapta al idioma de las notas", md.adaptToVault(Sad, [{ path: "a.md", fm: fmEn, tags: [] }]) && Sad.trips.key === "type" && Sad.props.start === "start" && Sad.language === "en");
-const Sno = md.defaultSettings("es");
+const Sno = prop(md.defaultSettings("es"));
 ok("no cambia si ya hay viajes suyos", !md.adaptToVault(Sno, [{ path: "a.md", fm: fmEn, tags: [] }, { path: "b.md", fm: { tipo: "viaje" }, tags: [] }]) && Sno.trips.key === "tipo");
 
 const tOld = md.parseTrip("---\ntype: trip\nstart: 2026-12-01\nend: 2026-12-02\ntravelers:\n  - patt\n---\n## Bag\n- DNI · patt (on paper)\n", "x", Ses);
 ok("«DNI · patt» pasa a burbuja", tOld.mochila[0]?.name === "DNI" && tOld.mochila[0].para.join() === "patt", JSON.stringify(tOld.mochila));
+/* el presupuesto y el color van en el bloque del viaje; nada de propiedades vacías */
+const tB = md.parseTrip("---\ntipo: viaje\ninicio: 2026-12-01\nfin: 2026-12-02\nportada: mostaza\n---\n", "b", S);
+tB.budget = 1500;
+const outB = md.serializeTrip(tB, S), tB2 = md.parseTrip(outB, "b", S);
+ok("presupuesto y color dentro de la nota", !/portada|presupuesto:|viajeros/.test(outB.split("> [!")[0]) && /\[!cool-trip\|mostaza\]/.test(outB) && tB2.budget === 1500 && tB2.cover === "mostaza", outB.split("\n").slice(0, 9).join(" | "));
 ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md.showPrice("$5", "€") === "$5" && md.showPrice("", "€") === "");
 
 /* ---------- las bases (src/bases.ts): cada fórmula se lee y da lo del canvas ---------- */
@@ -120,7 +128,7 @@ ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md
   ok("lugares: categoría y precio, estrellas, viajes", [G("Senso-ji", "catPrice"), G("Da Enzo al 29", "stars"), G("Senso-ji", "tripNames"), G("Pastéis de Belém", "cityCountry")].join(" | ")
     === "Templo · Gratis | ★★★★☆ | 2027 - Japón | Lisboa · Portugal", [G("Senso-ji", "catPrice"), G("Da Enzo al 29", "stars"), G("Senso-ji", "tripNames"), G("Pastéis de Belém", "cityCountry")].join(" | "));
   ok("lugares: la foto o el icono", String(G("Senso-ji", "photo")) === "[[senso-ji.jpg]]" && String(G("Meiji Jingu", "photo")).startsWith("data:image/svg+xml"));
-  ok("vistas de viajes", tb.views.map(v => v.type + ":" + v.name).join(", ") === "cool-bases:Próximos, cool-bases:Viajados, table:Todos, map:Mapa");
+  ok("vistas de viajes", tb.views.map(v => v.type + ":" + v.name).join(", ") === "cool-bases:Próximos, cool-bases:Viajados, table:Todos");
   ok("vistas de lugares", pb.views.map(v => v.type + ":" + v.name).join(", ") === "cool-bases:Guía por ciudad, map:Mapa, cool-bases:Tokio, cool-bases:Kioto");
   const nat = round(md.tripsBase(S, { ...env, cool: false, maps: false }));
   ok("sin Cool Bases ni Maps", nat.views.map(v => v.type).join() === "cards,cards,table" && nat.views[0].image === "formula.cover");

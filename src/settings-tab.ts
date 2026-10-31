@@ -12,6 +12,7 @@ import { t } from "./i18n";
 import { KIT_VERSION, devicePrefs, registry, saveBarSettings, sortedTools, thisDevice } from "./cool-kit/kit";
 import type { BarAlign, BarLocation, BarMode, Device, ToolVisibility } from "./cool-kit/kit";
 import { kt } from "./cool-kit/i18n";
+import { locateAll, unlocated } from "./geo";
 import { AUTO_FOLDERS, defaultSettings, propKey, suggestedProps, tripFolder } from "./settings";
 import { allPlaces, catColor, iconFor, isTripFile } from "./places";
 import { promptText } from "./prompt";
@@ -42,6 +43,12 @@ export class CoolTripSettingTab extends PluginSettingTab {
     const out = new Set<string>();
     for (const f of this.app.vault.getMarkdownFiles()) for (const k of Object.keys(this.app.metadataCache.getFileCache(f)?.frontmatter || {})) out.add(k);
     return out;
+  }
+  /* el tipo que Obsidian tiene asignado a una propiedad («» si aún no tiene) */
+  private propType(name: string): string {
+    const m = (this.app as unknown as { metadataTypeManager?: { getAssignedWidget?: (n: string) => string | null; properties?: Record<string, { type?: string; widget?: string }> } }).metadataTypeManager;
+    const p = m?.properties?.[name.toLowerCase()];
+    return m?.getAssignedWidget?.(name) || p?.widget || p?.type || "";
   }
   private go(step: number) { this.step = step; this.display(); this.containerEl.scrollTop = 0; }
 
@@ -249,9 +256,13 @@ export class CoolTripSettingTab extends PluginSettingTab {
     const TYPE_ICON: Record<string, string> = { date: "calendar", list: "list", text: "type", number: "hash", checkbox: "square-check" };
     const req = h("p", { cls: "ct-set-req" }, h("span", { cls: "ct-req" }, "*"), " ", t("s2.req"));
     const OTHER = "\u0000other", NONE = "\u0000none";
+    /* los tipos de Obsidian que sirven para cada dato (una propiedad sin tipo asignado sirve para todo) */
+    const FITS: Record<string, string[]> = { date: ["date", "datetime"], list: ["multitext", "tags", "aliases", "text"], text: ["text", "multitext", "number"],
+      number: ["number", "text"], checkbox: ["checkbox"] };
+    const fits = (p: string, type: string) => { const ty = this.propType(p); return !ty || (FITS[type] || []).includes(ty); };
     const row = (k: keyof PropNames, type: string, need: boolean) => {
       const val = s.props[k], isUsed = !!val && used.has(val);
-      const others = [...used].filter(p => p !== sug[k]).sort((a, b) => a.localeCompare(b));
+      const others = [...used].filter(p => p !== sug[k] && fits(p, type)).sort((a, b) => a.localeCompare(b));
       const opts: [string, string][] = [[sug[k], t("s2.suggested", { p: sug[k] })], ...others.map(p => [p, p] as [string, string])];
       if (val && !opts.some(([v]) => v === val)) opts.push([val, val]);
       if (!need) opts.push([NONE, t("s2.none")]);
@@ -264,19 +275,21 @@ export class CoolTripSettingTab extends PluginSettingTab {
           this.display();
         });
       }, t("s2.yours") + " · " + t("p." + k));
-      const state = !val ? ["", t("s2.unused")] : k === "country" ? ["is-auto", t("s2.auto")] : isUsed ? ["is-used", t("s2.used")] : ["", t("s2.new")];
+      const odd = !!val && isUsed && !fits(val, type);
+      const state = !val ? ["", t("s2.unused")] : odd ? ["is-warn", t("s2.odd")] : isUsed ? ["is-used", t("s2.used")] : ["", t("s2.new")];
+      const st = h("span", { cls: "ct-set-state " + state[0] + (val ? "" : " is-off") }, state[1]);
+      if (odd) st.setAttr("aria-label", t("s2.oddD", { t: t("t." + type) }));
       return h("div", { cls: "ct-set-prop" },
         h("span", { cls: "ct-set-prop-name" }, t("p." + k), need ? h("span", { cls: "ct-req", attr: { "aria-label": t("s2.reqShort") } }, "*") : null),
         h("span", { cls: "ct-set-prop-desc" }, t(`p.${k}D`)),
         h("span", { cls: "ct-set-type" }, icon(TYPE_ICON[type]), t("t." + type)),
-        h("span", { cls: "ct-set-prop-in" }, sel),
-        h("span", { cls: "ct-set-state " + state[0] + (val ? "" : " is-off") }, state[1]));
+        h("span", { cls: "ct-set-prop-in" }, sel), st);
     };
     const group = (title: string, ico: string) => h("div", { cls: "ct-set-group" }, icon(ico), title);
     body.append(req, h("div", { cls: "ct-set-table" },
       h("div", { cls: "ct-set-thead" }, h("span", null, t("s2.data")), h("span", null, t("s2.type")), h("span", null, t("s2.yours")), h("span", null, t("s2.state"))),
-      group(t("s2.trip"), "plane"), row("start", "date", true), row("end", "date", true), row("destinations", "list", true), row("travelers", "list", false), row("cover", "text", false), row("budget", "number", false),
-      group(t("s2.place"), "map-pin"), row("location", "list", true), row("city", "text", true), row("country", "text", false), row("category", "text", false),
+      group(t("s2.trip"), "plane"), row("start", "date", true), row("end", "date", true), row("destinations", "list", true), row("travelers", "list", false), row("cover", "text", false),
+      group(t("s2.place"), "map-pin"), row("location", "list", true), row("city", "text", true), row("category", "text", false),
       row("price", "text", false), row("rating", "number", false), row("visited", "checkbox", false), row("photo", "text", false)));
   }
 
@@ -334,6 +347,16 @@ export class CoolTripSettingTab extends PluginSettingTab {
       h("div", { cls: "ct-set-modes" },
         h("b", { cls: "ct-set-subhead" }, t("s4.modes"), h("span", { cls: "ct-sub" }, " · " + t("s4.modesHint"))),
         h("div", { cls: "ct-set-chips" }, ["walk", "transit", "car", "bike", "taxi"].map(mode))));
+    /* las coordenadas de los lugares, solas (OpenStreetMap) */
+    const missing = unlocated(this.app, this.plugin.settings).length;
+    const find = missing && m.geocode ? button(t("s4.geoBtn", { n: String(missing) }), "ct-set-btn", () => {
+      if (!find) return;
+      find.disabled = true;
+      void locateAll(this.app, this.plugin.settings, (d, n) => { find.setText(t("s4.geoRun", { d: String(d), n: String(n) })); })
+        .then(found => { new Notice(t("s4.geoDone", { n: String(found) })); this.display(); });
+    }) : null;
+    body.append(h("label", { cls: "ct-set-card is-check" + (m.geocode ? " is-on" : "") }, this.check(m.geocode, v => { m.geocode = v; this.save(); this.display(); }),
+      h("span", { cls: "ct-set-card-text" }, h("span", { cls: "ct-set-opt-title" }, h("b", null, t("s4.geo"))), h("span", null, t("s4.geoD")), find)));
   }
 
   /* 5 · Bases: cada base va, si no se elige otra carpeta, con las notas que organiza (la carpeta del paso 1) */
