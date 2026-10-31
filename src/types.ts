@@ -5,8 +5,8 @@ export type RecogMode = "property" | "tag" | "folder";
 export interface Recog { mode: RecogMode; key: string; value: string; folder: string }
 
 export interface PropNames {
-  start: string; end: string; destinations: string; travelers: string; cover: string; budget: string;
-  location: string; city: string; country: string; category: string; price: string; rating: string; visited: string; photo: string;
+  start: string; end: string; destinations: string; travelers: string; cover: string;
+  location: string; city: string; category: string; price: string; rating: string; visited: string; photo: string;
 }
 
 export type MapsApp = "google" | "apple" | "organic";
@@ -18,7 +18,7 @@ export interface Settings {
   autoOrganize: boolean;
   props: PropNames;
   files: { cloud: boolean; wallet: boolean; device: boolean; vault: boolean; vaultFolder: string };
-  maps: { app: MapsApp; modes: string[] };
+  maps: { app: MapsApp; modes: string[]; geocode: boolean };   // geocode: buscar las coordenadas de los lugares en OpenStreetMap
   bases: { trips: string; places: string };   // la carpeta de cada base («» = raíz)
   baseCities: string[];        // las ciudades que ya tienen (o tuvieron) su vista en la base de lugares, en minúsculas
   basesMade: { trips: string; places: string };   // el archivo de cada base que ya creó Cool Trip («» = ninguno)

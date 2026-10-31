@@ -2,10 +2,10 @@
 import type { PropNames, Recog, Settings } from "./types";
 
 const PROPS: Record<"es" | "en", PropNames> = {
-  es: { start: "inicio", end: "fin", destinations: "destinos", travelers: "viajeros", cover: "portada", budget: "presupuesto",
-    location: "ubicación", city: "ciudad", country: "país", category: "categoría", price: "precio", rating: "valoración", visited: "visitado", photo: "portada" },
-  en: { start: "start", end: "end", destinations: "destinations", travelers: "travelers", cover: "cover", budget: "budget",
-    location: "location", city: "city", country: "country", category: "category", price: "price", rating: "rating", visited: "visited", photo: "cover" },
+  es: { start: "inicio", end: "fin", destinations: "destinos", travelers: "viajeros", cover: "portada",
+    location: "coordenadas", city: "ciudad", category: "categoría", price: "precio", rating: "valoración", visited: "visitado", photo: "portada" },
+  en: { start: "start", end: "end", destinations: "destinations", travelers: "travelers", cover: "cover",
+    location: "coordinates", city: "city", category: "category", price: "price", rating: "rating", visited: "visited", photo: "cover" },
 };
 export const suggestedProps = (lang: "es" | "en"): PropNames => ({ ...PROPS[lang] });
 export const AUTO_FOLDERS = { es: { trips: "Viajes", places: "Lugares" }, en: { trips: "Trips", places: "Places" } };
@@ -15,12 +15,13 @@ const KIND = { es: { key: "tipo", trip: "viaje", place: "lugar" }, en: { key: "t
 export function defaultSettings(lang: "es" | "en"): Settings {
   const kind = KIND[lang];
   return {
-    trips: { mode: "property", key: kind.key, value: kind.trip, folder: AUTO_FOLDERS[lang].trips },
-    places: { mode: "property", key: kind.key, value: kind.place, folder: AUTO_FOLDERS[lang].places },
+    /* por defecto, por carpeta: así Cool Trip no añade ninguna propiedad para reconocer las notas */
+    trips: { mode: "folder", key: kind.key, value: kind.trip, folder: AUTO_FOLDERS[lang].trips },
+    places: { mode: "folder", key: kind.key, value: kind.place, folder: AUTO_FOLDERS[lang].places },
     tripFolder: "", placeFolder: "", autoOrganize: false,
     props: suggestedProps(lang),
     files: { cloud: true, wallet: true, device: false, vault: false, vaultFolder: lang === "es" ? "Archivos" : "Files" },
-    maps: { app: "google", modes: ["walk", "transit"] },
+    maps: { app: "google", modes: ["walk", "transit"], geocode: true },
     bases: { trips: "", places: "" },
     basesMade: { trips: "", places: "" },
     baseCities: [],
@@ -109,13 +110,16 @@ export function adaptToVault(s: Settings, notes: { path: string; fm: Record<stri
   return true;
 }
 
-/* dónde se guarda un viaje o un lugar nuevo */
+/* dónde se guarda un viaje o un lugar nuevo (si se reconocen por carpeta, siempre dentro de esa carpeta) */
+const clean = (f: string) => f.replace(/^\/+|\/+$/g, "");
+const inside = (f: string, r: Recog) => r.mode !== "folder" || !clean(r.folder) || f === clean(r.folder) || f.startsWith(clean(r.folder) + "/");
 export function tripFolder(s: Settings): string {
-  return s.autoOrganize ? AUTO_FOLDERS[s.language].trips : s.tripFolder.replace(/^\/+|\/+$/g, "");
+  const f = s.autoOrganize ? AUTO_FOLDERS[s.language].trips : clean(s.tripFolder);
+  return inside(f, s.trips) ? f : clean(s.trips.folder);
 }
 export function placeFolder(s: Settings, city: string): string {
-  if (s.autoOrganize) return [AUTO_FOLDERS[s.language].places, city.trim()].filter(Boolean).join("/");
-  return s.placeFolder.replace(/^\/+|\/+$/g, "");
+  const f = s.autoOrganize ? [AUTO_FOLDERS[s.language].places, city.trim()].filter(Boolean).join("/") : clean(s.placeFolder);
+  return inside(f, s.places) ? f : [clean(s.places.folder), s.autoOrganize ? city.trim() : ""].filter(Boolean).join("/");
 }
 /* el nombre de la misma propiedad en el otro idioma («categoría» ↔ «category»), o "" si no es uno de los nombres por defecto */
 export function twinProp(name: string): string {

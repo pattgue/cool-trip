@@ -70,3 +70,4 @@ export class Setting {
     const api = { setIcon(i) { b.textContent = i === "arrow-up" ? "↑" : "↓"; return api; }, setTooltip() { return api; }, setDisabled(x) { b.toggleClass("is-disabled", x); return api; }, onClick(f) { b.onclick = f; return api; } };
     cb(api); return this; }
 }
+export const requestUrl = async () => ({ json: [] });

@@ -7,6 +7,7 @@ import { addDays, dayLabel, diffDays, isIso, iso, isTime, normTime, range, readD
 import type { Day, Dest, Doc, Field, Item, Kind, PropNames, Settings, Task, Trip, Where } from "./types";
 import { isTransport } from "./types";
 import { propKey, twinRecog } from "./settings";
+import { PALETTE, paletteId } from "./ui";
 
 export const MARKER = "%% cool-trip v1 %%";
 /* las sugerencias de «Por hacer» que se han quitado: «%% cool-trip · ocultas: Mapas sin conexión de Roma | … %%» */
@@ -368,7 +369,9 @@ export const tripDates = (t: Trip) => range(t.start, t.end);
 
 /* los nombres de las propiedades del viaje tal y como los usa esta nota */
 const props = (s: Settings, fm: Record<string, unknown>) =>
-  Object.fromEntries((["start", "end", "destinations", "travelers", "cover", "budget"] as const).map(k => [k, propKey(s, k, fm)])) as Pick<PropNames, "start" | "end" | "destinations" | "travelers" | "cover" | "budget">;
+  Object.fromEntries((["start", "end", "destinations", "travelers", "cover"] as const).map(k => [k, propKey(s, k, fm)])) as Pick<PropNames, "start" | "end" | "destinations" | "travelers" | "cover">;
+/* las versiones 0.2.x guardaban el presupuesto en una propiedad (la de sus ajustes): se lee y pasa al bloque del viaje */
+const oldBudget = (s: Settings) => (s.props as unknown as Record<string, string | undefined>).budget || "";
 
 export function parseTrip(text: string, name: string, s: Settings): Trip {
   const t: Trip = { fm: {}, name, start: "", end: "", dests: [], travelers: [], cover: "", budget: 0, accent: "", mochila: [], packing: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
@@ -383,9 +386,10 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
   t.end = toIso(t.fm[P.end]) || t.start;
   t.travelers = toList(t.fm[P.travelers]);
   t.cover = typeof t.fm[P.cover] === "string" ? String(t.fm[P.cover]) : "";
-  const bv = P.budget ? t.fm[P.budget] : null;
+  const bk = oldBudget(s), bv = bk ? t.fm[bk] : null;
   t.budget = typeof bv === "number" ? bv : typeof bv === "string" ? priceValue(bv) : 0;
   const fmDests = toList(t.fm[P.destinations]);
+  if (t.cover && paletteId(t.cover)) t.cover = paletteId(t.cover) || "";      // un color en la propiedad (versiones 0.2.x)
 
   const lines = body.split(/\r?\n/);
   const calloutDests: Dest[] = [];
@@ -401,7 +405,10 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
     if (callout) {
       t.accent = (callout[1] || "").trim();
       while (i + 1 < lines.length && /^>/.test(lines[i + 1])) {
-        const segs = splitSeg(lines[++i].replace(/^>\s?/, ""));
+        const raw = lines[++i].replace(/^>\s?/, "");
+        const bud = new RegExp(`^(?:${BOTH.map(v => v.budget).join("|")})\\s*:\\s*(.+)$`, "i").exec(raw.trim());
+        if (bud) { t.budget = priceValue(bud[1]); continue; }
+        const segs = splitSeg(raw);
         const ni = segs.findIndex(x => /^\d+\s+\S+$/.test(x) && BOTH.some(v => [v.nights, v.night].includes(low(x.split(/\s+/)[1]))));
         if (!segs[0]) continue;
         calloutDests.push({
@@ -481,6 +488,8 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
     const names = m ? m[2].split(/\s*,\s*|\s+(?:y|and)\s+/) : [];
     if (m && !d.para.length && names.every(n => who.has(low(n)))) { d.name = m[1]; d.para = names.map(n => who.get(low(n))!); }
   }
+  /* sin portada de imagen, el color del viaje es el de su bloque */
+  if (!t.cover && PALETTE.some(p => p.id === t.accent)) t.cover = t.accent;
   return t;
 }
 
@@ -497,17 +506,25 @@ export function serializeTrip(t: Trip, s: Settings): string {
     const tags = toList(fm.tags);
     if (!tags.some(x => low(x.replace(/^#/, "")) === low(s.trips.value.replace(/^#/, "")))) fm.tags = [...tags, s.trips.value.replace(/^#/, "")];
   }
+  /* solo se escribe lo que tiene valor: ni propiedades vacías ni propiedades que no hayas rellenado */
+  const put = (k: string, on: boolean, val: unknown) => { if (!k) return; if (on) fm[k] = val; else if (k in fm && fm[k] != null && fm[k] !== "" && !(Array.isArray(fm[k]) && !(fm[k] as unknown[]).length)) delete fm[k]; };
   if (t.start) fm[P.start] = t.start;
   if (t.end) fm[P.end] = t.end;
-  fm[P.destinations] = t.dests.map(d => d.city);
-  if (P.travelers) fm[P.travelers] = [...t.travelers];
-  if (P.cover) { if (t.cover) fm[P.cover] = t.cover; else delete fm[P.cover]; }
-  if (P.budget) { if (t.budget > 0) fm[P.budget] = t.budget; else delete fm[P.budget]; }
-  const out: string[] = ["---", stringifyYaml(fm).trimEnd(), "---"];
-  out.push(`> [!cool-trip${t.accent ? "|" + t.accent : ""}] ${t.name}`);
+  put(P.destinations, t.dests.length > 0, t.dests.map(d => d.city));
+  put(P.travelers, t.travelers.length > 0, [...t.travelers]);
+  /* la portada solo es propiedad si es una imagen; el color va en el bloque del viaje */
+  const pal = paletteId(t.cover);
+  if (P.cover) { if (t.cover && !pal) fm[P.cover] = t.cover; else if (typeof fm[P.cover] === "string" && paletteId(String(fm[P.cover]))) delete fm[P.cover]; }
+  const bk = oldBudget(s);
+  if (bk && bk in fm && bk !== P.cover) delete fm[bk];       // el presupuesto va en el bloque del viaje
+  const accent = pal && t.cover ? pal : t.accent;
+  const yaml = Object.keys(fm).length ? stringifyYaml(fm).trimEnd() : "";
+  const out: string[] = yaml ? ["---", yaml, "---"] : [];
+  out.push(`> [!cool-trip${accent ? "|" + accent : ""}] ${t.name}`);
   for (const d of t.dests) {
     out.push("> " + [d.city, d.country, `${d.nights} ${d.nights === 1 ? v.night : v.nights}`, joinNames(d.travelers)].filter(Boolean).join(" · "));
   }
+  if (t.budget > 0) out.push(`> ${v.budget}: ${t.budget}`);
   out.push("");
   if (t.intro.length) out.push(...t.intro, "");
   out.push(`## ${v.bag}`, ...t.mochila.map(d => "- " + docMd(d, v)), "");

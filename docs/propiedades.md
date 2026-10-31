@@ -1,23 +1,40 @@
 # Propiedades de Cool Trip
 
-Cool Trip solo usa **dos tipos de nota**: viaje y lugar. Los nombres de abajo son los que propone por defecto (español · inglés).
-En Ajustes › 2 puedes cambiar cada uno por el que ya uses. Además, Cool Trip y sus bases leen siempre también el nombre del otro
-idioma: una nota con `category` funciona aunque los ajustes digan `categoría`.
+## La regla
 
-Las reservas, los documentos, la mochila, la maleta, las tareas y el plan **no son propiedades**: van escritos en el cuerpo de la
-nota del viaje (ver abajo).
+Cool Trip no llena tu vault de propiedades:
+
+- **Solo escribe lo que tú rellenas.** Todas las funciones están siempre disponibles, pero una propiedad solo se crea cuando
+  rellenas su campo en Cool Trip. Si un viaje no tiene viajeros, su nota no lleva `viajeros:` vacío.
+- **Nunca añade una propiedad por su cuenta.** Las únicas excepciones son las coordenadas, que busca solo si lo activas en
+  Ajustes › 4, y la marca que reconoce la nota si eliges propiedad o etiqueta en Ajustes › 1. Por carpeta, que es lo que usa
+  por defecto, no escribe nada.
+- **Usa tus propiedades.** En Ajustes › 2, cada dato propone las propiedades que ya tienes y que son de su mismo tipo (fecha,
+  lista, texto…). También puedes dejar la sugerida, elegir otra o no usarlo.
+- **Lo que no hace falta para buscar ni filtrar va dentro de la nota**, no en las propiedades: el color del viaje, el
+  presupuesto, las reservas, los documentos, la maleta, las tareas y el plan.
+- **Los colores y los iconos de los lugares son del plugin.** Cada tipo de lugar tiene su icono y su color fijos. La nota
+  solo dice qué tipo de lugar es, con su `categoría`.
+
+Los nombres de abajo son los que se proponen por defecto (español · inglés). Cool Trip lee también los del otro idioma: una
+nota con `category` funciona aunque los ajustes digan `categoría`.
+
+### ¿Y si mi propiedad es de otro tipo?
+
+Obsidian guarda un tipo por propiedad para todo el vault. Si eliges una tuya de otro tipo (por ejemplo, `start` como texto
+cuando Cool Trip espera una fecha), Ajustes › 2 la marca como «Otro tipo». Funciona igual mientras el valor tenga la forma
+que espera Cool Trip: las fechas como `2026-11-02` (sirven también fecha y hora), las listas como lista o separadas por
+comas, y los números como número o como texto (`15 €`). Cool Trip nunca cambia el tipo de tus propiedades.
 
 ## Cómo reconoce cada nota (Ajustes › 1)
 
 Se elige **una** de estas tres formas por tipo de nota:
 
-| Forma | Viaje | Lugar |
-|---|---|---|
-| Propiedad (por defecto) | `tipo: viaje` · `type: trip` | `tipo: lugar` · `type: place` |
-| Carpeta | `Viajes/` · `Trips/` | `Lugares/` · `Places/` |
-| Etiqueta | `#viaje` (la que elijas) | `#lugar` (la que elijas) |
-
-> Si reconoces las notas por la propiedad `tipo`, no uses `tipo` también para la categoría del lugar: para eso está `categoría`.
+| Forma | Viaje | Lugar | ¿Escribe algo? |
+|---|---|---|---|
+| Carpeta (por defecto) | `Viajes/` · `Trips/` | `Lugares/` · `Places/` | No |
+| Propiedad | `tipo: viaje` · `type: trip` | `tipo: lugar` · `type: place` | Esa propiedad |
+| Etiqueta | `#viaje` (la que elijas) | `#lugar` (la que elijas) | Esa etiqueta, en `tags` |
 
 ## Nota de viaje
 
@@ -26,37 +43,55 @@ Se elige **una** de estas tres formas por tipo de nota:
 | `inicio` · `start` | fecha | **sí** | Primer día. Crea los días del plan, la cuenta atrás y el orden en las bases. |
 | `fin` · `end` | fecha | **sí** | Último día. Noches, días, «próximos» o «viajados» en la base. |
 | `destinos` · `destinations` | lista de ciudades | **sí** | Las ciudades en orden: billete, reparto de noches, color de cada destino y qué lugares sugiere. |
-| `viajeros` · `travelers` | lista de nombres | no | Para repartir billetes, documentos y gastos («para Ana»). |
-| `portada` · `cover` | nombre de color o imagen | no | El color del billete (bermellón, mostaza, pistacho, cielo, lavanda, rosa) o una foto. |
-| `presupuesto` · `budget` | número | no | Lo que esperas gastar. Se compara con lo pagado en el panel Coste. |
-| `ubicación` · `location` | coordenadas | no (la pone sola) | Solo para el mapa de la base de viajes. Si falta, Cool Trip copia la de un lugar del viaje. |
+| `viajeros` · `travelers` | lista de nombres | no | Para repartir billetes, documentos y gastos («para Ana»), y para filtrar en las bases. |
+| `portada` · `cover` | imagen | no | Solo si la portada es una foto. El color del billete va dentro de la nota. |
 
 ## Nota de lugar
 
 | Propiedad | Formato | ¿Obligatoria? | Para qué sirve |
 |---|---|---|---|
 | `ciudad` · `city` | texto | **sí** | A qué destino pertenece. Sugerencias del plan, la guía por ciudad y la vista de cada ciudad. |
-| `país` · `country` | texto | no (se rellena sola) | Junto a la ciudad en la guía. |
 | `categoría` · `category` | texto | recomendada | Restaurante, museo, mirador… Elige el icono, el color y el grupo (ver, comer, pasear, dormir). |
-| `ubicación` · `location` | coordenadas `lat, lng` | recomendada | Botón de Maps exacto y el punto en el mapa de la base. Sin ella, el lugar no sale en el mapa. |
+| `coordenadas` · `coordinates` | `lat, lng` | no (las busca solo) | El punto en el mapa de la base de lugares. |
 | `precio` · `price` | texto (`€€`, `Gratis`, `15 €`) | no | Entrada o precio medio, junto a la categoría. |
 | `valoración` · `rating` | número del 1 al 5 | no | Estrellas en la guía, para ver primero lo imprescindible. |
 | `visitado` · `visited` | casilla | no | La casilla de la guía y de las tarjetas, para marcarlo durante el viaje. |
-| `portada` · `cover` | imagen | no | La foto de su tarjeta en la vista de la ciudad. Sin ella, sale el color de la categoría con su icono. |
+| `portada` · `cover` | imagen | no | La foto de su tarjeta en la vista de la ciudad. Sin ella, sale el color de su tipo con su icono. |
+
+**Lo que no hace falta:**
+
+- **País.** El de cada ciudad lo eliges una vez, al añadirla a un viaje, y Cool Trip lo recuerda. La base de lugares
+  escribe «Kioto · Japón» sin propiedad.
+- **Dirección.** Para abrir el sitio en tu app de mapas basta con el nombre y la ciudad. Google Maps abre así su ficha, con
+  horario y reseñas; con las coordenadas solas, solo enseñaría un pin.
+
+**Coordenadas automáticas (Ajustes › 4).** Al crear un lugar desde Cool Trip, el plugin busca sus coordenadas en
+OpenStreetMap (Nominatim) por su nombre y su ciudad. Es gratis, no necesita cuenta y necesita conexión a internet. Para los
+lugares que ya tienes, el mismo ajuste trae un botón que las busca, una por segundo. Si no encuentra un sitio, no escribe nada.
+Se puede desactivar.
 
 ## Lo que va dentro de la nota del viaje (no son propiedades)
 
 | Sección | Qué guarda |
 |---|---|
-| `> [!cool-trip\|color]` | El nombre del viaje y el color elegido cuando la portada es una foto. |
+| `> [!cool-trip\|color] Nombre` | El nombre del viaje y su color. Debajo, una línea por destino (`Kioto · Japón · 3 noches · Ana`) y el presupuesto (`> Presupuesto: 1500`). |
 | `## Mochila` · `## Bag` | Los documentos: dónde están (nube, Wallet, vault, dispositivo, papel) y para quién. |
 | `## Maleta` · `## Packing` | Lo que hay que meter: `- [x]` ya está dentro, `- [ ]` falta. |
 | `## Por hacer` · `## To do` | Tus tareas, con fecha límite opcional `📅 2026-11-02`. |
 | `## Plan` | Un `###` por día con sus pasos: lugares, comidas, transporte, alojamiento, entradas, notas. Cada paso puede llevar hora, precio (con `· por pagar` si falta pagarlo), «para» quién y sus documentos. |
 
+## Si vienes de la versión 0.2
+
+Al abrir y guardar un viaje, Cool Trip mueve a la nota el color de `portada` (si era un color, no una foto) y el
+`presupuesto`. Deja de escribir `país` en los lugares nuevos y `ubicación` en los viajes, y quita el mapa de la base de
+viajes. Lo que ya tengas escrito no lo borra: las propiedades `país`, `ubicación` de los viajes, `dirección` o `coordenadas`
+duplicadas puedes borrarlas tú cuando quieras, desde Obsidian (panel *Todas las propiedades* › clic derecho › *Borrar*… o
+*Renombrar* para unir dos en una).
+
 ## Tipos de lugar (la `categoría`)
 
-Cool Trip mira las palabras de la categoría (da igual mayúsculas, plural o idioma) y gana el primer tipo que encaja, en este orden. Si ninguna encaja: pin gris, grupo «otros».
+Cool Trip mira las palabras de la categoría (da igual mayúsculas, plural o idioma) y gana el primer tipo que encaja, en este
+orden. Si ninguna encaja: pin gris, grupo «otros».
 
 | Icono | Color | Grupo | Palabras que lo reconocen |
 |---|---|---|---|

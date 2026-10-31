@@ -68,11 +68,14 @@ export function oldFilter(r: Recog): string {
 }
 
 /* ---------- base de viajes ---------- */
-function tripFormulas(s: Settings): Record<string, string> {
+/* trips: el color de cada viaje (lo escribe Cool Trip en la base, porque el color va dentro de la nota, no en una propiedad) */
+function tripFormulas(s: Settings, trips: { path: string; color: string }[] = []): Record<string, string> {
   const P = s.props, w = words();
   const S = `date(${nv(P.start)})`, E = `date(${nv(P.end || P.start)})`;
   const cover = P.cover ? nv(P.cover) : '""';
-  const swatch = chain([[`!${cover}`, q(HEX.bermellon)], ...PAL_RE.map(([id, re]) => [`/${re}/i.matches(${cover}.toString())`, q(HEX[id])] as [string, string])], '""');
+  /* pal: una portada que es el nombre de un color (o ninguna); si no, la portada es una foto */
+  const pal = chain([[`!${cover}`, q(HEX.bermellon)], ...PAL_RE.map(([id, re]) => [`/${re}/i.matches(${cover}.toString())`, q(HEX[id])] as [string, string])], '""');
+  const swatch = chain(trips.map(x => [`file.path == ${q(x.path)}`, q(x.color)] as [string, string]), "formula.pal");
   const f: Record<string, string> = {
     nights: days(E, S),
     days: "formula.nights + 1",
@@ -104,13 +107,12 @@ function tripFormulas(s: Settings): Record<string, string> {
     yearRoute: 'formula.year + " · " + formula.route',
     who: P.travelers ? `list(${nv(P.travelers)}).join(", ")` : '""',
     nightsWho: `formula.nightsLabel + if(formula.who, " · " + formula.who, "")`,
-    /* el color del viaje (#rrggbb, el de su paleta) y la portada: el color, o la imagen si la portada es una foto */
+    /* el color del viaje (#rrggbb, el de su paleta) y la portada: la foto si la hay o, si no, el color */
+    pal,
     swatch,
     color: `if(formula.swatch, formula.swatch, ${q(HEX.bermellon)})`,
-    cover: `if(formula.swatch, formula.swatch, ${cover})`,
-    photo: `if(formula.swatch, "", ${cover})`,
-    pin: '"plane"',
-    loc: P.location ? nv(P.location) : '""',
+    photo: `if(formula.pal, "", ${cover})`,
+    cover: "if(formula.photo, formula.photo, formula.color)",
   };
   return f;
 }
@@ -201,7 +203,7 @@ function ticketModel(s: Settings): Record<string, unknown> {
   };
 }
 
-export function tripsBase(s: Settings, env: BaseEnv): BaseDoc {
+export function tripsBase(s: Settings, env: BaseEnv, trips: { path: string; color: string }[] = []): BaseDoc {
   const P = s.props, v = viewNames();
   const S = nv(P.start), E = nv(P.end || P.start);
   const cards = (name: string, filter: string, o: Record<string, unknown>, ratio: number, lines: string[]): View => env.cool
@@ -216,8 +218,7 @@ export function tripsBase(s: Settings, env: BaseEnv): BaseDoc {
     { type: "table", name: v.all, order: ["file.name", "formula.datesYear", "formula.nights", dests, who, "formula.when"].filter(Boolean),
       sort: [{ property: `note.${P.start}`, direction: "DESC" }], summaries: { "formula.nights": "Sum" } },
   ];
-  if (env.maps) views.push(mapView(s, "trips"));
-  return { filters: { and: [recogFilter(s.trips, "trip"), `${S}`] }, formulas: tripFormulas(s), properties: displayNames(TRIP_PROPS()), views };
+  return { filters: { and: [recogFilter(s.trips, "trip"), `${S}`] }, formulas: tripFormulas(s, trips), properties: displayNames(TRIP_PROPS()), views };
 }
 
 /* ---------- base de lugares ---------- */
@@ -261,7 +262,9 @@ function placeFormulas(s: Settings, env: BaseEnv): Record<string, string> {
     icon: byCat(e => q(e[1]), q(OTHER_ICON[0])),
     color: byCat(e => q(e[2]), q(OTHER_ICON[1])),
     family: byCat(e => q(w.fam[e[3]]), q(w.fam[OTHER_ICON[2]])),
-    cityCountry: P.country ? `${nv(P.city)} + if(${nv(P.country)}, " · " + ${nv(P.country)}, "")` : nv(P.city),
+    /* «Kioto · Japón»: el país sale de los ajustes (el que elegiste al añadir la ciudad a un viaje), no de una propiedad */
+    cityCountry: `${nv(P.city)} + ` + chain(Object.entries(s.countries).sort(([a], [b]) => a.localeCompare(b))
+      .map(([c, co]) => [`list(${nv(P.city)}).join("").lower() == ${q(c)}`, q(" · " + co)] as [string, string]), '""'),
     catPrice: P.category && P.price ? `[${nv(P.category)}, ${nv(P.price)}].filter(value).join(" · ")` : P.category ? `${cat}` : '""',
     stars: P.rating ? `if(${nv(P.rating)}, "★".repeat(${rating}) + "☆".repeat(5 - ${rating}), "")` : '""',
     seen: P.visited ? `if(${nv(P.visited)}, ${q(w.visited)}, ${q(w.toVisit)})` : '""',
@@ -353,16 +356,16 @@ export function placesBase(s: Settings, env: BaseEnv, cities: string[]): BaseDoc
     ? { type: "cool-bases", name: v.guide, ...group, order: ["file.name"], coolbases: placeModel(s, false) }
     : { type: "table", name: v.guide, ...group, order: ["file.name", "formula.catPrice", P.rating ? "formula.stars" : null, P.visited ? "note." + P.visited : null, "formula.trips"].filter(Boolean) };
   const views: View[] = [guide];
-  if (env.maps) views.push(mapView(s, "places"));
+  if (env.maps) views.push(mapView(s));
   views.push(...cities.map(c => cityView(s, env, c)));
   return { filters: { and: [recogFilter(s.places, "place")] }, formulas: placeFormulas(s, env), properties: displayNames(PLACE_PROPS()), views };
 }
 
 /* ---------- el mapa (plugin Maps): un marcador por nota, con su icono y su color ---------- */
-export function mapView(s: Settings, kind: BaseKind): View {
-  const P = s.props;
-  return { type: "map", name: viewNames().map, order: kind === "trips" ? ["file.name", "formula.datesNights", "note." + P.destinations] : ["file.name", "formula.catPrice"],
-    coordinates: "note." + P.location, markerIcon: kind === "trips" ? "formula.pin" : "formula.icon", markerColor: "formula.color" };
+/* solo en la base de lugares: los viajes no llevan coordenadas */
+export function mapView(s: Settings): View {
+  return { type: "map", name: viewNames().map, order: ["file.name", "formula.catPrice"],
+    coordinates: "note." + s.props.location, markerIcon: "formula.icon", markerColor: "formula.color" };
 }
 const displayNames = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, { displayName: v }]));
 
@@ -394,9 +397,8 @@ export function syncBase(doc: BaseDoc, kind: BaseKind, s: Settings, env: BaseEnv
     });
     doc.formulas = { ...fresh.formulas, ...doc.formulas };
   }
-  if (o.addMap && env.maps && !doc.views.some(x => x.type === "map")) {
-    const at = kind === "trips" ? doc.views.length : Math.min(1, doc.views.length);
-    doc.views.splice(at, 0, mapView(s, kind));
+  if (o.addMap && env.maps && kind === "places" && !doc.views.some(x => x.type === "map")) {
+    doc.views.splice(Math.min(1, doc.views.length), 0, mapView(s));
     changed = true;
   }
   for (const c of o.newCities || []) {

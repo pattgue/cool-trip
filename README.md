@@ -18,6 +18,16 @@ BRAT descarga la última Release. Cada versión nueva (`manifest.json` + una eti
 
 **A mano:** descarga `main.js`, `manifest.json` y `styles.css` de la última Release y cópialos en `.obsidian/plugins/cool-trip/` de tu vault.
 
+## Tus propiedades
+
+Cool Trip solo escribe en tus notas lo que tú rellenas: nunca deja propiedades vacías ni añade una por su cuenta. En los
+ajustes eliges qué propiedades tuyas usar (te propone las que ya tienes, si son del tipo adecuado). El color del viaje, el
+presupuesto, las reservas, los documentos y el plan van dentro de la nota del viaje, no en propiedades. La lista completa y
+la regla están en [docs/propiedades.md](docs/propiedades.md).
+
+**Conexión a internet:** solo si activas «Buscar las coordenadas solas» (Ajustes › 4, activado por defecto). Cool Trip manda
+el nombre y la ciudad del lugar a OpenStreetMap (Nominatim) para encontrar sus coordenadas. No manda nada más.
+
 ## Desarrollo
 
 ```bash

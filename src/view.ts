@@ -9,6 +9,7 @@ import { isIso } from "./dates";
 import { parseTrip, serializeTrip } from "./md";
 import { allPlaces, createPlace, resolve, walletUrl } from "./places";
 import type { PlaceInfo } from "./places";
+import { locate } from "./geo";
 import { fitRoutes, plan } from "./plan";
 import type { DocAdd, FormState } from "./plan";
 import { renderForm } from "./forms";
@@ -153,7 +154,11 @@ export class TripView extends TextFileView {
       openUrl: url => window.open(url, "_blank"),
       openDoc: d => this.openDoc(d, file),
       places: () => this.placesCache ??= allPlaces(this.app, this.plugin.settings),
-      createPlace: async (name, city, country) => { const f = await createPlace(this.app, this.plugin.settings, name, city, country); this.placesCache = null; return f.basename; },
+      createPlace: async (name, city, country) => {
+        const st = this.plugin.settings, f = await createPlace(this.app, st, name, city, country);
+        if (st.maps.geocode) void locate(this.app, st, f, name, city, country);      // las coordenadas, sin esperar
+        this.placesCache = null; return f.basename;
+      },
       saveForm: f => this.saveForm(f),
       deleteForm: f => { if (!f.isNew) this.trip!.days[f.day]?.items.splice(f.index, 1); this.form = null; this.commit(); },
     };

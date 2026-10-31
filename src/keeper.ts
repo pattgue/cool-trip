@@ -6,7 +6,7 @@
 import { getIcon, normalizePath, parseYaml, stringifyYaml, TFile } from "obsidian";
 import type { App } from "obsidian";
 import type CoolTripPlugin from "./main";
-import { CITY_CSS, CSS_START, oldFilter, placeBadgesCss, placesBase, syncBase, tripColorsCss, tripsBase } from "./bases";
+import { CITY_CSS, CSS_START, oldFilter, placeBadgesCss, placesBase, syncBase, tripColorsCss, tripsBase, viewNames } from "./bases";
 import type { BaseDoc, BaseEnv, BaseKind } from "./bases";
 import type { Settings } from "./types";
 import { allPlaces, catColor, ensureFolder, iconFor, isTripFile } from "./places";
@@ -39,11 +39,17 @@ function fixFilter(doc: BaseDoc, kind: BaseKind, s: Settings, env: BaseEnv): boo
   return true;
 }
 /* lo que cambia de una versión a otra en lo que es de Cool Trip: sus fórmulas, las coordenadas del mapa y el CSS de las ciudades */
-function refresh(doc: BaseDoc, kind: BaseKind, s: Settings, env: BaseEnv): boolean {
-  const fresh = kind === "trips" ? tripsBase(s, env) : placesBase(s, env, []);
+function refresh(doc: BaseDoc, kind: BaseKind, s: Settings, env: BaseEnv, trips: TripHex[] = []): boolean {
+  const fresh = kind === "trips" ? tripsBase(s, env, trips) : placesBase(s, env, []);
   let ch = false;
   const f = doc.formulas ??= {};
   for (const [k, v] of Object.entries(fresh.formulas || {})) if (f[k] !== v) { f[k] = v; ch = true; }
+  /* los viajes ya no llevan coordenadas: fuera el mapa que creaba Cool Trip en la base de viajes */
+  if (kind === "trips" && Array.isArray(doc.views)) {
+    const n = doc.views.length;
+    doc.views = doc.views.filter(v => !(v.type === "map" && v.name === viewNames().map && typeof v.coordinates === "string" && /^(note\.|formula\.loc$)/.test(v.coordinates)));
+    if (doc.views.length !== n) ch = true;
+  }
   for (const view of doc.views || []) {
     /* el mapa usa la propiedad de ubicación elegida en los ajustes */
     const loc = "note." + s.props.location;
@@ -53,6 +59,8 @@ function refresh(doc: BaseDoc, kind: BaseKind, s: Settings, env: BaseEnv): boole
   }
   return ch;
 }
+
+type TripHex = { path: string; color: string };
 
 export class BaseKeeper {
   private timer = 0;
@@ -76,7 +84,7 @@ export class BaseKeeper {
     const s = this.plugin.settings, env = this.env();
     await ensureFolder(this.app, folder);
     const cities = kind === "places" ? this.cities() : [];
-    const doc = kind === "trips" ? tripsBase(s, env) : placesBase(s, env, cities);
+    const doc = kind === "trips" ? tripsBase(s, env, await this.tripHexes()) : placesBase(s, env, cities);
     if (kind === "trips") syncBase(doc, kind, s, env, { colors: await this.colors() });
     if (!(this.app.vault.getAbstractFileByPath(path) instanceof TFile)) await this.app.vault.create(normalizePath(path), stringifyYaml(doc));
     s.basesMade[kind] = path;
@@ -93,7 +101,7 @@ export class BaseKeeper {
     const fresh = kind === "trips" ? tripsBase(s, env) : placesBase(s, env, []);
     const old = !doc.views.some(v => fresh.views.some(f => f.type !== "map" && f.name === v.name));
     if (old) return { old, map: false, cool: false };
-    const map = env.maps && !doc.views.some(v => v.type === "map");
+    const map = kind === "places" && env.maps && !doc.views.some(v => v.type === "map");
     const ours = kind === "trips" ? [fresh.views[0].name, fresh.views[1].name] : [fresh.views[0].name];
     const cool = env.cool && doc.views.some(v => (v.type === "cards" || v.type === "table") && (ours.includes(v.name) || (kind === "places" && v.type === "cards" && s.baseCities.includes(v.name.toLowerCase()))));
     return { old, map, cool };
@@ -105,9 +113,9 @@ export class BaseKeeper {
      añadiste tú, y se quita solo la tabla que creaba Cool Trip (con el nombre de la base) */
   async rebuild(kind: BaseKind, oldName: string): Promise<void> {
     const s = this.plugin.settings, env = this.env(), cities = kind === "places" ? this.cities() : [];
-    const colors = kind === "trips" ? await this.colors() : undefined;
+    const hexes = kind === "trips" ? await this.tripHexes() : [], colors = kind === "trips" ? tripColorsCss(hexes) : undefined;
     await this.edit(kind, doc => {
-      const fresh = kind === "trips" ? tripsBase(s, env) : placesBase(s, env, cities);
+      const fresh = kind === "trips" ? tripsBase(s, env, hexes) : placesBase(s, env, cities);
       const keep = doc.views.filter(v => !(v.type === "table" && v.name === oldName) && !fresh.views.some(f => f.name === v.name));
       if (isOldFilter(doc, kind, s) || !doc.filters) doc.filters = fresh.filters;
       doc.formulas = { ...doc.formulas, ...fresh.formulas };
@@ -134,15 +142,16 @@ export class BaseKeeper {
   }
 
   /* el color de cada viaje: el de su paleta o, con foto, el último elegido (va en el bloque del viaje) */
-  private async colors(): Promise<string> {
-    const s = this.plugin.settings, out: { path: string; color: string }[] = [];
+  private async colors(): Promise<string> { return tripColorsCss(await this.tripHexes()); }
+  private async tripHexes(): Promise<TripHex[]> {
+    const s = this.plugin.settings, out: TripHex[] = [];
     for (const f of this.app.vault.getMarkdownFiles().filter(f => isTripFile(this.app, s, f)).sort((a, b) => a.path.localeCompare(b.path))) {
       const fm: Record<string, unknown> = this.app.metadataCache.getFileCache(f)?.frontmatter || {};
       const cv = fm[propKey(s, "cover", fm)], cover = typeof cv === "string" ? cv : "";
       const accent = /^>\s*\[!cool-trip\|([^\]]*)\]/im.exec(await this.app.vault.cachedRead(f))?.[1]?.trim() || "";
-      out.push({ path: f.path, color: coverHex(cover, accent) });
+      out.push({ path: f.path, color: coverHex(cover || accent, accent) });
     }
-    return tripColorsCss(out);
+    return out;
   }
 
   /* ---------- al cambiar el vault (con un respiro, para no escribir a cada tecla) ---------- */
@@ -155,9 +164,11 @@ export class BaseKeeper {
     if (this.running) { this.schedule(); return; }
     this.running = true;
     try {
-      await this.locateTrips();
       const s = this.plugin.settings, env = this.env();
-      if (this.file("trips")) { const colors = await this.colors(); await this.edit("trips", doc => [fixFilter(doc, "trips", s, env), refresh(doc, "trips", s, env), syncBase(doc, "trips", s, env, { colors })].some(Boolean)); }
+      if (this.file("trips")) {
+        const hexes = await this.tripHexes(), colors = tripColorsCss(hexes);
+        await this.edit("trips", doc => [fixFilter(doc, "trips", s, env), refresh(doc, "trips", s, env, hexes), syncBase(doc, "trips", s, env, { colors })].some(Boolean));
+      }
       if (this.file("places")) {
         const colors = placeBadgesCss(env, allPlaces(this.app, s).filter(p => p.photo).sort((a, b) => a.file.path.localeCompare(b.file.path))
           .map(p => ({ path: p.file.path, icon: iconFor(p.category), color: catColor(p.category) })));
@@ -172,23 +183,5 @@ export class BaseKeeper {
         }
       }
     } finally { this.running = false; }
-  }
-  /* los viajes sin ubicación: la de un lugar de su primera ciudad (si ya tiene alguno con coordenadas) */
-  private async locateTrips() {
-    const s = this.plugin.settings;
-    if (!s.props.location || !s.props.destinations) return;
-    const places = allPlaces(this.app, s).filter(p => p.loc).sort((a, b) => a.file.path.localeCompare(b.file.path));
-    if (!places.length) return;
-    for (const f of this.app.vault.getMarkdownFiles().filter(f => isTripFile(this.app, s, f))) {
-      const fm: Record<string, unknown> = this.app.metadataCache.getFileCache(f)?.frontmatter || {};
-      const key = propKey(s, "location", fm);
-      if (fm[key] != null && fm[key] !== "") continue;
-      /* la primera ciudad que tenga un lugar con coordenadas */
-      const cities = toList(fm[propKey(s, "destinations", fm)]).map(c => c.replace(/^\[\[|\]\]$/g, "").trim().toLowerCase());
-      const p = cities.map(c => places.find(x => x.city.trim().toLowerCase() === c)).find(Boolean);
-      if (!p?.loc) continue;
-      const [lat, lon] = p.loc;
-      await this.app.fileManager.processFrontMatter(f, (m: Record<string, unknown>) => { if (m[key] == null || m[key] === "") m[key] = [String(lat), String(lon)]; });
-    }
   }
 }
