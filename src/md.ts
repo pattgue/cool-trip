@@ -311,7 +311,7 @@ export function itemMd(it: Item, v: Vocab = vocab()): string[] {
 
 /* ---------- la nota entera ---------- */
 const fmRe = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
-function toIso(x: unknown): string {
+export function toIso(x: unknown): string {
   if (x instanceof Date) return iso(x);
   if (typeof x === "string" && isIso(x.trim().slice(0, 10))) return x.trim().slice(0, 10);
   return "";
@@ -508,10 +508,16 @@ export function serializeTrip(t: Trip, s: Settings): string {
   }
   /* solo se escribe lo que tiene valor: ni propiedades vacías ni propiedades que no hayas rellenado */
   const put = (k: string, on: boolean, val: unknown) => { if (!k) return; if (on) fm[k] = val; else if (k in fm && fm[k] != null && fm[k] !== "" && !(Array.isArray(fm[k]) && !(fm[k] as unknown[]).length)) delete fm[k]; };
-  if (t.start) fm[P.start] = t.start;
-  if (t.end) fm[P.end] = t.end;
-  put(P.destinations, t.dests.length > 0, t.dests.map(d => d.city));
-  put(P.travelers, t.travelers.length > 0, [...t.travelers]);
+  /* y solo si ha cambiado, con la forma que ya tenía: una fecha con hora, una lista como texto o con [[enlaces]] se quedan como están */
+  const date = (k: string, v: string) => { if (k && v && toIso(fm[k]) !== v) fm[k] = v; };
+  const list = (k: string, v: string[]) => {
+    if (!k || toList(fm[k]).join("\u0000") === v.join("\u0000")) return;
+    put(k, v.length > 0, typeof fm[k] === "string" ? v.join(", ") : v);
+  };
+  date(P.start, t.start);
+  date(P.end, t.end);
+  list(P.destinations, t.dests.map(d => d.city));
+  list(P.travelers, [...t.travelers]);
   /* la portada solo es propiedad si es una imagen; el color va en el bloque del viaje */
   const pal = paletteId(t.cover);
   if (P.cover) { if (t.cover && !pal) fm[P.cover] = t.cover; else if (typeof fm[P.cover] === "string" && paletteId(String(fm[P.cover]))) delete fm[P.cover]; }

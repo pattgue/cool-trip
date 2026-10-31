@@ -24,6 +24,8 @@ const BOARDS = [
   { file: "NuevoViaje-Movil.dc.html", title: "Nuevo viaje · móvil", w: 390, mode: "modal", phone: true },
   { file: "Nota-Plan.dc.html", title: "Nota del viaje", w: 1440, mode: "view", phone: false },
   { file: "Nota-Movil.dc.html", title: "Nota del viaje · móvil", w: 390, mode: "view", phone: true },
+  { file: "Lugar-Nota.dc.html", title: "Nota de lugar · museo", w: 1440, mode: "place", phone: false },
+  { file: "Lugar-Nota-Movil.dc.html", title: "Nota de lugar · restaurante · móvil", w: 390, mode: "place-eat", phone: true },
 ];
 
 writeFileSync(join(dest, "cool-trip.css"), readFileSync(join(here, "..", "styles.css"), "utf8"));

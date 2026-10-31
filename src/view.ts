@@ -152,6 +152,7 @@ export class TripView extends TextFileView {
       renderForm: f => renderForm(ctx, f),
       openLink: link => void this.app.workspace.openLinkText(link, file.path, true),
       openUrl: url => window.open(url, "_blank"),
+      src: c => this.plugin.coverSrc(c, file.path),
       openDoc: d => this.openDoc(d, file),
       places: () => this.placesCache ??= allPlaces(this.app, this.plugin.settings),
       createPlace: async (name, city, country) => {

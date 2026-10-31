@@ -18,7 +18,7 @@ export function defaultSettings(lang: "es" | "en"): Settings {
     /* por defecto, por carpeta: así Cool Trip no añade ninguna propiedad para reconocer las notas */
     trips: { mode: "folder", key: kind.key, value: kind.trip, folder: AUTO_FOLDERS[lang].trips },
     places: { mode: "folder", key: kind.key, value: kind.place, folder: AUTO_FOLDERS[lang].places },
-    tripFolder: "", placeFolder: "", autoOrganize: false,
+    tripFolder: "", placeFolder: "", autoOrganize: false, placeView: true,
     props: suggestedProps(lang),
     files: { cloud: true, wallet: true, device: false, vault: false, vaultFolder: lang === "es" ? "Archivos" : "Files" },
     maps: { app: "google", modes: ["walk", "transit"], geocode: true },

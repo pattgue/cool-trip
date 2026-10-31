@@ -24,7 +24,7 @@ export interface FormExtra { docDraft?: Doc | null }
 
 const KINDS: { k: Kind; key: string }[] = [
   { k: "place", key: "add.place" }, { k: "meal", key: "add.meal" }, { k: "flight", key: "add.transport" }, { k: "lodging", key: "add.lodging" },
-  { k: "ticket", key: "add.ticket" }, { k: "rest", key: "add.rest" }, { k: "note", key: "add.note" },
+  { k: "rest", key: "add.rest" }, { k: "note", key: "add.note" },
 ];
 /* lo que tiene sentido en cada tipo de alojamiento */
 const ROOMS: Record<LodgingType, string[]> = {
@@ -310,7 +310,7 @@ export function renderForm(ctx: FormCtx, f: FormState & FormExtra): HTMLElement 
     iconButton("x", t("close"), () => ctx.openForm(null), "ct-ibtn ct-ibtn-sm")));
   if (f.isNew) {
     form.appendChild(h("div", { cls: "ct-kinds" }, KINDS.map(({ k, key }) => {
-      const on = k === d.kind || (k === "flight" && isTransport(d.kind));
+      const on = k === d.kind || (k === "flight" && isTransport(d.kind)) || (k === "place" && d.kind === "ticket");
       return button([icon(kindIcon(k)), t(key)], "ct-pill" + (on ? " is-solid" : ""), () => {
         if (on) return;
         const keep = d.time;
@@ -327,8 +327,15 @@ export function renderForm(ctx: FormCtx, f: FormState & FormExtra): HTMLElement 
   }
   const rows: (HTMLElement | null)[] = [];
   const timeRow = (key = "f.timeOpt") => lab(t(key), timeInput(d.time, v => { d.time = v; }));
-  if (d.kind === "place") {
-    rows.push(h("div", { cls: "ct-grid ct-grid-time" }, timeRow(), placePicker(ctx, d, city, country)));
+  if (d.kind === "place" || d.kind === "ticket") {
+    /* un lugar y una entrada son el mismo paso: con entrada, lleva su hora, sus entradas y sus documentos */
+    const paid = d.kind === "ticket";
+    const box = h("input", { cls: "ct-tick", attr: { type: "checkbox" } });
+    box.checked = paid;
+    box.addEventListener("change", () => { d.kind = box.checked ? "ticket" : "place"; ctx.rerender(); });
+    rows.push(h("div", { cls: "ct-grid ct-grid-time" }, timeRow(paid ? "f.time" : "f.timeOpt"), placePicker(ctx, d, city, country)),
+      h("label", { cls: "ct-unpaid ct-needs" }, box, t("f.needsTicket")),
+      paid ? lab(t("f.tickets"), input(field(d, "tickets"), v => setField(d, "tickets", v, lineFor("ticket", "tickets")), { placeholder: "1 · adulto" })) : null);
   } else if (d.kind === "meal") {
     const isHome = [vocab().home, "en casa", "at home"].includes(d.place.toLowerCase());
     const mode = d.link ? "restaurant" : isHome ? "home" : d.place ? "other" : "restaurant";
@@ -345,9 +352,6 @@ export function renderForm(ctx: FormCtx, f: FormState & FormExtra): HTMLElement 
     rows.push(...transportFields(ctx, f));
   } else if (d.kind === "lodging") {
     rows.push(...lodgingFields(ctx, f, city, country));
-  } else if (d.kind === "ticket") {
-    rows.push(h("div", { cls: "ct-grid ct-grid-time" }, timeRow("f.time"), placePicker(ctx, d, city, country)),
-      lab(t("f.tickets"), input(field(d, "tickets"), v => setField(d, "tickets", v, lineFor("ticket", "tickets")), { placeholder: "1 · adulto" })));
   } else if (d.kind === "rest") {
     /* llegar, volver o descansar en un alojamiento del viaje (con nota o sin ella, como la casa de unos amigos) */
     const stays = [...new Set(tr.days.flatMap(x => x.items).filter(i => i.kind === "lodging").map(i => i.link || i.title).filter(Boolean))];
@@ -370,7 +374,7 @@ export function renderForm(ctx: FormCtx, f: FormState & FormExtra): HTMLElement 
     }, false)));
   }
   const friends = d.kind === "lodging" && lodgingType(d) === "friends";
-  const money = d.kind === "note" || d.kind === "rest" || friends ? null : h("div", { cls: "ct-grid ct-grid-price" },
+  const money = d.kind === "note" || d.kind === "rest" || friends || (d.kind === "place" && !d.price) ? null : h("div", { cls: "ct-grid ct-grid-price" },
     priceField(ctx, d, d.kind === "lodging" ? "f.priceTotal" : "f.price"),
     tr.travelers.length > 1 ? lab(t("f.para"), paraChips(ctx, d)) : null);
   const docs = (isTransport(d.kind) || d.kind === "lodging" || d.kind === "ticket") && !friends ? docsEditor(ctx, f) : null;
