@@ -107,11 +107,8 @@
 /* lista */
 .ct-plist { margin: 0; padding-left: 18px; }
 .ct-plist-btn { all: unset; cursor: text; font: 500 14px/1.6 var(--ct-font); background: none !important; box-shadow: none !important; border: 0 !important; }
-/* post-it: Datos útiles (gris como las demás, con un trozo de celo del color del tipo) */
-.ct-psec.is-postit { position: relative; margin-top: 8px; }
-.ct-psec.is-postit.is-empty { border-style: dashed; }
-.ct-psec.is-postit::before { content: ""; position: absolute; top: -9px; left: 50%; width: 84px; height: 20px; border-radius: 3px; transform: translateX(-50%) rotate(-2deg);
-  background: color-mix(in srgb, var(--ct-cat) 85%, transparent); }
+/* post-it: Datos útiles (gris como las demás, con un borde fino y el icono del color del tipo) */
+.ct-psec.is-postit, .ct-psec.is-postit.is-empty { border: 1px solid var(--ct-cat); }
 .ct-psec.is-postit .ct-psec-head { color: var(--ct-strong); }
 .ct-root .ct-psec.is-postit .ct-psec-head .ct-ico svg { color: var(--ct-cat); }
 
