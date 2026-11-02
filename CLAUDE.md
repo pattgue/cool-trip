@@ -6,6 +6,15 @@ Plugin privado de Obsidian para centralizar viajes. La propuesta está en `docs/
 
 **Diseño: regla de Patt.** No se cambian formas, colores, tipografía ni espaciados de nada que Patt no haya pedido o no haya cambiado por su cuenta. Cada ronda del boceto aplica solo los cambios de sus comentarios, sobre la última versión publicada (que puede llevar ediciones suyas). Si algo no cabe, se arregla con el mínimo ajuste y se dice. Las respuestas a las dudas o sugerencias de Patt van en el chat, **nunca como textos dentro de las pantallas del plugin**, que solo llevan lo que vería cualquier usuario. Cada pantalla que se diseñe lleva **su versión móvil** (el plugin se usará sobre todo en el móvil). Lo que rodea a las vistas sale de las **variables del tema de Obsidian**, para que funcione con cualquier tema, claro u oscuro. El billete del viaje lleva su propia paleta sólida, sin transparencias (detalle en `replica/architecture.md`). Los ajustes son sobrios; las vistas del viaje, atractivas y divertidas, sin copiar las piezas de los ajustes. El plugin es para el **público general**: nada de Claude, Albo ni otros servicios en las pantallas.
 
+## La guía editable de Patt
+
+Patt no programa: cada proyecto lleva un **documento editable (Claude Docs) que «traduce» todas sus funciones, opciones y
+detalles**, con una pestaña por parte del proyecto, en tablas que Patt pueda editar o comentar. Es la fuente de verdad de
+lo que hace el plugin, en los dos sentidos: lo que Patt cambie ahí se pasa al código, y lo que cambie en el código se
+actualiza ahí. Al empezar una sesión se lee solo lo que haya cambiado desde la última vez (`sinceRev`). De momento existe
+la pestaña de las fichas de lugar ([Secciones de cada tipo de lugar](https://claude.ai/artifact/EkfgsgztJTuFJnFLR7wydn),
+resumida en `docs/lugares.md`); la guía entera se monta durante la auditoría previa a la 1.0.
+
 ## Skills Replica (`.claude/skills/replica-*`)
 
 Hay 11 skills copiadas tal cual de [Jakeschincariol/replica-skill](https://github.com/Jakeschincariol/replica-skill), commit `77c9436` (licencia MIT, en `docs/third-party/replica-skill-LICENSE`). Están instaladas como skills de proyecto, no como plugin, así que los comandos no llevan prefijo: `/replica-recon`, `/replica-architect`, `/replica-design`, `/replica-build`, `/replica-backend`, `/replica-test`, `/replica-diff`, `/replica-entrepreneur`, `/replica-brand`, `/replica-launch` y `/replica-deploy`.

@@ -24,8 +24,9 @@ const BOARDS = [
   { file: "NuevoViaje-Movil.dc.html", title: "Nuevo viaje · móvil", w: 390, mode: "modal", phone: true },
   { file: "Nota-Plan.dc.html", title: "Nota del viaje", w: 1440, mode: "view", phone: false },
   { file: "Nota-Movil.dc.html", title: "Nota del viaje · móvil", w: 390, mode: "view", phone: true },
-  { file: "Lugar-Nota.dc.html", title: "Nota de lugar · museo", w: 1440, mode: "place", phone: false },
-  { file: "Lugar-Nota-Movil.dc.html", title: "Nota de lugar · restaurante · móvil", w: 390, mode: "place-eat", phone: true },
+  ...[["eat", "Restaurante", "restaurante"], ["see", "Museo", "museo"], ["music", "Sala", "sala de conciertos"]].flatMap(([m, f, n]) => [
+    { file: `Lugar-${f}.dc.html`, title: `Nota de lugar · ${n}`, w: 1440, mode: "place-" + m, phone: false },
+    { file: `Lugar-${f}-Movil.dc.html`, title: `Nota de lugar · ${n} · móvil`, w: 390, mode: "place-" + m, phone: true }]),
 ];
 
 writeFileSync(join(dest, "cool-trip.css"), readFileSync(join(here, "..", "styles.css"), "utf8"));
