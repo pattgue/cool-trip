@@ -27,14 +27,25 @@
 .ct-pstar.is-on { color: var(--ct-mustard); }
 .ct-root .ct-pstar.is-on .ct-ico svg { fill: currentColor; }
 
-/* sus propiedades, como campos */
-.ct-pprops { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+/* la cabecera abierta: el tipo, el sitio, el precio y la foto (sobre su color, como el billete del viaje) */
+.ct-phero .ct-lock-btn { border-color: rgba(20,20,20,.35) !important; color: var(--ct-ink); background: rgba(255,255,255,.35) !important; }
+.ct-phero .ct-lock-btn.is-on { background: var(--ct-ink) !important; border-color: var(--ct-ink) !important; color: var(--ct-cat); }
+.ct-phero.is-editing { height: auto; min-height: 260px; }
+.ct-phero-price { align-self: flex-start; margin-top: 6px; padding: 5px 10px; border-radius: 999px; background: var(--ct-ink); color: var(--ct-cat); font-size: 12px; font-weight: 800; letter-spacing: .02em; }
+.ct-phero-form { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 12px; width: 100%; padding: 22px 28px 24px; box-sizing: border-box; }
+.ct-pform-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; }
 .ct-pfield { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ct-pfield.is-wide { grid-column: 1 / -1; }
+.ct-phero-form .ct-label { color: rgba(20,20,20,.7); font-weight: 700; }
 .ct-pfield-in { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .ct-root .ct-pin { box-sizing: border-box; width: 100%; min-width: 0; height: 36px; padding: 0 10px !important; border-radius: 10px !important; border: 1.5px solid var(--ct-line) !important;
   background: var(--ct-field) !important; color: var(--ct-strong); font: 500 14px var(--ct-font); box-shadow: none !important; }
 .ct-root .ct-pin:focus { border-color: var(--ct-strong) !important; }
+.ct-root .ct-phero-form .ct-pin { background: rgba(255,255,255,.6) !important; border-color: rgba(20,20,20,.18) !important; color: var(--ct-ink); }
+.ct-root .ct-phero-form .ct-pin:focus { border-color: var(--ct-ink) !important; }
+.ct-root .ct-pcur { width: 82px; flex: none; }
 .ct-pfind { height: 36px; padding: 0 12px; flex: none; border: 1.5px solid var(--ct-line) !important; color: var(--ct-strong); }
+.ct-phero-form .ct-pfind { border-color: rgba(20,20,20,.3) !important; color: var(--ct-ink); }
 
 /* las secciones de su tipo: tarjetas, cada una con su formato */
 .ct-psecs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
@@ -74,7 +85,9 @@
 .ct-ptags { display: flex; flex-wrap: wrap; gap: 6px; }
 .ct-ptag, .ct-ppack-btn { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 12px; border-radius: 999px; cursor: pointer;
   font: 600 13px var(--ct-font); color: var(--ct-muted); border: 1.5px dashed var(--ct-line) !important; background: none !important; box-shadow: none !important; }
-.ct-ptag.is-on { border: 1.5px solid var(--ct-cat) !important; background: color-mix(in srgb, var(--ct-cat) 22%, transparent) !important; color: var(--ct-strong); }
+.ct-ptag.is-on { cursor: default; gap: 2px; border: 1.5px solid var(--ct-cat) !important; background: color-mix(in srgb, var(--ct-cat) 22%, transparent) !important; color: var(--ct-strong); }
+.ct-ptag-x { width: 22px !important; height: 22px !important; margin-right: -6px; }
+.ct-ptags.is-sug { align-items: center; }
 .ct-root .ct-ptag .ct-ico svg, .ct-root .ct-ppack-btn .ct-ico svg { width: 13px; height: 13px; }
 .ct-ppack { display: inline-flex; align-items: center; }
 .ct-ppack-btn { border-style: solid !important; color: var(--ct-strong); }
@@ -94,10 +107,14 @@
 /* lista */
 .ct-plist { margin: 0; padding-left: 18px; }
 .ct-plist-btn { all: unset; cursor: text; font: 500 14px/1.6 var(--ct-font); background: none !important; box-shadow: none !important; border: 0 !important; }
-/* post-it: Datos útiles */
-.ct-psec.is-postit { background: #F7E7A1; color: var(--ct-ink); border: 0; box-shadow: 0 2px 0 rgba(0,0,0,.08); transform: rotate(-.3deg); }
-.ct-psec.is-postit .ct-psec-head, .ct-psec.is-postit .ct-psec-empty { color: rgba(20,20,20,.55); }
-.ct-root .ct-psec.is-postit .ct-psec-input { background: rgba(255,255,255,.5) !important; color: var(--ct-ink); }
+/* post-it: Datos útiles (gris como las demás, con un trozo de celo del color del tipo) */
+.ct-psec.is-postit { position: relative; margin-top: 8px; }
+.ct-psec.is-postit.is-empty { border-style: dashed; }
+.ct-psec.is-postit::before { content: ""; position: absolute; top: -9px; left: 50%; width: 84px; height: 20px; border-radius: 3px; transform: translateX(-50%) rotate(-2deg);
+  background: color-mix(in srgb, var(--ct-cat) 85%, transparent); }
+.ct-psec.is-postit .ct-psec-head { color: var(--ct-strong); }
+.ct-root .ct-psec.is-postit .ct-psec-head .ct-ico svg { color: var(--ct-cat); }
+
 /* opcional sin marcar (el menú del día) */
 .ct-popt { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: 16px; border: 1.5px dashed var(--ct-line); color: var(--ct-muted); font: 600 13px var(--ct-font); cursor: pointer; }
 
@@ -113,8 +130,9 @@
 .ct-place.is-phone .ct-phero { height: 220px; border-radius: 18px; }
 .ct-place.is-phone .ct-phero-text { padding: 18px 20px; }
 .ct-place.is-phone .ct-phero-name { font-size: 30px; }
-.ct-place.is-phone .ct-pprops { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.ct-place.is-phone .ct-pfield:is(.is-location, .is-photo) { grid-column: 1 / -1; }
+.ct-place.is-phone .ct-phero-form { padding: 18px 20px 20px; }
+.ct-place.is-phone .ct-pform-grid { grid-template-columns: 1fr 1fr; }
+.ct-place.is-phone .ct-pform-grid > :nth-child(2), .ct-place.is-phone .ct-pform-grid > :nth-child(5) { grid-column: 1 / -1; }
 .ct-place.is-phone .ct-psecs { grid-template-columns: 1fr; gap: 10px; }
 .ct-place.is-phone .ct-pstars { margin-left: 0; width: 100%; }
 .ct-place.is-phone .ct-prow-ins { grid-template-columns: 1fr 1fr; }

@@ -37,6 +37,23 @@ export function countries(lang: string): string[] {
   return countryCache;
 }
 
+/* la moneda de un país, por su nombre en español o en inglés («Japón» → ¥); "" si no se sabe */
+const EURO = "AD AT BE CY DE EE ES FI FR GR HR IE IT LT LU LV MC ME MT NL PT SI SK SM VA XK".split(" ");
+const REGION_CUR: Record<string, string> = { US: "$", GB: "£", JP: "¥", CN: "¥", CH: "CHF", LI: "CHF", KR: "₩", TH: "฿", SE: "kr", NO: "kr", DK: "kr", IS: "kr",
+  PL: "zł", BR: "R$", MX: "MXN", AR: "ARS", CO: "COP", CL: "CLP", PE: "PEN", MA: "MAD", TR: "TRY", CZ: "CZK", HU: "HUF", IN: "INR", AU: "AUD", CA: "CAD" };
+export function currencyOfCountry(country: string): string {
+  const c = country.trim().toLowerCase();
+  if (!c) return "";
+  for (const lang of ["es", "en"]) {
+    try {
+      const dn = new Intl.DisplayNames([lang], { type: "region" });
+      const code = ISO.find(x => (dn.of(x) || "").toLowerCase() === c);
+      if (code) return EURO.includes(code) ? "€" : REGION_CUR[code] || "";
+    } catch { return ""; }
+  }
+  return "";
+}
+
 /* un destino: la ciudad y su país (con el país ya puesto si se sabe) */
 export function promptDest(app: App, title: string, lang: string, city: string, country: string, guess: (city: string) => string): Promise<{ city: string; country: string } | null> {
   return new Promise(resolve => {

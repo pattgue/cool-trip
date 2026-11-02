@@ -3,7 +3,7 @@
    solo se escriben cuando las rellenas, y lo que no es de Cool Trip se queda tal cual. */
 import { h } from "./dom";
 import { t } from "./i18n";
-import { priceValue } from "./md";
+import { CURRENCIES, priceNumber, priceValue, showPrice, withCurrency } from "./md";
 import { button, icon, iconButton } from "./ui";
 import { catColor, iconFor, placeType } from "./places";
 import type { PlaceInfo, PlaceType } from "./places";
@@ -60,17 +60,21 @@ export interface PlaceCtx {
   cover: string;                                          // la portada tal como está en la nota
   trips: { name: string; dates: string; open(): void }[];  // los viajes que lo llevan en su plan
   mapsUrl: string;
+  currency: string;                                       // la moneda de sus precios (la de los que ya tiene o la de su país)
+  countries: string[];                                    // para elegir el país
   today: number;                                          // 0 = lunes (para marcar el día en el horario)
   editing: string | null;                                 // «sección», «sección#n», «sección#new»
   openUrl(url: string): void;
   openLink(name: string): void;
   edit(id: string | null): void;
-  setLines(k: SecKey, lines: string[], keep?: boolean): void;
+  setLines(k: SecKey, lines: string[], keep?: boolean, stay?: boolean): void;   // stay: la sección sigue abierta
   setProp(k: PlaceProp, v: string | number | boolean): void;
   ask(title: string, placeholder: string, value?: string): Promise<string | null>;
   pickPlace(): Promise<string | null>;                     // elegir una nota de lugar
   lookup(name: string): { category: string; photo: string | null } | null;
   locate(): void;                                         // buscar las coordenadas
+  setCountry(country: string): void;                      // el país de su ciudad (va en los ajustes, no en la nota)
+  setCurrency(cur: string): void;                         // cambia la moneda de todos sus precios
 }
 const L = (ctx: PlaceCtx, x: [string, string]) => x[ctx.lang === "en" ? 1 : 0];
 
@@ -131,9 +135,14 @@ function rowsSec(ctx: PlaceCtx, k: SecKey, type: PlaceType, extra?: HTMLElement 
   const pc = cols.findIndex(c => /precio|price/i.test(c[0]));
   const editor = (i: number | null) => {
     const vals = i == null ? [] : cells(list[i]);
-    const ins = cols.map((c, ci) => { const x = h("input", { cls: "ct-pin", attr: { type: "text", placeholder: L(ctx, c) } }); x.value = vals[ci] || ""; return x; });
+    const ins = cols.map((c, ci) => {
+      const x = h("input", { cls: "ct-pin", attr: { type: "text", placeholder: ci === pc ? `${L(ctx, c)} (${ctx.currency})` : L(ctx, c) } });
+      x.value = (ci === pc ? priceNumber(vals[ci] || "") || vals[ci] : vals[ci]) || ""; return x;
+    });
     window.setTimeout(() => ins[0]?.focus(), 0);
-    const save = () => { const next = [...list]; const r = row(ins.map(x => x.value)); if (r.replace(/[-·\s]/g, "")) { if (i == null) next.push(r.slice(2)); else next[i] = r.slice(2); } ctx.setLines(k, next.map(x => "- " + x)); };
+    /* el precio se escribe solo con el número: la moneda es la del lugar */
+    const val = (x: HTMLInputElement, ci: number) => ci === pc && /^\d[\d.,]*$/.test(x.value.trim()) ? withCurrency(x.value, ctx.currency) : x.value;
+    const save = () => { const next = [...list]; const r = row(ins.map(val)); if (r.replace(/[-·\s]/g, "")) { if (i == null) next.push(r.slice(2)); else next[i] = r.slice(2); } ctx.setLines(k, next.map(x => "- " + x)); };
     for (const x of ins) x.addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); save(); } });
     return h("div", { cls: "ct-prow is-editing" }, h("div", { cls: "ct-prow-ins", attr: { style: `--n: ${cols.length}` } }, ins),
       foot(ctx, save, i == null ? undefined : () => ctx.setLines(k, list.filter((_, j) => j !== i).map(x => "- " + x))));
@@ -179,15 +188,24 @@ function hoursSec(ctx: PlaceCtx, k: SecKey): HTMLElement {
   return el;
 }
 
-/* etiquetas: pastillas que se marcan (las sugeridas del tipo y las tuyas) */
+/* etiquetas: se ven las que tiene; «+ Añadir» abre las sugeridas del tipo (y una propia), y en ese modo se quitan con la ✕ */
 function tagsSec(ctx: PlaceCtx, k: SecKey): HTMLElement {
-  const on = items(linesOf(ctx.doc, k)), sug = (def(k).tags || []).map(x => L(ctx, x));
-  const all = [...sug, ...on.filter(x => !sug.map(low).includes(low(x)))];
+  const on = items(linesOf(ctx.doc, k)), open = ctx.editing === k;
   const has = (x: string) => on.map(low).includes(low(x));
-  const toggle = (x: string) => ctx.setLines(k, (has(x) ? on.filter(y => low(y) !== low(x)) : [...on, x]).map(y => "- " + y));
-  return h("section", { cls: "ct-psec is-tags" }, head(ctx, k),
-    h("div", { cls: "ct-ptags" }, all.map(x => button([has(x) ? icon("check") : null, x], "ct-ptag" + (has(x) ? " is-on" : ""), () => toggle(x), { "aria-pressed": String(has(x)) })),
-      button([icon("plus"), t("pl.other")], "ct-ptag is-new", () => void ctx.ask(L(ctx, def(k).title), t("pl.newTag")).then(v => { if (v?.trim() && !has(v)) toggle(v.trim()); }))));
+  const write = (l: string[]) => ctx.setLines(k, l.map(y => "- " + y), false, open);
+  const mine = on.map((x, i) => h("span", { cls: "ct-ptag is-on" }, x,
+    open ? iconButton("x", t("pl.remove"), () => write(on.filter((_, j) => j !== i)), "ct-ptag-x") : null));
+  if (!open) return h("section", { cls: "ct-psec is-tags" + (on.length ? "" : " is-empty") }, head(ctx, k),
+    on.length ? h("div", { cls: "ct-ptags" }, mine) : null, addBtn(t("pl.add"), () => ctx.edit(k)));
+  const sug = (def(k).tags || []).map(x => L(ctx, x)).filter(x => !has(x));
+  const inp = h("input", { cls: "ct-pin ct-padd-in", attr: { type: "text", placeholder: t("pl.newTag") } });
+  inp.addEventListener("keydown", ev => { if (ev.key === "Enter" && inp.value.trim() && !has(inp.value)) { ev.preventDefault(); write([...on, inp.value.trim()]); } });
+  window.setTimeout(() => inp.focus(), 0);
+  return h("section", { cls: "ct-psec is-tags is-editing" }, head(ctx, k),
+    on.length ? h("div", { cls: "ct-ptags" }, mine) : null,
+    sug.length ? h("div", { cls: "ct-ptags is-sug" }, h("span", { cls: "ct-sub" }, t("pl.suggested")),
+      sug.map(x => button([icon("plus"), x], "ct-ptag", () => write([...on, x])))) : null,
+    inp, h("div", { cls: "ct-psec-foot" }, h("span", { cls: "ct-grow" }), button(t("pl.done"), "ct-btn-primary is-small", () => ctx.edit(null))));
 }
 
 /* datos: campos con nombre fijo («Distancia: 12 km») */
@@ -280,17 +298,64 @@ function section(ctx: PlaceCtx, k: SecKey, type: PlaceType): HTMLElement | null 
   }
 }
 
+/* ---------- la cabecera, abierta para editar ---------- */
+function heroForm(ctx: PlaceCtx, type: PlaceType, priceLabel: string, auto: string): HTMLElement {
+  const p = ctx.place;
+  const lab = (label: string, el: HTMLElement, cls = "") => h("label", { cls: "ct-pfield" + cls }, h("span", { cls: "ct-label" }, label), el);
+  const text = (k: PlaceProp, value: string, ph: string, list?: string, set: (v: string) => void = v => ctx.setProp(k, v)) => {
+    const inp = h("input", { cls: "ct-pin", attr: { type: "text", placeholder: ph, ...(list ? { list } : {}) } });
+    inp.value = value;
+    inp.addEventListener("change", () => { if (inp.value.trim() !== value) set(inp.value.trim()); });
+    inp.addEventListener("keydown", ev => { if (ev.key === "Enter") inp.blur(); });
+    return inp;
+  };
+  /* el tipo: un desplegable con los tipos (y el tuyo, si es otro) */
+  const names = Object.values(TYPE_NAMES).map(n => L(ctx, n));
+  const sel = h("select", { cls: "ct-pin ct-psel" });
+  const opts: [string, string][] = [["", t("pl.f.noType")], ...names.map(n => [n, n] as [string, string])];
+  if (p.category && !names.some(n => low(n) === low(p.category))) opts.splice(1, 0, [p.category, p.category]);
+  opts.push(["\u0000", t("pl.f.otherType")]);
+  for (const [v, l] of opts) { const o = h("option", { attr: { value: v } }, l); if (v === p.category) o.selected = true; sel.appendChild(o); }
+  sel.addEventListener("change", () => {
+    if (sel.value !== "\u0000") { ctx.setProp("category", sel.value); return; }
+    void ctx.ask(t("pl.f.category"), t("pl.f.categoryPh"), p.category).then(v => { if (v?.trim()) ctx.setProp("category", v.trim()); else sel.value = p.category; });
+  });
+  const loc = p.loc ? `${p.loc[0]}, ${p.loc[1]}` : "";
+  const cur = h("select", { cls: "ct-pin ct-pcur", attr: { "aria-label": t("pl.f.currency") } });
+  for (const c of CURRENCIES) { const o = h("option", { attr: { value: c } }, c); if (c === ctx.currency) o.selected = true; cur.appendChild(o); }
+  cur.addEventListener("change", () => ctx.setCurrency(cur.value));
+  const countries = h("datalist", { attr: { id: "ct-place-countries" } }, ctx.countries.map(c => h("option", { attr: { value: c } })));
+  return h("div", { cls: "ct-phero-form" }, countries,
+    h("span", { cls: "ct-phero-kind" }, icon(iconFor(p.category)), p.name.toUpperCase()),
+    h("div", { cls: "ct-pform-grid" },
+      lab(t("pl.f.category"), sel),
+      lab(priceLabel, h("span", { cls: "ct-pfield-in" }, text("price", priceNumber(p.price) || p.price, auto ? priceNumber(auto) : pricePh(type), undefined,
+        v => ctx.setProp("price", /^\d[\d.,]*$/.test(v) ? withCurrency(v, ctx.currency) : v)), cur)),
+      lab(t("pl.f.city"), text("city", p.city, "")),
+      lab(t("pl.f.country"), text("city", p.country, "", "ct-place-countries", v => ctx.setCountry(v))),
+      lab(t("pl.f.loc"), h("span", { cls: "ct-pfield-in" }, text("location", loc, "41.39, 2.17"), button([icon("search"), t("pl.find")], "ct-pfind", () => ctx.locate()))),
+      lab(t("pl.f.cover"), text("photo", ctx.cover, t("pl.f.coverPh")), " is-wide")));
+}
+const pricePh = (type: PlaceType) => PRICE_KIND(type) === "avg" ? "€€" : "15";
+
 /* ---------- la ficha entera ---------- */
 export function placePage(ctx: PlaceCtx): HTMLElement {
   const p = ctx.place, type = placeType(p.category), color = catColor(p.category);
   const kindName = type === "other" ? "" : L(ctx, TYPE_NAMES[type]);
-  /* la cabecera: la foto fundida en el color del tipo o, sin foto, un degradado de ese color con su icono grande */
-  const hero = h("header", { cls: "ct-phero" + (ctx.photo ? " has-photo" : "") },
-    ctx.photo ? h("img", { cls: "ct-phero-img", attr: { src: ctx.photo, alt: "" } }) : h("span", { cls: "ct-phero-art", attr: { "aria-hidden": "true" } }, icon(iconFor(p.category))),
-    h("div", { cls: "ct-phero-text" },
+  const kind = PRICE_KIND(type), auto = autoPrice(ctx, type);
+  const priceLabel = t(kind === "avg" ? "pl.f.priceAvg" : kind === "ticket" ? "pl.f.priceTicket" : "pl.f.price");
+  const price = p.price ? showPrice(p.price, ctx.currency) : auto;
+  const editing = ctx.editing === "hero";
+  /* la cabecera: la foto fundida en el color del tipo o, sin foto, un degradado de ese color con su icono grande. Como el billete
+     del viaje: se ve fija y el lápiz la abre para editar el tipo, el sitio (ciudad, país y coordenadas), el precio y la foto */
+  const art = ctx.photo ? h("img", { cls: "ct-phero-img", attr: { src: ctx.photo, alt: "" } }) : h("span", { cls: "ct-phero-art", attr: { "aria-hidden": "true" } }, icon(iconFor(p.category)));
+  const lock = iconButton(editing ? "check" : "pencil", t(editing ? "pl.done" : "pl.edit"), () => ctx.edit(editing ? null : "hero"), "ct-lock-btn" + (editing ? " is-on" : ""));
+  const hero = h("header", { cls: "ct-phero" + (ctx.photo ? " has-photo" : "") + (editing ? " is-editing" : "") }, art, lock,
+    editing ? heroForm(ctx, type, priceLabel, auto) : h("div", { cls: "ct-phero-text" },
       h("span", { cls: "ct-phero-kind" }, icon(iconFor(p.category)), (p.category || kindName || t("pl.fam.other")).toUpperCase()),
       h("h1", { cls: "ct-phero-name" }, p.name),
-      h("span", { cls: "ct-phero-where" }, [p.city, p.country].filter(Boolean).join(" · "))));
+      h("span", { cls: "ct-phero-where" }, [p.city, p.country].filter(Boolean).join(" · ")),
+      price ? h("span", { cls: "ct-phero-price" }, `${priceLabel} · ${price}`) : null));
 
   /* Maps, visitado y estrellas: tocar es escribir (y solo entonces se crea la propiedad) */
   const stars = h("span", { cls: "ct-pstars", attr: { role: "radiogroup", "aria-label": t("pl.rating") } },
@@ -301,24 +366,6 @@ export function placePage(ctx: PlaceCtx): HTMLElement {
   const maps = button([icon("map-pin"), t("pl.maps")], "ct-pmaps", () => ctx.openUrl(ctx.mapsUrl));
   const facts = h("div", { cls: "ct-pfacts" }, maps, seen, stars);
 
-  /* sus propiedades, como campos: se escribe solo la que rellenas */
-  const kind = PRICE_KIND(type), auto = autoPrice(ctx, type);
-  const field = (k: PlaceProp, label: string, value: string, ph: string, list?: string, after?: HTMLElement | null) => {
-    const inp = h("input", { cls: "ct-pin", attr: { type: "text", placeholder: ph, ...(list ? { list } : {}), "aria-label": label } });
-    inp.value = value;
-    inp.addEventListener("change", () => { if (inp.value.trim() !== value) ctx.setProp(k, inp.value.trim()); });
-    inp.addEventListener("keydown", ev => { if (ev.key === "Enter") inp.blur(); });
-    return h("label", { cls: "ct-pfield is-" + k }, h("span", { cls: "ct-label" }, label), h("span", { cls: "ct-pfield-in" }, inp, after));
-  };
-  const loc = p.loc ? `${p.loc[0]}, ${p.loc[1]}` : "";
-  const types = h("datalist", { attr: { id: "ct-place-types" } }, Object.values(TYPE_NAMES).map(n => h("option", { attr: { value: L(ctx, n) } })));
-  const props = h("div", { cls: "ct-pprops" }, types,
-    field("category", t("pl.f.category"), p.category, t("pl.f.categoryPh"), "ct-place-types"),
-    field("city", t("pl.f.city"), p.city, ""),
-    field("price", t(kind === "avg" ? "pl.f.priceAvg" : kind === "ticket" ? "pl.f.priceTicket" : "pl.f.price"), p.price, auto || (kind === "avg" ? "€€" : "15 €")),
-    field("location", t("pl.f.loc"), loc, "41.39, 2.17", undefined, loc ? null : button([icon("search"), t("pl.find")], "ct-pfind", () => ctx.locate())),
-    field("photo", t("pl.f.cover"), ctx.cover, t("pl.f.coverPh")));
-
   /* las secciones de su tipo, luego las tuyas («## …» que no son de Cool Trip) y, al final, el post-it de «Datos útiles» */
   const mine = new Set(Object.values(SECS).flatMap(x => (x.title as string[]).map(low)));
   const own = ctx.doc.secs.filter(s => !mine.has(low(s.title)));
@@ -328,7 +375,7 @@ export function placePage(ctx: PlaceCtx): HTMLElement {
     section(ctx, "tips", type));
   const trips = ctx.trips.length ? h("div", { cls: "ct-ptrips" }, h("span", { cls: "ct-label" }, t("pl.inTrips")),
     ctx.trips.map(x => button([icon("plane"), h("b", null, x.name), h("span", { cls: "ct-sub" }, x.dates)], "ct-ptrip", () => x.open()))) : null;
-  const page = h("div", { cls: "ct-place" + (ctx.phone ? " is-phone" : "") }, hero, facts, props, grid, trips);
+  const page = h("div", { cls: "ct-place" + (ctx.phone ? " is-phone" : "") }, hero, facts, grid, trips);
   page.setCssProps({ "--ct-cat": color });                 // el color del tipo, para los precios y las etiquetas marcadas
   return page;
 }

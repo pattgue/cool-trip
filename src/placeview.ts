@@ -6,13 +6,15 @@ import type CoolTripPlugin from "./main";
 import { h } from "./dom";
 import { t, locale } from "./i18n";
 import { spanLabel } from "./dates";
-import { toIso, toList } from "./md";
+import { currencyOf, priceNumber, priceValue, toIso, toList, withCurrency } from "./md";
 import { allPlaces, isPlaceFile, isTripFile, mapsUrl, placeInfo, readLoc } from "./places";
 import type { PlaceInfo } from "./places";
 import { locate } from "./geo";
 import { parsePlace, placePage, serializePlace, setSection } from "./place-page";
+import { SECS } from "./place-types";
+import type { SecDef, SecKey } from "./place-types";
 import type { PlaceDoc, PlaceProp } from "./place-page";
-import { promptText } from "./prompt";
+import { countries, currencyOfCountry, promptText } from "./prompt";
 import { propKey } from "./settings";
 import { button } from "./ui";
 
@@ -21,6 +23,7 @@ export const PLACE_VIEW = "cool-trip-place";
 export class PlaceView extends TextFileView {
   doc: PlaceDoc | null = null;
   editing: string | null = null;
+  currency = "";                       // la moneda elegida en la cabecera (si aún no hay ningún precio que la diga)
   constructor(leaf: WorkspaceLeaf, private plugin: CoolTripPlugin) { super(leaf); }
   getViewType() { return PLACE_VIEW; }
   getDisplayText() { return this.file?.basename ?? "Cool Trip"; }
@@ -36,8 +39,9 @@ export class PlaceView extends TextFileView {
   async onOpen() {
     /* al cambiar sus propiedades (estrellas, visitado, precio…), la nota se vuelve a leer */
     this.registerEvent(this.app.metadataCache.on("changed", f => {
-      if (f !== this.file || this.editing) return;
-      void this.app.vault.read(f).then(d => { if (d !== this.data) this.setViewData(d, false); else this.render(); });
+      if (f !== this.file) return;
+      /* la nota se vuelve a leer siempre (para no pisar lo que acabas de cambiar); con algo abierto, sin repintar */
+      void this.app.vault.read(f).then(d => { if (d !== this.data) { this.data = d; this.doc = parsePlace(d); } if (!this.editing) this.render(); });
     }));
   }
   clear() { this.doc = null; this.contentEl.empty(); }
@@ -84,6 +88,9 @@ export class PlaceView extends TextFileView {
         return { name: x.basename, dates: a ? spanLabel(a, b) : toList(tfm[propKey(s, "destinations", tfm)]).join(" → "), open: () => void this.app.workspace.getLeaf().openFile(x) };
       });
     const places = () => allPlaces(this.app, s).filter(x => x.file !== f);
+    /* la moneda: la elegida, la de los precios que ya tiene, la de su país o el euro */
+    const priced = [p.price, ...doc.secs.flatMap(x => x.lines)].find(x => /R\$|[€$£¥₩฿]|\bkr\b|zł|\b[A-Z]{3}\b/.test(x) && /\d/.test(x));
+    const currency = this.currency || (priced ? currencyOf(priced) : "") || currencyOfCountry(p.country) || "€";
     el.appendChild(h("div", { cls: "ct-page" }, placePage({
       place: p, doc, phone, lang: locale(), cover,
       photo: cover ? this.plugin.coverSrc(cover, f.path) : null,
@@ -92,7 +99,7 @@ export class PlaceView extends TextFileView {
       openUrl: url => window.open(url),
       openLink: name => void this.app.workspace.openLinkText(name, f.path, false),
       edit: id => { this.editing = id; this.render(); },
-      setLines: (k, lines, keep) => { setSection(doc, k, lines, s.language, keep); this.editing = null; this.commit(); },
+      setLines: (k, lines, keep, stay) => { setSection(doc, k, lines, s.language, keep); if (!stay) this.editing = null; this.commit(); },
       setProp: (k, v) => void this.setProp(k, v),
       ask: (title, ph, value) => promptText(this.app, title, ph, value),
       pickPlace: () => new Promise(res => new PlacePicker(this.app, places(), res).open()),
@@ -101,6 +108,32 @@ export class PlaceView extends TextFileView {
         return x ? { category: x.category, photo: x.photo ? this.plugin.coverSrc(x.photo, x.file.path) : null } : null;
       },
       locate: () => void locate(this.app, s, f, p.name, p.city, p.country).then(ok => { if (!ok) new Notice(t("pl.notFound")); }),
+      currency, countries: countries(locale()),
+      setCountry: v => {
+        if (!p.city.trim()) { new Notice(t("pl.cityFirst")); return; }
+        const key = p.city.trim().toLowerCase();
+        if (v) s.countries[key] = v; else delete s.countries[key];
+        void this.plugin.saveSettings().then(() => { this.plugin.keeper.schedule(); this.render(); });
+      },
+      setCurrency: c => {
+        this.currency = c;
+        /* los precios que ya tiene pasan a la moneda nueva (solo el símbolo; el número se queda) */
+        for (const k of Object.keys(SECS) as SecKey[]) {
+          const d: SecDef = SECS[k], pc = (d.cols || []).findIndex(x => /precio|price/i.test(x[0]));
+          if (pc < 0) continue;
+          const sec = doc.secs.find(x => d.title.map(y => y.toLowerCase()).includes(x.title.trim().toLowerCase()));
+          if (!sec) continue;
+          sec.lines = sec.lines.map(l => {
+            const m = /^(\s*[-*]\s+)(.*)$/.exec(l);
+            if (!m) return l;
+            const cells = m[2].split(" · ");
+            if (cells[pc] && priceValue(cells[pc]) > 0) cells[pc] = withCurrency(priceNumber(cells[pc]), c);
+            return m[1] + cells.join(" · ");
+          });
+        }
+        this.commit();
+        if (p.price && priceValue(p.price) > 0) void this.setProp("price", withCurrency(priceNumber(p.price), c));
+      },
     })));
   }
 }
