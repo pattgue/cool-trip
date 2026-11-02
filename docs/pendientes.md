@@ -12,8 +12,8 @@ cambie el texto que lo promete.
 
 ## Otras cosas que dependen de algo de fuera
 
-- [ ] **«Ver Cool Bases»** (Ajustes › 5 Bases) abre `obsidian://show-plugin?id=cool-bases`: solo enseña la ficha cuando Cool
-      Bases esté publicado en el directorio de plugins de la comunidad.
+- [x] **«Ver Cool Bases»** (Ajustes › 5 Bases) abre `obsidian://show-plugin?id=cool-bases`: Cool Bases ya está en el directorio
+      de plugins de la comunidad y el enlace lleva a su ficha (comprobado por Patt, 2 nov 2026).
 - [x] **Vistas previas de las bases** (Ajustes › 5 Bases, con y sin Cool Bases): el diseño de las bases ya está cerrado (filas 5 y
       5b del canvas, `design/bases/`); rehechas a su imagen junto con las vistas de verdad (`docs/publicar.md`, fase 1, 0.2.0).
 
