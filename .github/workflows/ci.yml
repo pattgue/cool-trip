@@ -17,3 +17,5 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - run: npm i --no-save playwright && npx playwright install --with-deps chromium
+      - run: node test/harness.mjs
