@@ -12,7 +12,6 @@ import type { Settings } from "./types";
 import { allPlaces, catColor, ensureFolder, iconFor, isTripFile } from "./places";
 import { propKey } from "./settings";
 import { coverHex } from "./ui";
-import { toList } from "./md";
 
 /* ¿está activado este plugin? (Cool Bases, Maps) */
 export function hasPlugin(app: App, id: string): boolean {

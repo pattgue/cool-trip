@@ -16,7 +16,7 @@ import { accentOf, button, destHex, faces, icon, iconButton, label, notchH, notc
 export interface FormState { day: number; index: number; draft: Item; isNew: boolean; at?: string; target?: number }
 export interface DocAdd { key: string; draft: Doc; index?: number }            // index: el documento que se edita (sin él, uno nuevo)
 export interface PlanCtx {
-  app: App; s: Settings; trip: Trip; file: TFile; phone: boolean;
+  app: App; s: Settings; trip: Trip; file: TFile | null; phone: boolean;   // file: null en las vistas previas de los ajustes
   form: FormState | null;
   collapsed: Set<string>;
   docAdd: DocAdd | null;                          // la ventanita de «+ Documento» de una reserva
@@ -179,7 +179,7 @@ const bubble = (name: string) => h("span", { cls: "ct-bubble" }, icon(name));
 
 function placeOf(ctx: PlanCtx, link: string): PlaceInfo | null {
   if (!link) return null;
-  const f = resolve(ctx.app, link, ctx.file.path);
+  const f = resolve(ctx.app, link, ctx.file?.path ?? "");
   return f ? placeInfo(ctx.app, ctx.s, f) : null;
 }
 function cityOfDay(ctx: PlanCtx, date: string): string {

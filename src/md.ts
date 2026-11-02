@@ -379,6 +379,7 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
   const m = fmRe.exec(text);
   if (m) {
     try { t.fm = (parseYaml(m[1]) as Record<string, unknown>) || {}; } catch { t.fm = {}; }
+    t.fmRaw = { text: m[1], snap: JSON.stringify(t.fm) };
     body = text.slice(m[0].length);
   }
   const P = props(s, t.fm);
@@ -524,7 +525,8 @@ export function serializeTrip(t: Trip, s: Settings): string {
   const bk = oldBudget(s);
   if (bk && bk in fm && bk !== P.cover) delete fm[bk];       // el presupuesto va en el bloque del viaje
   const accent = pal && t.cover ? pal : t.accent;
-  const yaml = Object.keys(fm).length ? stringifyYaml(fm).trimEnd() : "";
+  /* si las propiedades no han cambiado, se escriben tal cual estaban (con su formato, sus comillas y sus comentarios) */
+  const yaml = t.fmRaw && t.fmRaw.snap === JSON.stringify(fm) ? t.fmRaw.text.trimEnd() : Object.keys(fm).length ? stringifyYaml(fm).trimEnd() : "";
   const out: string[] = yaml ? ["---", yaml, "---"] : [];
   out.push(`> [!cool-trip${accent ? "|" + accent : ""}] ${t.name}`);
   for (const d of t.dests) {

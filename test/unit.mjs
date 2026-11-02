@@ -110,6 +110,10 @@ ok("ficha de lugar: secciones en el cuerpo, propiedades intactas", plOut.startsW
 md.setSection(pl, "hours", [], "es");
 ok("ficha de lugar: una sección vacía se quita", !/Horario/.test(md.serializePlace(pl)));
 ok("tipos de lugar", ["Izakaya", "Teatro Real", "Sala de conciertos", "Ramen", "Olive bar"].map(md.placeType).join(" ") === "bar theatre music restaurant bar", ["Izakaya", "Teatro Real", "Sala de conciertos", "Ramen", "Olive bar"].map(md.placeType).join(" "));
+/* las propiedades que no cambian se quedan como estaban escritas (formato, comillas, comentarios) */
+const rawFm = "---\ntipo: viaje\ninicio: 2026-12-01\nfin: 2026-12-03\ndestinos: [Roma]\nmio: 'algo'  # un comentario\n---\n";
+const tR = md.parseTrip(rawFm, "r", S);
+ok("propiedades intactas si no cambian", md.serializeTrip(tR, S).startsWith(rawFm.trimEnd()), md.serializeTrip(tR, S).split("\n").slice(0, 7).join(" | "));
 ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md.showPrice("$5", "€") === "$5" && md.showPrice("", "€") === "");
 
 /* ---------- las bases (src/bases.ts): cada fórmula se lee y da lo del canvas ---------- */

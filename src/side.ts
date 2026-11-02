@@ -134,6 +134,9 @@ function todoSuggestions(ctx: SideCtx): Suggest[] {
     const list = cities.length > 1 ? cities.slice(0, -1).join(", ") + (t("bag") === "Mochila" ? " y " : " and ") + cities[cities.length - 1] : cities[0];
     out.push({ text: t("todo.maps", { c: list }), done: false, action: [t("todo.mapsBtn"), () => ctx.openUrl(mapsUrl(ctx.s.maps.app, tr.dests[0].city, tr.dests[0].country, null))] });
   }
+  /* lo que está en la nube, descargado en su app para tenerlo sin conexión (lo promete Ajustes › 3) */
+  const allDocs = [...tr.mochila, ...tr.days.flatMap(d => d.items.flatMap(i => i.docs))];
+  if (allDocs.some(d => d.where === "cloud" || d.also.includes("cloud"))) out.push({ text: t("todo.cloud"), done: false });
   const firstFlight = tr.days.flatMap(d => d.items).find(i => i.kind === "flight");
   if (firstFlight) out.push({ text: t("todo.checkinOut"), done: false });
   return out.filter(s => !have.has(s.text.toLowerCase()) && !hidden.has(s.text.toLowerCase()));

@@ -114,7 +114,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
       }
     };
     fit();
-    const RO = (wrap.win as (Window & typeof globalThis) | undefined)?.ResizeObserver ?? ResizeObserver;
+    const RO = (wrap.win as (typeof window) | undefined)?.ResizeObserver ?? ResizeObserver;
     this.ro = new RO(() => fit());
     this.ro.observe(wrap);
   }
@@ -331,7 +331,7 @@ export class CoolTripSettingTab extends PluginSettingTab {
     if (f.wallet) docs.push(blankDoc("wallet", { name: t("demo.pass"), para: ["Ana"] }), blankDoc("wallet", { name: t("demo.pass2"), para: ["Leo"] }));
     it.docs = docs;
     const ctx = (phone: boolean): PlanCtx => ({
-      app: this.app, s, trip: tr, file: null as unknown as TFile, phone, form: null, collapsed: new Set(), docAdd: null,
+      app: this.app, s, trip: tr, file: null, phone, form: null, collapsed: new Set(), docAdd: null,
       setDocAdd: () => {}, commit: () => {}, rerender: () => {}, openForm: () => {}, renderForm: () => h("div"), openLink: () => {}, openDoc: () => {}, openUrl: () => {}, move: () => {},
     });
     const acc = coverHex(tr.cover);
