@@ -11,9 +11,8 @@ Plugin de Obsidian para centralizar viajes (privado hasta la 1.0). Cómo está h
 Patt no programa: cada proyecto lleva un **documento editable (Claude Docs) que «traduce» todas sus funciones, opciones y
 detalles**, con una pestaña por parte del proyecto, en tablas que Patt pueda editar o comentar. Es la fuente de verdad de
 lo que hace el plugin, en los dos sentidos: lo que Patt cambie ahí se pasa al código, y lo que cambie en el código se
-actualiza ahí. Al empezar una sesión se lee solo lo que haya cambiado desde la última vez (`sinceRev`). De momento existe
-la pestaña de las fichas de lugar ([Secciones de cada tipo de lugar](https://claude.ai/artifact/EkfgsgztJTuFJnFLR7wydn),
-resumida en `docs/lugares.md`); la guía entera se monta durante la auditoría previa a la 1.0.
+actualiza ahí. Al empezar una sesión se lee solo lo que haya cambiado desde la última vez (`sinceRev`). La guía es [Cool Trip — guía editable](https://claude.ai/artifact/QkPT7Eufz3yF9HxHuUjEBb); las secciones de cada tipo de lugar
+están aparte, en [Secciones de cada tipo de lugar](https://claude.ai/artifact/EkfgsgztJTuFJnFLR7wydn) (resumida en `docs/lugares.md`).
 
 ## Entorno Cloud (claude.ai/code)
 
