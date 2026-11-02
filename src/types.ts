@@ -1,4 +1,4 @@
-/* Tipos de Cool Trip: los ajustes y el viaje tal como se lee de su nota (ver replica/architecture.md). */
+/* Tipos de Cool Trip: los ajustes y el viaje tal como se lee de su nota (ver docs/arquitectura.md). */
 import type { BarSettings } from "./cool-kit/kit";
 
 export type RecogMode = "property" | "tag" | "folder";

@@ -1,5 +1,5 @@
 /* La nota del viaje en Markdown: se lee a un Trip y se vuelve a escribir. El formato es el que se cerró con Patt
-   (replica/architecture.md › «Markdown»). Lo que no se entiende se respeta: va a intro, outro, raw o extra y se vuelve a escribir. */
+   (docs/propiedades.md). Lo que no se entiende se respeta: va a intro, outro, raw o extra y se vuelve a escribir. */
 import { parseYaml, stringifyYaml } from "obsidian";
 import { MD, vocab } from "./i18n";
 import type { Vocab } from "./i18n";

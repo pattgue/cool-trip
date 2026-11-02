@@ -2,8 +2,7 @@
 
 Plugin privado de Obsidian para tener cada viaje centralizado en una nota: una portada como tarjeta de embarque y el plan día a día con reservas, documentos, comidas y coste.
 
-- Propuesta y modelo de datos: [docs/01-propuesta.md](docs/01-propuesta.md)
-- Arquitectura y diseño cerrados con Patt: [replica/architecture.md](replica/architecture.md)
+- Cómo está hecho: [docs/arquitectura.md](docs/arquitectura.md)
 - Notas para Claude y skills Replica instaladas en el proyecto: [CLAUDE.md](CLAUDE.md)
 
 ## Instalarlo en tu vault

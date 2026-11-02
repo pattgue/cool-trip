@@ -1,5 +1,5 @@
 /* Las bases después de crearlas: Cool Trip solo toca lo suyo y solo cuando cambia algo.
-   - Cada viaje sin ubicación toma la de un lugar de su primera ciudad (para el mapa de viajes).
+   - Sus fórmulas (el color de cada viaje, el país de cada ciudad…) y el CSS de su billete, de la versión de ahora.
    - El color de cada billete en las vistas de Cool Bases (el bloque marcado de su CSS libre).
    - La vista de cada ciudad nueva en la base de lugares (una sola vez: si la borras, no vuelve).
    También crea las bases y les añade el mapa o el diseño de Cool Bases cuando se instalan esos plugins. */

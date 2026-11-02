@@ -74,7 +74,7 @@ Cool Bases, y rehacer las vistas previas del paso 5 de los ajustes para que se p
 ## Fase 2 · Lo apuntado en `docs/pendientes.md`
 
 Antes de publicar hay que resolver cada punto de esa lista: o se hace la función, o se cambia el texto que la promete. También
-queda pendiente la Cool Bar en el móvil (`replica/architecture.md`, decisión 5): ahora no se pinta, y hay que diseñarle una
+queda pendiente la Cool Bar en el móvil: ahora no se pinta, y hay que diseñarle una
 forma más sutil o dejarla fuera de la 1.0 (**Decide Patt**).
 
 ## Fase 3 · Preparar el repositorio para publicar
@@ -83,13 +83,14 @@ forma más sutil o dejarla fuera de la 1.0 (**Decide Patt**).
    - el historial y `docs/`, `replica/`, `CLAUDE.md` y `.claude/` (las skills de terceros, con su licencia en `docs/third-party/`);
    - que no haya datos personales ni capturas de apps de terceros.
    
-   **Decide Patt** qué se queda.
-2. **Licencia.** Hay que añadir `LICENSE` (**Decide Patt**: MIT, como suele hacerse) y cambiar `package.json` (`license`, quitar `private`). Inter ya va con su OFL en `fonts/`, y su aviso se cita en el README.
+   **Decidido (2 nov 2026):** se quitan `.claude/skills/`, `replica/` y la propuesta antigua (hecho); `CLAUDE.md` se queda; el
+   historial se mantiene.
+2. **Licencia.** MIT, como Cool Bases (hecho: `LICENSE` y `package.json`). Inter ya va con su OFL en `fonts/`, y su aviso se cita en el README.
 3. **README en inglés.** Es lo que enseña el directorio. Debe llevar:
    - qué hace, con capturas del canvas o del harness;
    - cómo se usa (ajustes, Nuevo viaje, la nota, las bases);
    - qué otros plugins aprovecha (Cool Bases, Maps; ninguno es obligatorio);
-   - que no usa la red;
+   - que solo usa la red para buscar coordenadas en OpenStreetMap, si está activado;
    - la licencia de Inter.
    
    Las instrucciones de BRAT con token pasan a «Instalar una beta».
@@ -105,7 +106,7 @@ forma más sutil o dejarla fuera de la 1.0 (**Decide Patt**).
    - todo evento con `register*`;
    - los estilos, en `styles.css`.
 6. **Cool Kit.** Hay que comprobar que `src/cool-kit/` y `css/cool-kit.css` son iguales a los de `pattgue/cool-bases`, rama `cool-bar`. No se editan aquí.
-7. **El botón «Ver Cool Bases»** (Ajustes › 5) solo funciona cuando Cool Bases esté publicado. Antes de la 1.0, o se publica Cool Bases primero o se cambia el botón (**Decide Patt**).
+7. **El botón «Ver Cool Bases»** (Ajustes › 5): funciona, Cool Bases ya está en el directorio.
 
 ## Fase 4 · Versión 1.0.0 y envío
 
