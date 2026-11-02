@@ -173,8 +173,17 @@ const TICKET_CSS = `/* Cool Trip · el billete: en el ordenador, vertical, con e
 .is-phone & .cb-card:has([data-prop="formula.stubTop"]) .cb-l:has([data-prop="formula.stubN"]) { transform: translateY(-45%); }
 .is-phone & .cb-card:has([data-prop="formula.stubTop"]) .cb-l:has([data-prop="formula.stubUnit"]) { transform: translateY(19px); }
 .is-phone & .cb-card .cb-media { inset: 0 30% 0 0 !important; }
-.is-phone & .cb-card .cb-media::after { background: linear-gradient(to right, transparent 35%, var(--ct)); }`;
+/* en el móvil el texto va encima de la foto: la foto, en tonos claros y teñida del color del viaje, así se lee sea cual sea */
+.is-phone & .cb-card .cb-media img { filter: grayscale(1) contrast(.45) brightness(1.5) !important; }
+.is-phone & .cb-card .cb-media::after { background: linear-gradient(to right, color-mix(in srgb, var(--ct) 58%, transparent) 30%, var(--ct)); }`;
 
+/* el CSS del billete de una versión nueva, en una base ya creada: se cambia lo de Cool Trip (antes de su bloque de colores) */
+export const ticketCss = (s: Settings) => TICKET_CSS.split("{{travelers}}").join(s.props.travelers || "-");
+export function freshTicketCss(css: string, s: Settings): string | null {
+  const at = css.indexOf(CSS_START), mine = ticketCss(s);
+  if (!css.startsWith(TICKET_CSS.slice(0, 40)) || at < 0 || css.slice(0, at).trimEnd() === mine) return null;
+  return mine + "\n" + css.slice(at);
+}
 function ticketModel(s: Settings): Record<string, unknown> {
   const P = s.props;
   /* los tamaños, en cqi de la tarjeta (sobre los 273 px de la del canvas): 10 px = 3,66 */
@@ -199,7 +208,7 @@ function ticketModel(s: Settings): Record<string, unknown> {
     hover: { on: false },
     rate: { on: false }, states: { on: false, list: [] }, lines: { on: false, n: 0 }, foot: { on: false },
     items, fitems: [],
-    css: TICKET_CSS.split("{{travelers}}").join(P.travelers || "-") + "\n" + CSS_START + "\n" + CSS_END,
+    css: ticketCss(s) + "\n" + CSS_START + "\n" + CSS_END,
   };
 }
 

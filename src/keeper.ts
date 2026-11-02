@@ -6,7 +6,7 @@
 import { getIcon, normalizePath, parseYaml, stringifyYaml, TFile } from "obsidian";
 import type { App } from "obsidian";
 import type CoolTripPlugin from "./main";
-import { CITY_CSS, CSS_START, oldFilter, placeBadgesCss, placesBase, syncBase, tripColorsCss, tripsBase, viewNames } from "./bases";
+import { CITY_CSS, CSS_START, freshTicketCss, oldFilter, placeBadgesCss, placesBase, syncBase, tripColorsCss, tripsBase, viewNames } from "./bases";
 import type { BaseDoc, BaseEnv, BaseKind } from "./bases";
 import type { Settings } from "./types";
 import { allPlaces, catColor, ensureFolder, iconFor, isTripFile } from "./places";
@@ -56,6 +56,9 @@ function refresh(doc: BaseDoc, kind: BaseKind, s: Settings, env: BaseEnv, trips:
     if (view.type === "map" && s.props.location && typeof view.coordinates === "string" && /^(note\.|formula\.loc$)/.test(view.coordinates) && view.coordinates !== loc) { view.coordinates = loc; ch = true; }
     const m = view.coolbases as { css?: unknown } | undefined;
     if (view.type === "cool-bases" && m && typeof m.css === "string" && m.css.startsWith(CITY_CSS.slice(0, 40)) && !m.css.includes(CSS_START)) { m.css = CITY_CSS; ch = true; }
+    /* el billete: su CSS de esta versión (si no lo has cambiado tú en el panel de Cool Bases, empieza igual) */
+    const tk = view.type === "cool-bases" && m && typeof m.css === "string" ? freshTicketCss(m.css, s) : null;
+    if (tk && m) { m.css = tk; ch = true; }
   }
   return ch;
 }

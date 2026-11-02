@@ -37,7 +37,8 @@ const valuesOf = (doc, n) => {
   return v;
 };
 /* una foto de ejemplo para las portadas con imagen */
-const PHOTO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" width="400" height="260"><rect width="400" height="260" fill="#cfd8c3"/><circle cx="70" cy="60" r="34" fill="#f2efe4"/><path d="M0 150 Q120 90 230 140 T400 120 V260 H0Z" fill="#7d9a6b"/><path d="M0 200 Q150 150 260 190 T400 180 V260 H0Z" fill="#55704a"/></svg>';
+/* una foto difícil, como la de Roma: cielo muy claro, edificios oscuros y columnas blancas (si aquí se lee, se lee con cualquiera) */
+const PHOTO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" width="400" height="260"><rect width="400" height="260" fill="#f4efe2"/><path d="M0 120 L40 70 L80 110 L120 60 L170 100 L220 50 L270 95 L320 65 L400 100 V260 H0Z" fill="#3b2f25"/><g fill="#efe6d2">' + Array.from({ length: 12 }, (_, i) => `<rect x="${20 + i * 32}" y="95" width="12" height="120"/>`).join("") + '</g><rect y="200" width="400" height="60" fill="#8a6d4b"/><circle cx="330" cy="40" r="22" fill="#fff"/></svg>';
 const data = {
   views: [
     ...tb.views.filter(v => v.type === "cool-bases").map(v => ({ base: "Viajes", view: v, notes: X.TRIPS.map(n => ({ ...n, v: valuesOf(tb, n) })) })),
