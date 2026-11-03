@@ -1,10 +1,11 @@
 {
 	"id": "cool-trip",
 	"name": "Cool Trip",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"minAppVersion": "1.10.0",
 	"description": "Plan each trip in one note: a boarding-pass cover, a day-by-day route with bookings, documents and costs.",
 	"author": "Patt",
 	"authorUrl": "https://pattgue.com",
+	"fundingUrl": "https://ko-fi.com/pattgue",
 	"isDesktopOnly": false
 }
