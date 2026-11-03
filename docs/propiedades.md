@@ -82,19 +82,11 @@ Se puede desactivar.
 
 ## Lo que va dentro de la nota de un lugar (no son propiedades)
 
-Si está activado «Ver las notas de lugar con el diseño de Cool Trip» (Ajustes › 1), la nota se abre como una ficha con secciones
-según su grupo. Cada sección es un `## Título` en el cuerpo, y solo se escribe cuando la rellenas:
-
-| Grupo | Secciones |
-|---|---|
-| comer | `## Qué pedir`, `## Reservar`, `## Horario`, `## Datos útiles` |
-| ver | `## Entradas`, `## Qué no perderse`, `## Horario`, `## Datos útiles` |
-| pasear | `## Cómo llegar`, `## Mejor momento`, `## Datos útiles` |
-| dormir | `## Llegada y salida`, `## Datos útiles` |
-| otros | `## Horario`, `## Datos útiles` |
-
-Tus otras secciones y lo que escribas antes de la primera se ven tal cual y no se tocan. Las estrellas, «visitado» y el precio
-se tocan en la ficha y van a sus propiedades (solo entonces se crean).
+Si está activado «Ver las notas de lugar con el diseño de Cool Trip» (Ajustes › 1), la nota se abre como una ficha: arriba,
+sus propiedades como campos (categoría, ciudad, precio, coordenadas, portada, estrellas y visitado; solo se escribe la que
+rellenas) y debajo las secciones de su tipo, cada una con su formato. Cada sección es un `## Título` en el cuerpo y solo se
+escribe cuando la rellenas. Las secciones de cada tipo están en [lugares.md](lugares.md). Tus otras secciones y lo que
+escribas antes de la primera se ven tal cual y no se tocan.
 
 ## Si vienes de la versión 0.2
 

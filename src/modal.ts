@@ -1,7 +1,6 @@
 /* «Nuevo viaje»: la tarjeta de embarque vacía. Crea la nota con las propiedades elegidas en los ajustes y la abre. */
 import { Modal, Notice, Platform, normalizePath } from "obsidian";
 import type CoolTripPlugin from "./main";
-import { h } from "./dom";
 import { t } from "./i18n";
 import { isIso } from "./dates";
 import { blankTrip, serializeTrip } from "./md";

@@ -99,6 +99,21 @@ ok("presupuesto y color dentro de la nota", !/portada|presupuesto:|viajeros/.tes
 const tK = md.parseTrip("---\ntipo: viaje\ninicio: 2026-12-01T10:00\nfin: 2026-12-03\ndestinos: Roma, Nápoles\nviajeros:\n  - \"[[Ana]]\"\n---\n", "k", S);
 const outK = md.serializeTrip(tK, S);
 ok("respeta la forma de tus propiedades", /inicio: 2026-12-01T10:00/.test(outK) && /destinos: Roma, Nápoles/.test(outK) && /\[\[Ana\]\]/.test(outK), outK.split("\n").slice(0, 8).join(" | "));
+/* la ficha de un lugar: las secciones van en el cuerpo y las propiedades no se tocan */
+const pl = md.parsePlace("---\ncategoría: Izakaya\nprecio: \"€€\"\n---\n\nMis notas.\n\n## Carta\n- Yakitori · 220 ¥\n\n## Lo mío\nalgo\n");
+md.setSection(pl, "hours", ["- Lunes: cerrado"], "es");
+md.setSection(pl, "menu", ["- Yakitori · 220 ¥", "- Motsuni · 600 ¥"], "es");
+md.setSection(pl, "daily", [], "es", true);
+const plOut = md.serializePlace(pl);
+ok("ficha de lugar: secciones en el cuerpo, propiedades intactas", plOut.startsWith("---\ncategoría: Izakaya\nprecio: \"€€\"\n---\n") && /Mis notas\./.test(plOut) && /## Lo mío\nalgo/.test(plOut)
+  && /## Horario\n- Lunes: cerrado/.test(plOut) && md.linesOf(md.parsePlace(plOut), "menu").length === 2 && /## Menú del día\n/.test(plOut), plOut);
+md.setSection(pl, "hours", [], "es");
+ok("ficha de lugar: una sección vacía se quita", !/Horario/.test(md.serializePlace(pl)));
+ok("tipos de lugar", ["Izakaya", "Teatro Real", "Sala de conciertos", "Ramen", "Olive bar"].map(md.placeType).join(" ") === "bar theatre music restaurant bar", ["Izakaya", "Teatro Real", "Sala de conciertos", "Ramen", "Olive bar"].map(md.placeType).join(" "));
+/* las propiedades que no cambian se quedan como estaban escritas (formato, comillas, comentarios) */
+const rawFm = "---\ntipo: viaje\ninicio: 2026-12-01\nfin: 2026-12-03\ndestinos: [Roma]\nmio: 'algo'  # un comentario\n---\n";
+const tR = md.parseTrip(rawFm, "r", S);
+ok("propiedades intactas si no cambian", md.serializeTrip(tR, S).startsWith(rawFm.trimEnd()), md.serializeTrip(tR, S).split("\n").slice(0, 7).join(" | "));
 ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md.showPrice("$5", "€") === "$5" && md.showPrice("", "€") === "");
 
 /* ---------- las bases (src/bases.ts): cada fórmula se lee y da lo del canvas ---------- */

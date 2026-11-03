@@ -22,8 +22,7 @@ button{background:#363636;border:0;border-radius:4px;height:30px}</style></head>
 <script src="harness.js"></script></body></html>`;
 writeFileSync(join(out, "view.html"), page("view"));
 writeFileSync(join(out, "modal.html"), page("modal"));
-writeFileSync(join(out, "place.html"), page("place"));
-writeFileSync(join(out, "place-eat.html"), page("place-eat"));
+for (const k of ["eat", "see", "music"]) writeFileSync(join(out, `place-${k}.html`), page("place-" + k));
 for (let i = 1; i <= 7; i++) writeFileSync(join(out, `settings${i}.html`), page("settings" + i));
 const b = await chromium.launch();
 for (const [name, w, mode, phone] of [...[1, 2, 3, 4, 5, 6, 7].map(i => ["settings" + i, 1100, "settings" + i, false]), ["desk", 1440, "view", false], ["phone", 390, "view", true], ["modal", 1440, "modal", false], ["modal-img", 1440, "modal.html#img", false], ["modal-phone", 390, "modal", true]]) {

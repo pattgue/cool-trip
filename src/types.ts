@@ -1,4 +1,4 @@
-/* Tipos de Cool Trip: los ajustes y el viaje tal como se lee de su nota (ver replica/architecture.md). */
+/* Tipos de Cool Trip: los ajustes y el viaje tal como se lee de su nota (ver docs/arquitectura.md). */
 import type { BarSettings } from "./cool-kit/kit";
 
 export type RecogMode = "property" | "tag" | "folder";
@@ -63,6 +63,7 @@ export interface Day { date: string; items: Item[]; raw: string[] }
 
 export interface Trip {
   fm: Record<string, unknown>;
+  fmRaw?: { text: string; snap: string };   // las propiedades tal como estaban escritas (si no cambian, se dejan igual)
   name: string;                // el nombre de la nota
   start: string;               // AAAA-MM-DD
   end: string;

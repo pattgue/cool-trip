@@ -59,7 +59,11 @@ export default class CoolTripPlugin extends Plugin {
 
     /* las notas de viaje se abren pintadas */
     this.registerEvent(this.app.workspace.on("file-open", () => this.syncLeaves()));
-    this.registerEvent(this.app.metadataCache.on("changed", file => { this.marked.delete(file.path); this.syncLeaves(); this.keeper.schedule(); }));
+    /* las bases solo se revisan cuando cambia un viaje o un lugar (no con cada nota del vault) */
+    this.registerEvent(this.app.metadataCache.on("changed", file => {
+      this.marked.delete(file.path); this.syncLeaves();
+      if (this.isTrip(file) || isPlaceFile(this.app, this.settings, file)) this.keeper.schedule();
+    }));
     this.app.workspace.onLayoutReady(() => { void this.adapt(); this.syncLeaves(); this.keeper.schedule(); });
     this.registerEvent(this.app.metadataCache.on("resolved", () => { void this.adapt(); }));
     /* las bases que creó Cool Trip siguen siendo suyas aunque se muevan o se renombren (y dejan de serlo si se borran) */

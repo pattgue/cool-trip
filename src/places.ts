@@ -76,35 +76,39 @@ export async function createPlace(app: App, s: Settings, name: string, city: str
 export type Family = "see" | "eat" | "walk" | "sleep" | "other";
 /* cada tipo de lugar: las palabras que lo reconocen (es · en), su icono, su color (uno distinto por tipo) y su grupo.
    El orden importa: gana el primero que encaja («bar de tapas» es bar; «sala de conciertos», música). */
-export const ICONS: [RegExp, string, string, Family][] = [
-  [/templo|santuario|temple|shrine|iglesia|church|catedral|cathedral|mezquita|mosque|bas[ií]lica|sinagoga|synagogue|monasterio|monastery|ermita/i, "church", "#C2B3F5", "see"],
-  [/museo|museum|galer[ií]a|gallery|exposici[oó]n|exhibition|\barte\b|\bart\b/i, "palette", "#9CC9F0", "see"],
-  [/librer[ií]a|bookstore|bookshop|biblioteca|library|libros|books/i, "book-open", "#E3D3A8", "see"],
-  [/m[uú]sica|music|concierto|concert|sala|teatro|theat|[oó]pera|jazz/i, "music", "#F07A8C", "see"],
-  [/cine|cinema|movie|film/i, "clapperboard", "#F2E27A", "see"],
-  [/discoteca|club|nightclub|fiesta|party/i, "disc-3", "#9C8CE0", "eat"],
-  [/\bbar\b|\bbares\b|\bpub\b|taberna|tavern|cervecer[ií]a|brewery|beer|cocteler[ií]a|cocktail|vino|wine|vermut|izakaya/i, "beer", "#D9805F", "eat"],
-  [/restaurante|restaurant|comida|food|ramen|sushi|tapas|tasca|pizzer[ií]a|bistr[oó]|trattoria|marisquer[ií]a/i, "utensils", "#E8613C", "eat"],
-  [/caf[eé]|coffee|cafeter[ií]a|brunch|pasteler[ií]a|bakery|panader[ií]a|helader[ií]a|ice cream|dulces/i, "coffee", "#F5AFC0", "eat"],
-  [/mercado|market/i, "store", "#EDC14B", "eat"],
-  [/tienda|shop|calle comercial|shopping|compras|\bmall\b/i, "shopping-bag", "#F7C59F", "walk"],
-  [/mirador|viewpoint|vista|torre|tower|observatorio|observatory/i, "binoculars", "#6CC5C9", "see"],
-  [/parque|park|jard[ií]n|garden|bosque|forest/i, "trees", "#B5D69A", "walk"],
-  [/playa|beach|costa|coast|lago|lake|\br[ií]o\b|river|\bcala\b|\bbay\b/i, "waves", "#7C9CD8", "walk"],
-  [/monta[ñn]a|mountain|volc[aá]n|\bruta\b|hike|senderismo|excursi[oó]n/i, "mountain", "#A8C3A0", "walk"],
-  [/castillo|castle|palacio|palace|fortaleza|fortress/i, "castle", "#B07CC6", "see"],
-  [/monumento|monument|ruinas|ruins|hist[oó]ric|cementerio|cemetery/i, "landmark", "#C9A27E", "see"],
-  [/zoo|acuario|aquarium|animales|animals/i, "paw-print", "#F2A65A", "see"],
-  [/estadio|stadium|deporte|sport|f[uú]tbol|football/i, "trophy", "#B8C26A", "see"],
-  [/onsen|\bspa\b|ba[ñn]os|bath|termas/i, "droplets", "#A6DCD8", "see"],
-  [/cruce|crossing|plaza|square|calle|street|barrio|neighbo/i, "signpost", "#B9B4AA", "walk"],
-  [/hotel|alojamiento|hostal|ryokan|apartamento|lodging|hostel/i, "bed", "#8FD8C4", "sleep"],
+export type PlaceType = "temple" | "museum" | "books" | "theatre" | "music" | "cinema" | "club" | "bar" | "restaurant" | "cafe" | "market" | "shop" | "viewpoint"
+  | "park" | "water" | "mountain" | "castle" | "monument" | "zoo" | "stadium" | "spa" | "street" | "lodging" | "other";
+export const ICONS: [RegExp, string, string, Family, PlaceType][] = [
+  [/templo|santuario|temple|shrine|iglesia|church|catedral|cathedral|mezquita|mosque|bas[ií]lica|sinagoga|synagogue|monasterio|monastery|ermita/i, "church", "#C2B3F5", "see", "temple"],
+  [/museo|museum|galer[ií]a|gallery|exposici[oó]n|exhibition|\barte\b|\bart\b/i, "palette", "#9CC9F0", "see", "museum"],
+  [/librer[ií]a|bookstore|bookshop|biblioteca|library|libros|books/i, "book-open", "#E3D3A8", "see", "books"],
+  [/teatro|theat|[oó]pera|musical|ballet|danza|dance|c[aá]baret/i, "drama", "#D98FB8", "see", "theatre"],
+  [/m[uú]sica|music|concierto|concert|sala|jazz/i, "music", "#F07A8C", "see", "music"],
+  [/cine|cinema|movie|film/i, "clapperboard", "#F2E27A", "see", "cinema"],
+  [/discoteca|club|nightclub|fiesta|party/i, "disc-3", "#9C8CE0", "eat", "club"],
+  [/\bbar\b|\bbares\b|\bpub\b|taberna|tavern|cervecer[ií]a|brewery|beer|cocteler[ií]a|cocktail|vino|wine|vermut|izakaya/i, "beer", "#D9805F", "eat", "bar"],
+  [/restaurante|restaurant|comida|food|ramen|sushi|tapas|tasca|pizzer[ií]a|bistr[oó]|trattoria|marisquer[ií]a/i, "utensils", "#E8613C", "eat", "restaurant"],
+  [/caf[eé]|coffee|cafeter[ií]a|brunch|pasteler[ií]a|bakery|panader[ií]a|helader[ií]a|ice cream|dulces/i, "coffee", "#F5AFC0", "eat", "cafe"],
+  [/mercado|market/i, "store", "#EDC14B", "eat", "market"],
+  [/tienda|shop|calle comercial|shopping|compras|\bmall\b/i, "shopping-bag", "#F7C59F", "walk", "shop"],
+  [/mirador|viewpoint|vista|torre|tower|observatorio|observatory/i, "binoculars", "#6CC5C9", "see", "viewpoint"],
+  [/parque|park|jard[ií]n|garden|bosque|forest/i, "trees", "#B5D69A", "walk", "park"],
+  [/playa|beach|costa|coast|lago|lake|\br[ií]o\b|river|\bcala\b|\bbay\b/i, "waves", "#7C9CD8", "walk", "water"],
+  [/monta[ñn]a|mountain|volc[aá]n|\bruta\b|hike|senderismo|excursi[oó]n/i, "mountain", "#A8C3A0", "walk", "mountain"],
+  [/castillo|castle|palacio|palace|fortaleza|fortress/i, "castle", "#B07CC6", "see", "castle"],
+  [/monumento|monument|ruinas|ruins|hist[oó]ric|cementerio|cemetery/i, "landmark", "#C9A27E", "see", "monument"],
+  [/zoo|acuario|aquarium|animales|animals/i, "paw-print", "#F2A65A", "see", "zoo"],
+  [/estadio|stadium|deporte|sport|f[uú]tbol|football/i, "trophy", "#B8C26A", "see", "stadium"],
+  [/onsen|\bspa\b|ba[ñn]os|bath|termas/i, "droplets", "#A6DCD8", "see", "spa"],
+  [/cruce|crossing|plaza|square|calle|street|barrio|neighbo/i, "signpost", "#B9B4AA", "walk", "street"],
+  [/hotel|alojamiento|hostal|ryokan|apartamento|lodging|hostel/i, "bed", "#8FD8C4", "sleep", "lodging"],
 ];
 export const OTHER_ICON: [string, string, Family] = ["map-pin", "#8E8E93", "other"];
 const catOf = (category: string) => ICONS.find(([re]) => re.test(category));
 export function iconFor(category: string): string { return catOf(category)?.[1] || OTHER_ICON[0]; }
 export function catColor(category: string): string { return catOf(category)?.[2] || OTHER_ICON[1]; }
 export function catFamily(category: string): Family { return catOf(category)?.[3] || OTHER_ICON[2]; }
+export function placeType(category: string): PlaceType { return catOf(category)?.[4] || "other"; }
 
 /* ---------- la app de mapas ---------- */
 export function mapsUrl(app: MapsApp, name: string, city: string, loc: [number, number] | null): string {

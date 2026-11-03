@@ -1,5 +1,5 @@
 /* La nota del viaje en Markdown: se lee a un Trip y se vuelve a escribir. El formato es el que se cerró con Patt
-   (replica/architecture.md › «Markdown»). Lo que no se entiende se respeta: va a intro, outro, raw o extra y se vuelve a escribir. */
+   (docs/propiedades.md). Lo que no se entiende se respeta: va a intro, outro, raw o extra y se vuelve a escribir. */
 import { parseYaml, stringifyYaml } from "obsidian";
 import { MD, vocab } from "./i18n";
 import type { Vocab } from "./i18n";
@@ -8,6 +8,8 @@ import type { Day, Dest, Doc, Field, Item, Kind, PropNames, Settings, Task, Trip
 import { isTransport } from "./types";
 import { propKey, twinRecog } from "./settings";
 import { PALETTE, paletteId } from "./ui";
+import { priceRe, priceValue } from "./prices";
+export * from "./prices";
 
 export const MARKER = "%% cool-trip v1 %%";
 /* las sugerencias de «Por hacer» que se han quitado: «%% cool-trip · ocultas: Mapas sin conexión de Roma | … %%» */
@@ -32,55 +34,13 @@ export function splitSeg(s: string): string[] {
 }
 const linkRe = /^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/;
 const boldRe = /^\*\*(.+)\*\*$/;
-/* «60 €», «$60», «¥3.000», «45 CHF»: un número con su moneda (símbolo o código ISO en mayúsculas) */
-export const CURRENCIES = ["€", "$", "£", "¥", "CHF", "₩", "฿", "kr", "zł", "R$", "MXN", "ARS", "COP", "CLP", "PEN", "MAD", "TRY", "CZK", "HUF", "INR", "AUD", "CAD"];
-const PREFIX = new Set(["$", "£", "¥", "₩", "฿", "R$"]);
 /* «por pagar» después del precio: cuesta, pero aún no se ha pagado */
 const UNPAID_RE = /^(?:por pagar|sin pagar|unpaid|to pay)$/i;
-const priceRe = /^(?:(?:R\$|[€$£¥₩฿])\s?\d[\d.,]*|\d[\d.,]*(?:\s?(?:€|\$|£|¥|₩|฿|kr|zł|[A-Z]{3}))?)$/;
 export const linkTarget = (s: string) => { const m = linkRe.exec(s.trim()); return m ? m[1] : ""; };
 export function splitNames(s: string): string[] {
   return s.split(/,\s*|\s+y\s+|\s+and\s+|\s*&\s*/).map(x => x.trim()).filter(Boolean);
 }
 export function joinNames(list: string[]): string { return list.join(", "); }
-
-/* el número de un precio («1.435,50 €» → 1435.5) y su moneda */
-export function priceValue(p: string): number {
-  const s = p.replace(/[^\d.,]/g, "");
-  if (!s) return 0;
-  let n = s;
-  if (/,\d{1,2}$/.test(n)) n = n.replace(/\./g, "").replace(",", ".");          // 1.435,50
-  else if (/\.\d{1,2}$/.test(n) && /,/.test(n)) n = n.replace(/,/g, "");         // 1,435.50
-  else n = n.replace(/[.,](?=\d{3}\b)/g, "").replace(",", ".");                  // 1.435 / 1,435
-  const v = parseFloat(n);
-  return isFinite(v) ? v : 0;
-}
-const CODE_SYM: Record<string, string> = { EUR: "€", USD: "$", GBP: "£", JPY: "¥" };
-export const currencyOf = (p: string): string => {
-  const m = /R\$|[€$£¥₩฿]|\bkr\b|zł|\b[A-Z]{3}\b/.exec(p);
-  return m ? CODE_SYM[m[0]] || m[0] : "€";
-};
-const CUR_RE = /R\$|[€$£¥₩฿]|\bkr\b|zł|\b[A-Z]{3}\b/;
-/* la moneda del viaje: la más usada en sus precios (si no hay ninguna escrita, el euro) */
-export function tripCurrency(t: Trip): string {
-  const n = new Map<string, number>();
-  for (const d of t.days) for (const it of d.items) if (CUR_RE.test(it.price)) { const c = currencyOf(it.price); n.set(c, (n.get(c) || 0) + 1); }
-  return [...n].sort((a, b) => b[1] - a[1])[0]?.[0] || "€";
-}
-/* un precio para enseñar: siempre con su moneda (la del viaje si no la lleva) */
-export const showPrice = (price: string, cur: string): string => !price.trim() ? "" : CUR_RE.test(price) ? price : withCurrency(price, cur);
-/* el número tal cual se escribió («30,98»), sin la moneda */
-export const priceNumber = (p: string) => p.replace(/R\$|[€$£¥₩฿]|\bkr\b|zł|\b[A-Z]{3}\b/g, "").trim();
-/* un precio con su moneda: «60 €», «$60», «45 CHF» */
-export function withCurrency(num: string, cur: string): string {
-  const n = num.trim();
-  if (!n) return "";
-  return PREFIX.has(cur) ? `${cur}${n}` : `${n} ${cur}`;
-}
-export function fmtMoney(n: number, cur = "€"): string {
-  const s = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return withCurrency(s, cur);
-}
 
 /* ---------- documentos ----------
    «Pasaporte (en papel · Wallet · para Ana)», «[Billete](https://…) (en papel)», «[[Viajes/Archivos/x.pdf|Billete]]».
@@ -379,6 +339,7 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
   const m = fmRe.exec(text);
   if (m) {
     try { t.fm = (parseYaml(m[1]) as Record<string, unknown>) || {}; } catch { t.fm = {}; }
+    t.fmRaw = { text: m[1], snap: JSON.stringify(t.fm) };
     body = text.slice(m[0].length);
   }
   const P = props(s, t.fm);
@@ -524,7 +485,8 @@ export function serializeTrip(t: Trip, s: Settings): string {
   const bk = oldBudget(s);
   if (bk && bk in fm && bk !== P.cover) delete fm[bk];       // el presupuesto va en el bloque del viaje
   const accent = pal && t.cover ? pal : t.accent;
-  const yaml = Object.keys(fm).length ? stringifyYaml(fm).trimEnd() : "";
+  /* si las propiedades no han cambiado, se escriben tal cual estaban (con su formato, sus comillas y sus comentarios) */
+  const yaml = t.fmRaw && t.fmRaw.snap === JSON.stringify(fm) ? t.fmRaw.text.trimEnd() : Object.keys(fm).length ? stringifyYaml(fm).trimEnd() : "";
   const out: string[] = yaml ? ["---", yaml, "---"] : [];
   out.push(`> [!cool-trip${accent ? "|" + accent : ""}] ${t.name}`);
   for (const d of t.dests) {
