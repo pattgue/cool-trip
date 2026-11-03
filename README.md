@@ -4,7 +4,7 @@ Plan each trip in one Obsidian note: a boarding-pass cover, a day-by-day plan wi
 
 🇪🇸 [Leer en español](README.es.md)
 
-![A trip note in Cool Trip](docs/img/trip.png)
+![A trip note in Cool Trip](docs/img/trip.webp)
 
 ## What it does
 
@@ -12,23 +12,27 @@ Plan each trip in one Obsidian note: a boarding-pass cover, a day-by-day plan wi
 
 - **The plan, day by day.** Add places, meals, transport, lodging and notes to each day, with time, price, who it's for and its documents. Drag steps to reorder them or move them to another day. Each day suggests the places you saved in that city.
 
+  ![Adding and moving steps in the plan](docs/img/plan.webp)
+
 - **Bookings and documents in one place.** Boarding passes, tickets and passports: where each one is (your cloud, your phone's wallet, a folder on your device, the vault or paper) and who it's for. The booking code, time and seat stay visible in the note.
 
 - **Bag, packing and to-dos.** A packing list with checkboxes, your to-dos with due dates, and reminders Cool Trip adds for you: download offline maps, download your cloud files, check in online.
 
 - **What it costs.** Prices add up against your budget, with what is still unpaid, in the trip's currency.
 
+  ![Bag, packing list, to-dos and costs](docs/img/side.webp)
+
 - **A page for every place.** Place notes open as a page made for their kind: a restaurant has a menu and opening hours, a museum its tickets and highlights, a venue its programme and capacity. Each kind has its own icon and color.
 
-  ![A place note on the phone](docs/img/place-phone.png)
+  ![A place note in Cool Trip](docs/img/place.webp)
 
 - **Made for the phone.** Every screen has its mobile version, and places and days open in your maps app (Google Maps, Apple Maps or Organic Maps).
 
-  ![The trip note on the phone](docs/img/trip-phone.png)
+  <p><img src="docs/img/trip-phone.png" alt="The trip note on the phone" width="300"> <img src="docs/img/place-phone.png" alt="A place note on the phone" width="300"></p>
 
 - **Your trips and places in Bases.** Cool Trip creates a trips base and a places base and keeps them up to date. With [Cool Bases](https://github.com/pattgue/cool-bases) they show up as boarding passes and a city guide.
 
-  ![The trips base with Cool Bases](docs/img/bases-trips.png)
+  ![The trips and places bases with Cool Bases](docs/img/bases.webp)
 
 ## Install
 
@@ -43,7 +47,7 @@ Plan each trip in one Obsidian note: a boarding-pass cover, a day-by-day plan wi
 1. Open Settings → **Cool Trip** and go through the steps. Each one adapts Cool Trip to the notes and properties you already have.
 2. Create a trip: the **New trip** command, or the **Cool Bar**. Pick the destinations, the dates and a color or a photo; the boarding pass draws itself as you type.
 
-   ![New trip](docs/img/new-trip.png)
+   ![New trip](docs/img/new-trip.webp)
 3. Fill the plan from the trip note. Tap the pencil on the boarding pass to change the trip.
 
 ## Settings
