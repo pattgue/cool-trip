@@ -62,9 +62,10 @@ export function stepProps(tab: CoolTripSettingTab, body: HTMLElement) {
       h("span", { cls: "ct-set-prop-in" }, sel), st);
   };
   const group = (title: string, ico: string) => h("div", { cls: "ct-set-group" }, icon(ico), title);
+  const last = (el: HTMLElement) => { el.classList.add("is-group-end"); return el; };   // la última fila de cada grupo
   body.append(req, h("div", { cls: "ct-set-table" },
     h("div", { cls: "ct-set-thead" }, h("span", null, t("s2.data")), h("span", null, t("s2.type")), h("span", null, t("s2.yours")), h("span", null, t("s2.state"))),
-    group(t("s2.trip"), "plane"), row("start", "date", true), row("end", "date", true), row("destinations", "list", true), row("travelers", "list", false), row("cover", "text", false),
+    group(t("s2.trip"), "plane"), row("start", "date", true), row("end", "date", true), row("destinations", "list", true), row("travelers", "list", false), last(row("cover", "text", false)),
     group(t("s2.place"), "map-pin"), row("location", "list", true), row("city", "text", true), row("category", "text", false),
     row("price", "text", false), row("rating", "number", false), row("visited", "checkbox", false), row("photo", "text", false), row("closed", "checkbox", false)));
 }

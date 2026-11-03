@@ -413,7 +413,7 @@
 .ct-settings[data-bw="s"] .ct-set-prop { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "name state" "desc desc" "type in"; gap: 8px; padding: 12px 14px;
   background: var(--ct-set-card); border: 1px solid var(--ct-set-line); border-top-color: var(--ct-set-soft-line); border-bottom: 0; }
 .ct-settings[data-bw="s"] .ct-set-group + .ct-set-prop { border-top-color: var(--ct-set-line); border-radius: 6px 6px 0 0; }
-.ct-settings[data-bw="s"] .ct-set-prop:has(+ .ct-set-group), .ct-settings[data-bw="s"] .ct-set-prop:last-child { border-bottom: 1px solid var(--ct-set-line); border-radius: 0 0 6px 6px; }
+.ct-settings[data-bw="s"] .ct-set-prop.is-group-end, .ct-settings[data-bw="s"] .ct-set-prop:last-child { border-bottom: 1px solid var(--ct-set-line); border-radius: 0 0 6px 6px; }
 .ct-settings[data-bw="s"] .ct-set-prop-name { font-size: 15px; }
 .ct-settings[data-bw="s"] .ct-set-prop-desc { font-size: 13px; }
 .ct-settings[data-bw="s"] .ct-set-state { justify-self: end; }
