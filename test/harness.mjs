@@ -88,7 +88,7 @@ await b.close();
   await p.click("text=Añadir al lun 5 abr");
   await p.fill(".ct-form input[type=time]", "11:00");
   await p.fill(".ct-form .ct-picker input", "Tsukiji");
-  await p.waitForTimeout(150);
+  await p.focus(".ct-form .ct-picker input");        // si el formulario se ha vuelto a pintar entre medias, el foco saca la lista otra vez
   await p.click(".ct-option >> text=Tsukiji Outer Market");
   await p.click(".ct-form >> text=Guardar");
   const saved = await p.evaluate(() => window.__saved || "");
