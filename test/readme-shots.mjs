@@ -26,6 +26,6 @@ for (const [name, file, w, hgt, phone] of shots) {
 }
 await b.close();
 /* las bases, si test/bases.mjs las ha pintado con Cool Bases */
-/* (se recortan a mano el fondo de abajo; las bases salen del tema oscuro de test/bases.mjs) */
+/* (las bases salen tal cual las pinta test/bases.mjs, en tema oscuro; el fondo vacío de abajo se recorta aparte) */
 for (const [from, to] of [["bases-Viajes-Proximos.png", "bases-trips.png"], ["bases-Lugares-Guia-por-ciudad.png", "bases-places.png"]])
   if (existsSync(join(out, from))) { copyFileSync(join(out, from), join(docs, to)); console.log("docs/img/" + to); }

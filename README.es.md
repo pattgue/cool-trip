@@ -50,13 +50,13 @@ Cada viaje en una nota de Obsidian: una portada como tarjeta de embarque, el pla
 
 | Paso | Qué eliges |
 |---|---|
-| 1 · Viajes y lugares | Cómo los reconoce: por carpeta (lo normal), por propiedad o por etiqueta. Si las notas de lugar se abren como ficha. |
-| 2 · Tus datos | Qué propiedad tuya guarda cada dato. Te propone las que ya tienes, si son del tipo adecuado. |
-| 3 · Billetes y documentos | Dónde guardas tus archivos: tu nube, la cartera del móvil, tu dispositivo o el vault. |
+| 1 · Tus notas | Cómo los reconoce: por carpeta (lo normal), por propiedad o por etiqueta. Si las notas de lugar se abren como ficha. |
+| 2 · Propiedades | Qué propiedad tuya guarda cada dato. Te propone las que ya tienes, si son del tipo adecuado. |
+| 3 · Archivos | Dónde guardas tus archivos: tu nube, la cartera del móvil, tu dispositivo o el vault. |
 | 4 · Mapas | Tu app de mapas, cómo te mueves y si busca las coordenadas sola. |
 | 5 · Bases | Crear las bases de viajes y lugares. |
-| 6 · La Cool Bar | La barra común de todos los plugins Cool. |
-| 7 · Cómo funciona | Un resumen de lo que Cool Trip escribe en tu vault. |
+| 6 · Cool Bar | La barra común de todos los plugins Cool. |
+| 7 · Listo | Un resumen de lo que Cool Trip escribe en tu vault. |
 
 ## Tus notas siguen siendo tuyas
 

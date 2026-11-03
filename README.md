@@ -50,13 +50,13 @@ Plan each trip in one Obsidian note: a boarding-pass cover, a day-by-day plan wi
 
 | Step | What you choose |
 |---|---|
-| 1 · Trips and places | How Cool Trip recognizes them: by folder (the default), by property or by tag. Whether place notes open as a page. |
-| 2 · Your data | Which of your properties holds each piece of data. It suggests the ones you already have, of the right type. |
-| 3 · Tickets and documents | Where you keep your files: your cloud, your phone's wallet, your device or the vault. |
+| 1 · Your notes | How Cool Trip recognizes them: by folder (the default), by property or by tag. Whether place notes open as a page. |
+| 2 · Properties | Which of your properties holds each piece of data. It suggests the ones you already have, of the right type. |
+| 3 · Files | Where you keep your files: your cloud, your phone's wallet, your device or the vault. |
 | 4 · Maps | Your maps app, how you get around, and whether to look up coordinates automatically. |
 | 5 · Bases | Create the trips and places bases. |
-| 6 · The Cool Bar | The bar shared by all the Cool plugins. |
-| 7 · How it works | A summary of what Cool Trip writes in your vault. |
+| 6 · Cool Bar | The bar shared by all the Cool plugins. |
+| 7 · Done | A summary of what Cool Trip writes in your vault. |
 
 ## Your notes stay yours
 
