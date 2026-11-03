@@ -76,12 +76,12 @@ if (window.__mode.startsWith("settings")) {
   plugin.settings.countries = { tokio: "Japón" };
   const kind = window.__mode.slice(6) || "eat";
   const SAMPLES: Record<string, { name: string; fm: Record<string, unknown>; md: string; editing?: string }> = {
-    eat: { name: "Omoide Yokocho", fm: { "categoría": "Izakaya", "valoración": 4, coordenadas: ["35.6929", "139.6996"] },
-      editing: "topBar", md: "## Cocina\nYakitori a la brasa y guisos de toda la vida, en puestos de 6 u 8 sitios.\n\n## Carta\n- Yakitori de muslo · 220 ¥ · con sal\n- Motsuni · 600 ¥ · guiso de casquería\n- Cerveza Sapporo · 550 ¥\n\n## Horario\n- Lunes: 17:00–24:00\n- Martes: 17:00–24:00\n- Miércoles: cerrado\n- Jueves: 17:00–24:00\n- Viernes: 17:00–02:00\n- Sábado: 16:00–02:00\n- Domingo: 16:00–23:00\n\n## Accesibilidad\n- Sin escalones\n\n## Datos útiles\nSolo efectivo. Hay mucho humo: mejor no llevar ropa buena.\n" },
+    eat: { name: "Omoide Yokocho", fm: { "categoría": "Izakaya, Restaurante", "valoración": 4, coordenadas: ["35.6929", "139.6996"] },
+      editing: "topBar", md: "## Cocina\nYakitori a la brasa y guisos de toda la vida, en puestos de 6 u 8 sitios.\n\n## Carta\n- ★ Yakitori de muslo · 220 ¥ · con sal\n- Motsuni · 600 ¥ · guiso de casquería\n- Cerveza Sapporo · 550 ¥\n- Té verde · gratis\n\n## Reservar\n- Teléfono: +81 3 1234 5678\n- Antelación: no se reserva, se hace cola\n\n## Horario\n- Lunes: 17:00–24:00\n- Martes: 17:00–24:00\n- Miércoles: cerrado\n- Jueves: 17:00–24:00\n- Viernes: 17:00–02:00\n- Sábado: 16:00–02:00\n- Domingo: 16:00–23:00\n\n## Accesibilidad\n- Sin escalones\n\n## Datos útiles\nSolo efectivo. Hay mucho humo: mejor no llevar ropa buena.\n" },
     see: { name: "teamLab Planets", editing: "hero", fm: { "valoración": 5, visitado: true },
       md: "## Entradas\n- General · 3.800 ¥ · todas las salas\n- Joven (13–17) · 2.800 ¥\n- Niños (4–12) · 1.500 ¥\n\n## Exposiciones y actividades\n- Jardín flotante · permanente · se entra descalzo\n\n## Horario\n- Lunes: 9:00–22:00\n- Martes: 9:00–22:00\n- Miércoles: 9:00–22:00\n- Jueves: 9:00–22:00\n- Viernes: 9:00–22:00\n- Sábado: 8:00–22:00\n- Domingo: 8:00–22:00\n\n## Accesibilidad\n- Ascensor\n- Baño adaptado\n\n## Tras la visita\nCenar en Toyosu, al lado.\n" },
     music: { name: "Shibuya WWW", fm: { "categoría": "Sala de conciertos", ciudad: "Tokio", precio: "3.500 ¥" },
-      md: "## Qué se programa\nIndie, electrónica y pop japonés; casi cada noche hay concierto.\n\n## Entradas\n- Anticipada · 3.000 ¥ · en e+ o Pia\n- En taquilla · 3.500 ¥ · si quedan\n\n## Aforo\n- Aforo: 500 personas de pie\n\n## Accesibilidad\n- Bucle magnético\n- Zona tranquila\n", editing: "hours" },
+      md: "## Géneros\n- Indie\n- Electrónica\n- Pop\n\n## Entradas\n- Anticipada · 3.000 ¥ · en e+ o Pia\n- En taquilla · 3.500 ¥ · si quedan\n\n## Carta\n- Cerveza · 700 ¥\n- Highball · 800 ¥\n\n## Horario\n- Lunes: cerrado\n- Viernes: 18:00–23:00\n- Sábado: 13:00–16:00, 18:00–23:30\n\n## Aforo\n- Aforo: 500 personas de pie\n\n## Accesibilidad\n- Bucle magnético\n- Zona tranquila\n", editing: "hours" },
   };
   const S0 = SAMPLES[kind] || SAMPLES.eat;
   let f = files.find(x => x.basename === S0.name);
@@ -96,7 +96,7 @@ if (window.__mode.startsWith("settings")) {
   pg.appendChild(placePage({ place: placeInfo(app as never, plugin.settings, f), doc: parsePlace(S0.md), phone: window.__phone, lang: "es", photo: null, cover: "",
     trips: [{ name: "2027 - Japón", dates: "3 – 14 abr 2027", open: () => {} }], mapsUrl: "", today: 4, editing: location.hash === "#view" ? null : S0.editing || null,
     openUrl: () => {}, openLink: () => {}, edit: () => {}, setLines: () => {}, setProp: () => {}, ask, pickPlace: ask, lookup: () => null, locate: () => {},
-    currency: "¥", countries: ["España", "Italia", "Japón"], setCountry: () => {}, setCurrency: () => {} }));
+    currency: "¥", countries: ["España", "Italia", "Japón"], cities: ["Kioto", "Tokio"], setCountry: () => {}, setCurrency: () => {} }));
   root.appendChild(pg);
   document.body.appendChild(root);
 } else {

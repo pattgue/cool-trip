@@ -26,14 +26,14 @@ const W = {
     days: "días", day: "día", nights: "noches", night: "noche", months: "meses", month: "mes", years: "años", year: "año",
     left: n => `"Faltan " + ${n} + " días"`, left1: '"Falta 1 día"', dayOf: (d, n) => `"Día " + ${d} + " de " + ${n}`,
     ago: (n, u) => `"Hace " + ${n} + " " + ${u}`, inN: n => `"En " + ${n} + " días"`, in1: '"Mañana"', now: '"En curso"', agoTop: '"Hace"', agoBottom: (u: string) => u,
-    visited: "Visitado", toVisit: "Por visitar", and: " y ",
+    visited: "Visitado", toVisit: "Por visitar", and: " y ", closed: "Cerrado definitivamente", free: "Gratis",
     fam: { see: "Ver", eat: "Comer", walk: "Pasear", sleep: "Dormir", other: "Otros" },
     col: { trip: "Viaje", dates: "Fechas", nights: "Noches", when: "Cuándo", place: "Lugar", category: "Categoría", rating: "Valoración", trips: "Viajes", city: "Ciudad" } },
   en: { upcoming: "Upcoming", travelled: "Travelled", all: "All", map: "Map", guide: "Guide by city",
     days: "days", day: "day", nights: "nights", night: "night", months: "months", month: "month", years: "years", year: "year",
     left: n => `${n} + " days to go"`, left1: '"1 day to go"', dayOf: (d, n) => `"Day " + ${d} + " of " + ${n}`,
     ago: (n, u) => `${n} + " " + ${u} + " ago"`, inN: n => `"In " + ${n} + " days"`, in1: '"Tomorrow"', now: '"Now"', agoTop: '""', agoBottom: (u: string) => `${u} + " ago"`,
-    visited: "Visited", toVisit: "To visit", and: " and ",
+    visited: "Visited", toVisit: "To visit", and: " and ", closed: "Permanently closed", free: "Free",
     fam: { see: "See", eat: "Eat", walk: "Walk", sleep: "Sleep", other: "Other" },
     col: { trip: "Trip", dates: "Dates", nights: "Nights", when: "When", place: "Place", category: "Category", rating: "Rating", trips: "Trips", city: "City" } },
 } satisfies Record<"es" | "en", { left: (n: string) => string; dayOf: (d: string, n: string) => string; ago: (n: string, u: string) => string; inN: (n: string) => string; [k: string]: unknown }>;
@@ -211,19 +211,27 @@ export function catWords(re: RegExp): string[] {
 }
 function placeFormulas(s: Settings, env: BaseEnv): Record<string, string> {
   const P = s.props, w = words();
-  /* la categoría en minúsculas y entre espacios (sin expresiones regulares: se buscan las palabras de cada icono) */
+  /* la categoría en minúsculas y entre espacios (sin expresiones regulares: se buscan las palabras de cada icono).
+     Con varios tipos («Bar, Restaurante»), el icono y el color son los del primero (formula.cat1), como en la ficha */
   const cat = P.category ? `(" " + list(${nv(P.category)}).join(" ").lower() + " ")` : '""';
+  const first = P.category ? `(" " + list(${nv(P.category)}).join(",").split(",")[0].lower() + " ")` : '""';
+  const known = (x: string) => ICONS.flatMap(e => catWords(e[0])).map(w => `${x}.contains(${q(w)})`).join(" || ");
   const byCat = (pick: (e: (typeof ICONS)[number]) => string, last: string) =>
-    P.category ? chain(ICONS.map(e => [catWords(e[0]).map(w => `${cat}.contains(${q(w)})`).join(" || "), pick(e)] as [string, string]), last) : last;
+    P.category ? chain(ICONS.map(e => [catWords(e[0]).map(w => `formula.cat1.contains(${q(w)})`).join(" || "), pick(e)] as [string, string]), last) : last;
+  const city = `list(${nv(P.city)}).join("").lower().trim()`;
+  const freeWords = ["free", "gratis", "gratuito", "gratuita", "0", "0 €", "0€"];
+  const price = P.price ? `if(${JSON.stringify(freeWords)}.contains(list(${nv(P.price)}).join("").lower().trim()), ${q(w.free)}, ${nv(P.price)})` : '""';
   const rating = P.rating ? `number(list(${nv(P.rating)})[0])` : "0";
   const f: Record<string, string> = {
+    cat1: P.category ? `if(${known(first)}, ${first}, ${cat})` : '""',
     icon: byCat(e => q(e[1]), q(OTHER_ICON[0])),
     color: byCat(e => q(e[2]), q(OTHER_ICON[1])),
     family: byCat(e => q(w.fam[e[3]]), q(w.fam[OTHER_ICON[2]])),
     /* «Kioto · Japón»: el país sale de los ajustes (el que elegiste al añadir la ciudad a un viaje), no de una propiedad */
     cityCountry: `${nv(P.city)} + ` + chain(Object.entries(s.countries).sort(([a], [b]) => a.localeCompare(b))
-      .map(([c, co]) => [`list(${nv(P.city)}).join("").lower() == ${q(c)}`, q(" · " + co)] as [string, string]), '""'),
-    catPrice: P.category && P.price ? `[${nv(P.category)}, ${nv(P.price)}].filter(value).join(" · ")` : P.category ? `${cat}` : '""',
+      .map(([c, co]) => [`${city} == ${q(c.trim())}`, q(" · " + co)] as [string, string]), '""'),
+    /* «Bar · 12 €», o «Cerrado definitivamente · Bar» si ya no abre */
+    catPrice: `[${P.closed ? `if(${nv(P.closed)}, ${q(w.closed)}, "")` : '""'}, ${P.category ? nv(P.category) : '""'}, ${price}].filter(value).join(" · ")`,
     stars: P.rating ? `if(${nv(P.rating)}, "★".repeat(${rating}) + "☆".repeat(5 - ${rating}), "")` : '""',
     seen: P.visited ? `if(${nv(P.visited)}, ${q(w.visited)}, ${q(w.toVisit)})` : '""',
     /* los viajes que enlazan este lugar (los reconoce igual que los ajustes) */

@@ -184,6 +184,8 @@ export function evaluate(src, ctx, scope = {}) {
         if (typeof o === "string") {
           if (name === "replace") return a[0] instanceof RegExp ? o.replace(a[0], a[1]) : o.split(a[0]).join(a[1]);
           if (name === "lower") return o.toLowerCase();
+          if (name === "trim") return o.trim();
+          if (name === "split") return o.split(a[0]);
           if (name === "repeat") return o.repeat(Math.max(0, a[0]));
           if (name === "contains") return o.includes(a[0]);
         }

@@ -9,7 +9,7 @@ import { spanLabel } from "./dates";
 import { currencyOf, priceNumber, priceValue, toIso, toList, withCurrency } from "./md";
 import { allPlaces, isPlaceFile, isTripFile, mapsUrl, placeInfo, readLoc } from "./places";
 import type { PlaceInfo } from "./places";
-import { locate } from "./geo";
+import { countryOf, locate } from "./geo";
 import { parsePlace, placePage, serializePlace, setSection } from "./place-page";
 import { SECS } from "./place-types";
 import type { SecDef, SecKey } from "./place-types";
@@ -33,7 +33,8 @@ export class PlaceView extends TextFileView {
     this.data = data;
     if (clear) this.editing = null;
     this.doc = parsePlace(data);
-    this.render();
+    /* con la cabecera abierta, se espera a que Obsidian lea las propiedades nuevas (si no, la ciudad recién escrita desaparecía) */
+    if (clear || this.editing !== "hero") this.render();
   }
   getViewData() { return this.data; }
   async onOpen() {
@@ -41,7 +42,7 @@ export class PlaceView extends TextFileView {
     this.registerEvent(this.app.metadataCache.on("changed", f => {
       if (f !== this.file) return;
       /* la nota se vuelve a leer siempre (para no pisar lo que acabas de cambiar); con algo abierto, sin repintar */
-      void this.app.vault.read(f).then(d => { if (d !== this.data) { this.data = d; this.doc = parsePlace(d); } if (!this.editing) this.render(); });
+      void this.app.vault.read(f).then(d => { if (d !== this.data) { this.data = d; this.doc = parsePlace(d); } if (!this.editing || this.editing === "hero") this.render(); });
     }));
   }
   clear() { this.doc = null; this.contentEl.empty(); }
@@ -62,12 +63,30 @@ export class PlaceView extends TextFileView {
     if (k === "location" && typeof v === "string") { const loc = readLoc(v); val = loc ? loc.map(String) : ""; }
     await this.app.fileManager.processFrontMatter(f, (m: Record<string, unknown>) => {
       const key = propKey(s, k, m);
+      /* si ya era una lista (la categoría o las coordenadas), sigue siendo una lista; si era texto, texto */
+      if (Array.isArray(m[key]) && typeof val === "string") val = val ? val.split(/\s*,\s*/) : "";
+      else if (typeof m[key] === "string" && Array.isArray(val)) val = val.join(", ");
       if (val === "" || val === 0 || (val === false && !(key in m))) delete m[key]; else m[key] = val;
     });
+    if (k === "city" && typeof v === "string") void this.fillCountry(v);
+  }
+  /* el país de una ciudad nueva: se busca en OpenStreetMap (si está activada la búsqueda en Ajustes › 4) y se recuerda */
+  private async fillCountry(city: string) {
+    const s = this.plugin.settings, key = city.trim().toLowerCase();
+    if (!key || s.countries[key] || !s.maps.geocode) return;
+    const c = await countryOf(city, locale());
+    if (!c || s.countries[key]) return;
+    s.countries[key] = c;
+    await this.plugin.saveSettings();
+    this.plugin.keeper.schedule();
+    this.render();
   }
 
   render() {
     const el = this.contentEl, f = this.file, s = this.plugin.settings;
+    /* lo que estabas escribiendo en la cabecera sigue ahí (y con el foco) al volver a pintar */
+    const focus = el.querySelector<HTMLInputElement>("input[data-field]:focus");
+    const keep = focus ? { k: focus.dataset.field, v: focus.value, at: focus.selectionStart } : null;
     el.empty();
     el.addClass("ct-root", "ct-view");
     const phone = Platform.isPhone || (el.clientWidth > 0 && el.clientWidth < 760);
@@ -107,8 +126,10 @@ export class PlaceView extends TextFileView {
         const x = allPlaces(this.app, s).find(y => y.name === name);
         return x ? { category: x.category, photo: x.photo ? this.plugin.coverSrc(x.photo, x.file.path) : null } : null;
       },
-      locate: () => void locate(this.app, s, f, p.name, p.city, p.country).then(ok => { if (!ok) new Notice(t("pl.notFound")); }),
+      locate: () => { void this.fillCountry(p.city); void locate(this.app, s, f, p.name, p.city, p.country).then(ok => { if (!ok) new Notice(t("pl.notFound")); }); },
       currency, countries: countries(locale()),
+      cities: [...new Set([...allPlaces(this.app, s).map(x => x.city.trim()).filter(Boolean), ...Object.keys(s.countries).map(c => c.replace(/^./, x => x.toUpperCase()))])]
+        .filter((c, i, a) => a.findIndex(y => y.toLowerCase() === c.toLowerCase()) === i).sort((a, b) => a.localeCompare(b)),
       setCountry: v => {
         if (!p.city.trim()) { new Notice(t("pl.cityFirst")); return; }
         const key = p.city.trim().toLowerCase();
@@ -135,6 +156,10 @@ export class PlaceView extends TextFileView {
         if (p.price && priceValue(p.price) > 0) void this.setProp("price", withCurrency(priceNumber(p.price), c));
       },
     })));
+    if (keep?.k) {
+      const x = el.querySelector<HTMLInputElement>(`input[data-field="${keep.k}"]`);
+      if (x) { x.value = keep.v; x.focus(); if (keep.at != null) x.setSelectionRange(keep.at, keep.at); }
+    }
   }
 }
 

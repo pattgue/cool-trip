@@ -1,9 +1,10 @@
 // Las vistas de Cool Bases que crea Cool Trip, pintadas con el Cool Bases de verdad (sin Obsidian), con los viajes y lugares del
 // canvas: así se ve el billete, el billete apaisado del móvil y las filas y tarjetas de lugares antes de probarlo en el vault.
-// Uso: node test/bases.mjs <carpeta de pattgue/cool-bases, rama cool-bar, ya compilada con npm run build> → test/out/bases-*.png
+// Uso: node test/bases.mjs <carpeta de pattgue/cool-bases, rama cool-bar, ya compilada con npm run build> [<carpeta del canvas>]
+//   → test/out/bases-*.png y, con la carpeta del canvas, sus tableros de Cool Bases (project/Base-*-CB*.dc.html, filas 5 y 5b)
 // Las fórmulas las calcula test/bases-eval.mjs (lo mismo que comprueba npm test).
 import esbuild from "esbuild";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
@@ -101,6 +102,11 @@ const html = (phone) => "<!doctype html><meta charset=\"utf-8\">\n<style>" + the
   script("(function(){ var module = { exports: {} }, exports = module.exports;\n" + readFileSync(join(cb, "main.js"), "utf8") + "\nwindow.__pluginModule = module.exports; })();") + script(harness);
 writeFileSync(join(out, "bases.html"), html(false));
 writeFileSync(join(out, "bases-phone.html"), html(true));
+/* los tableros del canvas: la vista ya pintada por Cool Bases, con sus estilos */
+const canvas = process.argv[3] ? join(process.argv[3], "project") : null;
+const BOARD = { "Próximos": "Viajes-Proximos", "Viajados": "Viajes-Viajados", "Guía por ciudad": "Lugares-Guia", "Tokio": "Lugares-Ciudad" };
+const heights = {};
+if (canvas) { mkdirSync(canvas, { recursive: true }); writeFileSync(join(canvas, "cool-bases.css"), theme + "\n" + readFileSync(join(cb, "styles.css"), "utf8")); }
 const b = await chromium.launch();
 for (const x of data.views) for (const phone of [false, true]) {
   const p = await b.newPage({ viewport: { width: phone ? 390 : 1200, height: 800 } });
@@ -112,7 +118,46 @@ for (const x of data.views) for (const phone of [false, true]) {
   const err = await p.evaluate(() => window.__err);
   const name = `bases-${x.base}-${x.view.name}${phone ? "-movil" : ""}`.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "-");
   await p.screenshot({ path: join(out, name + ".png"), fullPage: true });
+  if (canvas && BOARD[x.view.name]) {
+    /* la vista pintada y su CSS libre (Cool Bases lo pone en una hoja adoptada del documento) */
+    const { html, h, own } = await p.evaluate(() => { const el = document.querySelector(".sec .workspace-leaf-content");
+      const own = document.adoptedStyleSheets.map(x => [...x.cssRules].map(r => r.cssText).join("\n")).join("\n");
+      return { html: el.outerHTML, h: Math.ceil(el.getBoundingClientRect().height) + 48, own }; });
+    const file = `Base-${BOARD[x.view.name]}-CB${phone ? "-Movil" : ""}.dc.html`, w = phone ? 390 : 1200;
+    heights[file] = h;
+    writeFileSync(join(canvas, file), `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>${x.base} · ${x.view.name}${phone ? " · móvil" : ""} · Cool Bases</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="./cool-bases.css">
+<style>html,body{overflow:hidden}</style>
+<style>${own.replace(/<\/style/gi, "<\\/style")}</style>
+</helmet>
+<div class="theme-dark${phone ? " is-mobile is-phone" : ""}" style="width: ${w}px; min-height: ${h}px; box-sizing: border-box; padding: 24px; background: var(--background-primary); color: var(--text-normal)">
+${html}
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":${w},"height":${h}}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>
+`);
+  }
   console.log(name, err || errs.join(" | ") || "sin errores");
   await p.close();
 }
 await b.close();
+/* el alto de esos tableros en el canvas */
+const cj = canvas && join(canvas, "canvas.json");
+if (cj && existsSync(cj)) {
+  const j = JSON.parse(readFileSync(cj, "utf8"));
+  for (const [f, h] of Object.entries(heights)) if (j.boards?.[f]) j.boards[f].h = h;
+  writeFileSync(cj, JSON.stringify(j, null, 2) + "\n");
+}

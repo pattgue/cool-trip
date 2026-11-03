@@ -183,7 +183,7 @@ export const en: Record<string, string> = {
   "pl.fam.other": "Place",
   "pl.rating": "Rating", "pl.visited": "Visited", "pl.toVisit": "To visit", "pl.maps": "Open in Maps",
   "pl.notes": "Notes", "pl.inTrips": "In your trips", "pl.add": "Add", "pl.addPlace": "Add a place", "pl.remove": "Remove",
-  "pl.newTag": "Type the tag…", "pl.sameAll": "Same every day", "pl.closed": "Closed", "pl.closedHint": "Type “{c}” on the days it's closed",
+  "pl.newTag": "Type the tag…", "pl.sameAll": "Copy Monday to the other days", "pl.closed": "Closed",
   "pl.hoursHint": "Each day, when it opens or whether it's closed…", "pl.bringPh": "Add something to bring…", "pl.listPh": "Add…", "pl.has": "Has a {s}",
   "pl.f.category": "Category", "pl.f.categoryPh": "Restaurant, museum…", "pl.f.city": "City", "pl.f.price": "Price", "pl.f.priceAvg": "Average price",
   "pl.f.priceTicket": "Ticket", "pl.f.loc": "Coordinates", "pl.find": "Find", "pl.f.cover": "Cover", "pl.f.coverPh": "[[photo.jpg]] or a link",
@@ -204,5 +204,10 @@ export const en: Record<string, string> = {
   "demo.pass": "Boarding · Ana",
   "demo.pass2": "Boarding · Leo",
   "s6.modeD": "Hidden: show it with the «Show or hide the Cool Bar» command.",
-  "s7.doneShort": "Setup complete. Come back anytime."
+  "s7.doneShort": "Setup complete. Come back anytime.",
+  "pl.free": "Free", "pl.fav": "Mark as favourite", "pl.unfav": "Remove from favourites", "pl.opens": "opens", "pl.closes": "closes",
+  "pl.addShift": "Another shift", "pl.addHours": "Hours", "pl.open": "Open", "pl.closedForever": "Permanently closed",
+  "pl.f.addType": "Another type", "pl.f.removeType": "— Remove this type —", "pl.f.closed": "Permanently closed",
+  "pl.f.closedD": "It no longer opens. It stays in your trips and in the base, marked as closed.",
+  "p.closed": "Closed", "p.closedD": "If the place has closed for good",
 };

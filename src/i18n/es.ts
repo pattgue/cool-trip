@@ -184,7 +184,7 @@ export const es: Record<string, string> = {
   "pl.fam.other": "Lugar",
   "pl.rating": "Valoración", "pl.visited": "Visitado", "pl.toVisit": "Por visitar", "pl.maps": "Abrir en Maps",
   "pl.notes": "Notas", "pl.inTrips": "En tus viajes", "pl.add": "Añadir", "pl.addPlace": "Añadir lugar", "pl.remove": "Quitar",
-  "pl.newTag": "Escribe la etiqueta…", "pl.sameAll": "Igual todos los días", "pl.closed": "Cerrado", "pl.closedHint": "Escribe «{c}» los días que cierra",
+  "pl.newTag": "Escribe la etiqueta…", "pl.sameAll": "Poner el horario del lunes en los demás días", "pl.closed": "Cerrado",
   "pl.hoursHint": "Cada día, a qué hora abre o si cierra…", "pl.bringPh": "Añadir algo que llevar…", "pl.listPh": "Añadir…", "pl.has": "Tiene {s}",
   "pl.f.category": "Categoría", "pl.f.categoryPh": "Restaurante, museo…", "pl.f.city": "Ciudad", "pl.f.price": "Precio", "pl.f.priceAvg": "Precio medio",
   "pl.f.priceTicket": "Entrada", "pl.f.loc": "Coordenadas", "pl.find": "Buscar", "pl.f.cover": "Portada", "pl.f.coverPh": "[[foto.jpg]] o un enlace",
@@ -205,5 +205,10 @@ export const es: Record<string, string> = {
   "demo.pass": "Embarque · Ana",
   "demo.pass2": "Embarque · Leo",
   "s6.modeD": "Escondida: se enseña con el comando «Mostrar u ocultar la Cool Bar».",
-  "s7.doneShort": "Configuración completa. Puedes volver cuando quieras."
+  "s7.doneShort": "Configuración completa. Puedes volver cuando quieras.",
+  "pl.free": "Gratis", "pl.fav": "Marcar como favorito", "pl.unfav": "Quitar de favoritos", "pl.opens": "abre", "pl.closes": "cierra",
+  "pl.addShift": "Otro turno", "pl.addHours": "Horario", "pl.open": "Abrir", "pl.closedForever": "Cerrado definitivamente",
+  "pl.f.addType": "Otro tipo", "pl.f.removeType": "— Quitar este tipo —", "pl.f.closed": "Cerrado definitivamente",
+  "pl.f.closedD": "Ya no abre. Se queda en tus viajes y en la base, marcado como cerrado.",
+  "p.closed": "Cerrado", "p.closedD": "Si el sitio ha cerrado para siempre",
 };

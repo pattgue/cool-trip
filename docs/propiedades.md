@@ -52,16 +52,19 @@ Se elige **una** de estas tres formas por tipo de nota:
 |---|---|---|---|
 | `ciudad` · `city` | texto | **sí** | A qué destino pertenece. Sugerencias del plan, la guía por ciudad y la vista de cada ciudad. |
 | `categoría` · `category` | texto | recomendada | Restaurante, museo, mirador… Elige el icono, el color y el grupo (ver, comer, pasear, dormir). |
-| `coordenadas` · `coordinates` | `lat, lng` | no (las busca solo) | El punto en el mapa de la base de lugares. |
+| `coordenadas` · `coordinates` | `lat, lng` en grados decimales (`40.4203, -3.7058`), o una lista con los dos números | no (las busca solo) | El punto en el mapa de la base de lugares. Cool Trip las escribe como lista; si en esa nota ya estaban como texto, siguen como texto. |
 | `precio` · `price` | texto (`€€`, `Gratis`, `15 €`) | no | Entrada o precio medio, junto a la categoría. |
 | `valoración` · `rating` | número del 1 al 5 | no | Estrellas en la guía, para ver primero lo imprescindible. |
 | `visitado` · `visited` | casilla | no | La casilla de la guía y de las tarjetas, para marcarlo durante el viaje. |
 | `portada` · `cover` | imagen | no | La foto de su tarjeta en la vista de la ciudad. Sin ella, sale el color de su tipo con su icono. |
+| `cerrado` · `closed` | casilla | no | Si el sitio ha cerrado para siempre. La ficha y la base lo marcan. |
 
 **Lo que no hace falta:**
 
-- **País.** El de cada ciudad lo eliges una vez, al añadirla a un viaje, y Cool Trip lo recuerda. La base de lugares
-  escribe «Kioto · Japón» sin propiedad.
+- **País.** El de cada ciudad lo eliges una vez, al añadirla a un viaje, y Cool Trip lo recuerda. Si escribes una ciudad nueva
+  en una ficha, lo busca solo en OpenStreetMap (si está activada la búsqueda de Ajustes › 4). La base de lugares escribe
+  «Kioto · Japón» sin propiedad. Ojo: «Rome» y «Roma» son dos ciudades distintas para la base; la ficha te sugiere las que ya
+  usas para escribirlas igual.
 - **Dirección.** Para abrir el sitio en tu app de mapas basta con el nombre y la ciudad. Google Maps abre así su ficha, con
   horario y reseñas; con las coordenadas solas, solo enseñaría un pin.
 
@@ -99,7 +102,7 @@ duplicadas puedes borrarlas tú cuando quieras, desde Obsidian (panel *Todas las
 ## Tipos de lugar (la `categoría`)
 
 Cool Trip mira las palabras de la categoría (da igual mayúsculas, plural o idioma) y gana el primer tipo que encaja, en este
-orden. Si ninguna encaja: pin gris, grupo «otros».
+orden. Con varios tipos («Bar, Restaurante»), manda el primero que escribes. Si ninguna encaja: pin gris, grupo «otros».
 
 | Icono | Color | Grupo | Palabras que lo reconocen |
 |---|---|---|---|

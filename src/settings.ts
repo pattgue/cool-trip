@@ -3,9 +3,9 @@ import type { PropNames, Recog, Settings } from "./types";
 
 const PROPS: Record<"es" | "en", PropNames> = {
   es: { start: "inicio", end: "fin", destinations: "destinos", travelers: "viajeros", cover: "portada",
-    location: "coordenadas", city: "ciudad", category: "categoría", price: "precio", rating: "valoración", visited: "visitado", photo: "portada" },
+    location: "coordenadas", city: "ciudad", category: "categoría", price: "precio", rating: "valoración", visited: "visitado", photo: "portada", closed: "cerrado" },
   en: { start: "start", end: "end", destinations: "destinations", travelers: "travelers", cover: "cover",
-    location: "coordinates", city: "city", category: "category", price: "price", rating: "rating", visited: "visited", photo: "cover" },
+    location: "coordinates", city: "city", category: "category", price: "price", rating: "rating", visited: "visited", photo: "cover", closed: "closed" },
 };
 export const suggestedProps = (lang: "es" | "en"): PropNames => ({ ...PROPS[lang] });
 export const AUTO_FOLDERS = { es: { trips: "Viajes", places: "Lugares" }, en: { trips: "Trips", places: "Places" } };

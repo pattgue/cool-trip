@@ -138,7 +138,7 @@ function placePicker(ctx: FormCtx, d: Item, city: string, country: string, label
       .sort((a, b) => Number(b.city.toLowerCase() === city.toLowerCase()) - Number(a.city.toLowerCase() === city.toLowerCase()) || a.name.localeCompare(b.name))
       .slice(0, 6);
     for (const p of places) list.appendChild(button([icon(iconFor(p.category)), h("span", { cls: "ct-name-col" },
-      h("b", null, p.name), h("span", { cls: "ct-sub" }, [p.category, p.city].filter(Boolean).join(" · ")))], "ct-option", () => pick(p.name), { role: "option" }));
+      h("b", null, p.name), h("span", { cls: "ct-sub" }, [p.closed ? t("pl.closedForever") : "", p.category, p.city].filter(Boolean).join(" · ")))], "ct-option", () => pick(p.name), { role: "option" }));
     const exact = places.some(p => p.name.toLowerCase() === q);
     if (!exact) list.appendChild(button([icon("plus"), h("span", null, t("f.create", { q: query.trim(), f: city || "—" }))], "ct-option", () => {
       void ctx.createPlace(query.trim(), city, country).then(name => { pick(name); });
