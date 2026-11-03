@@ -108,3 +108,5 @@ Cómo está hecho: [docs/arquitectura.md](docs/arquitectura.md).
 ## Licencia
 
 [MIT](LICENSE) © 2026 Patt
+
+La interfaz usa [Inter](https://rsms.me/inter/), incluida con la [SIL Open Font License 1.1](fonts/OFL.txt).

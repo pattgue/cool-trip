@@ -34,7 +34,7 @@ Obsidian dice la última palabra: se comprueban en la beta.
 
 **Decidido con Patt (27-10-2026):** los lugares usan «portada» (`cover`) para su foto, como los viajes (fila «Foto» en Ajustes › 2,
 se puede cambiar); los viajes toman la ubicación de un lugar de su primera ciudad; sin Maps, la vista Mapa no se crea y el paso 5
-lo explica; las vistas de ciudad se añaden al crear la base y con cada ciudad nueva. Cool Bases (rama `cool-bar`): la configuración
+lo explica; las vistas de ciudad se añaden al crear la base y con cada ciudad nueva. Cool Bases: la configuración
 de la vista va en la clave `coolbases` del `.base`, el CSS libre se aplica anidado bajo la vista, no distingue el móvil (el billete
 apaisado sale con `.is-phone &`) y acepta imágenes `data:` desde una fórmula (así se dibujan los iconos de las categorías).
 
@@ -105,7 +105,7 @@ forma más sutil o dejarla fuera de la 1.0 (**Decide Patt**).
    - sin `console.log` de sobra;
    - todo evento con `register*`;
    - los estilos, en `styles.css`.
-6. **Cool Kit.** Hay que comprobar que `src/cool-kit/` y `css/cool-kit.css` son iguales a los de `pattgue/cool-bases`, rama `cool-bar`. No se editan aquí.
+6. **Cool Kit.** Hay que comprobar que `src/cool-kit/` y `css/cool-kit.css` son iguales a los de `pattgue/cool-bases` (rama `main`). No se editan aquí. Comprobado el 3 nov 2026: el kit v2 es idéntico en los dos plugins (Cool Bases 1.2.0).
 7. **El botón «Ver Cool Bases»** (Ajustes › 5): funciona, Cool Bases ya está en el directorio.
 
 ## Fase 4 · Versión 1.0.0 y envío

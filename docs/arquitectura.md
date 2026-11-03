@@ -37,7 +37,7 @@ guía editable de Patt (ver `CLAUDE.md`); aquí está cómo está hecho.
 | `settings.ts` · `settings-tab.ts` · `settings-steps/` | Los ajustes: valores por defecto, la pestaña y un archivo por paso |
 | `i18n.ts` · `i18n/es.ts` · `i18n/en.ts` | Los textos, uno por idioma |
 | `types.ts` · `dates.ts` · `dom.ts` · `ui.ts` · `prompt.ts` | Tipos, fechas sin zona horaria, el DOM, piezas pequeñas y la ventanita de texto |
-| `cool-kit/` | La Cool Bar común de los plugins Cool. Se copia tal cual de `pattgue/cool-bases`, rama `cool-bar`; no se edita aquí |
+| `cool-kit/` | La Cool Bar común de los plugins Cool. Se copia tal cual de `pattgue/cool-bases` (rama `main`); no se edita aquí |
 
 Los estilos van en `css/`, uno por pantalla (`ticket`, `plan`, `side`, `forms`, `place`, `settings`), sobre las variables del tema
 de Obsidian. El billete y la cabecera de lugar llevan su propia paleta sólida.

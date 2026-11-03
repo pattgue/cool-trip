@@ -1,6 +1,6 @@
 // Las vistas de Cool Bases que crea Cool Trip, pintadas con el Cool Bases de verdad (sin Obsidian), con los viajes y lugares del
 // canvas: así se ve el billete, el billete apaisado del móvil y las filas y tarjetas de lugares antes de probarlo en el vault.
-// Uso: node test/bases.mjs <carpeta de pattgue/cool-bases, rama cool-bar, ya compilada con npm run build> [<carpeta del canvas>]
+// Uso: node test/bases.mjs <carpeta de pattgue/cool-bases, rama main, ya compilada con npm run build> [<carpeta del canvas>]
 //   → test/out/bases-*.png y, con la carpeta del canvas, sus tableros de Cool Bases (project/Base-*-CB*.dc.html, filas 5 y 5b)
 // Las fórmulas las calcula test/bases-eval.mjs (lo mismo que comprueba npm test).
 import esbuild from "esbuild";
