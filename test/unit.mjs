@@ -119,6 +119,7 @@ ok("varios tipos", md.placeTypes("Bar, Restaurante").join(" ") === "bar restaura
   ok("horario con dos turnos", d.shifts.length === 2 && md.writeDay(d, "cerrado") === "13:00–16:00, 20:00–23:30", md.writeDay(d, "cerrado"));
   ok("horario cerrado", md.readDay("Cerrado", cw).closed && md.writeDay(md.readDay("Cerrado", cw), "cerrado") === "cerrado");
   ok("horario de 9 a 22", md.writeDay(md.readDay("9:00–22:00", cw), "cerrado") === "9:00–22:00");
+  ok("horario hasta las 24:00 (no se pierde al guardar)", md.writeDay(md.readDay("17:00–24:00", cw), "cerrado") === "17:00–0:00", md.writeDay(md.readDay("17:00–24:00", cw), "cerrado"));
   ok("horario que no son horas se queda", md.readDay("24 h", cw).raw === "24 h" && md.writeDay(md.readDay("24 h", cw), "cerrado") === "24 h"); }
 ok("gratis", ["free", "Gratis", "0 €", "0"].every(md.isFree) && !md.isFree("10 €"));
 ok("tipos de lugar", ["Izakaya", "Teatro Real", "Sala de conciertos", "Ramen", "Olive bar"].map(md.placeType).join(" ") === "bar theatre music restaurant bar", ["Izakaya", "Teatro Real", "Sala de conciertos", "Ramen", "Olive bar"].map(md.placeType).join(" "));
