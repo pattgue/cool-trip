@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write       # las atestaciones (prueban que main.js y styles.css salen de este repo)
+  attestations: write
 
 jobs:
   release:
@@ -39,6 +41,13 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+      - name: Attest main.js and styles.css
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            styles.css
 
       - name: Create or update the release
         env:

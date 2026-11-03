@@ -95,6 +95,8 @@ Wherever you choose in Settings → 3. Cool Trip only keeps a link to each file.
 
 Found a bug or have an idea? Open an [issue on GitHub](https://github.com/pattgue/cool-trip/issues). Screenshots help a lot.
 
+Cool Trip is free. If it helps you plan your trips, you can [buy me a coffee on Ko-fi](https://ko-fi.com/pattgue) ☕
+
 ## Development
 
 ```bash
