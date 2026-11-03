@@ -146,7 +146,7 @@
 .ct-root .ct-pmaps, .ct-root .ct-pmaps .ct-ico { color: var(--ct-ink) !important; }
 .ct-root .ct-prow-price { color: var(--ct-ink) !important; }
 /* gratis: la etiqueta del precio, en verde */
-.ct-root .ct-prow-price.is-free, .ct-root .ct-phero-price.is-free { background: var(--ct-ink) !important; color: #6EDC8F !important; }
+.ct-root .ct-phero-price.is-free { background: var(--ct-ink) !important; color: #6EDC8F !important; }
 /* cerrado definitivamente: una etiqueta en la cabecera y la cabecera apagada */
 .ct-phero-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .ct-phero-tags:empty { display: none; }

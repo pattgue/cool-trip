@@ -209,21 +209,22 @@ export function catWords(re: RegExp): string[] {
   const expand = (w: string): string[] => { const m = /\[([^\]]+)\]/.exec(w); return m ? [...m[1]].flatMap(c => expand(w.slice(0, m.index) + c + w.slice(m.index + m[0].length))) : [w]; };
   return re.source.split("|").flatMap(a => expand(a.replace(/^\\b/, " ").replace(/\\b$/, " ")));
 }
-function placeFormulas(s: Settings, env: BaseEnv): Record<string, string> {
+/* los lugares con varios tipos («Bar, Restaurante»): el tipo que da su icono y su color (el primero que se reconoce) */
+export interface PlaceFirst { path: string; first: string }
+function placeFormulas(s: Settings, env: BaseEnv, multi: PlaceFirst[] = []): Record<string, string> {
   const P = s.props, w = words();
   /* la categoría en minúsculas y entre espacios (sin expresiones regulares: se buscan las palabras de cada icono).
-     Con varios tipos («Bar, Restaurante»), el icono y el color son los del primero (formula.cat1), como en la ficha */
+     Con varios tipos («Bar, Restaurante»), el icono y el color son los del primero (formula.cat1), como en la ficha: Cool Trip
+     escribe cuál es para cada uno de esos lugares, por su ruta (las fórmulas de Bases no saben partir la categoría) */
   const cat = P.category ? `(" " + list(${nv(P.category)}).join(" ").lower() + " ")` : '""';
-  const first = P.category ? `(" " + list(${nv(P.category)}).join(",").split(",")[0].lower() + " ")` : '""';
-  const known = (x: string) => ICONS.flatMap(e => catWords(e[0])).map(w => `${x}.contains(${q(w)})`).join(" || ");
   const byCat = (pick: (e: (typeof ICONS)[number]) => string, last: string) =>
     P.category ? chain(ICONS.map(e => [catWords(e[0]).map(w => `formula.cat1.contains(${q(w)})`).join(" || "), pick(e)] as [string, string]), last) : last;
-  const city = `list(${nv(P.city)}).join("").lower().trim()`;
+  const city = `list(${nv(P.city)}).join("").lower()`;
   const freeWords = ["free", "gratis", "gratuito", "gratuita", "0", "0 €", "0€"];
-  const price = P.price ? `if(${JSON.stringify(freeWords)}.contains(list(${nv(P.price)}).join("").lower().trim()), ${q(w.free)}, ${nv(P.price)})` : '""';
+  const price = P.price ? `if(${JSON.stringify(freeWords)}.contains(list(${nv(P.price)}).join("").lower()), ${q(w.free)}, ${nv(P.price)})` : '""';
   const rating = P.rating ? `number(list(${nv(P.rating)})[0])` : "0";
   const f: Record<string, string> = {
-    cat1: P.category ? `if(${known(first)}, ${first}, ${cat})` : '""',
+    cat1: P.category ? chain([...multi].sort((a, b) => a.path.localeCompare(b.path)).map(m => [`file.path == ${q(m.path)}`, q(" " + m.first.toLowerCase() + " ")] as [string, string]), cat) : '""',
     icon: byCat(e => q(e[1]), q(OTHER_ICON[0])),
     color: byCat(e => q(e[2]), q(OTHER_ICON[1])),
     family: byCat(e => q(w.fam[e[3]]), q(w.fam[OTHER_ICON[2]])),
@@ -283,7 +284,7 @@ export function cityView(s: Settings, env: BaseEnv, city: string): View {
     : { type: "cards", ...base, order: ["file.name", "formula.catPrice", P.visited ? "formula.seen" : null].filter(Boolean),
       image: "formula.cover", imageFit: "cover", imageAspectRatio: 0.6, cardSize: 200 };
 }
-export function placesBase(s: Settings, env: BaseEnv, cities: string[]): BaseDoc {
+export function placesBase(s: Settings, env: BaseEnv, cities: string[], multi: PlaceFirst[] = []): BaseDoc {
   const P = s.props, v = viewNames();
   const group = { groupBy: { property: "formula.cityCountry", direction: "ASC" } };
   const guide: View = env.cool
@@ -292,7 +293,7 @@ export function placesBase(s: Settings, env: BaseEnv, cities: string[]): BaseDoc
   const views: View[] = [guide];
   if (env.maps) views.push(mapView(s));
   views.push(...cities.map(c => cityView(s, env, c)));
-  return { filters: { and: [recogFilter(s.places, "place")] }, formulas: placeFormulas(s, env), properties: displayNames(PLACE_PROPS()), views };
+  return { filters: { and: [recogFilter(s.places, "place")] }, formulas: placeFormulas(s, env, multi), properties: displayNames(PLACE_PROPS()), views };
 }
 
 /* ---------- el mapa (plugin Maps): un marcador por nota, con su icono y su color ---------- */

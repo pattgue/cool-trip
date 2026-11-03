@@ -189,7 +189,7 @@ export const es: Record<string, string> = {
   "pl.f.category": "Categoría", "pl.f.categoryPh": "Restaurante, museo…", "pl.f.city": "Ciudad", "pl.f.price": "Precio", "pl.f.priceAvg": "Precio medio",
   "pl.f.priceTicket": "Entrada", "pl.f.loc": "Coordenadas", "pl.find": "Buscar", "pl.f.cover": "Portada", "pl.f.coverPh": "[[foto.jpg]] o un enlace",
   "pl.edit": "Editar la cabecera", "pl.done": "Listo", "pl.suggested": "Sugerencias:", "pl.f.noType": "Sin tipo", "pl.f.otherType": "Otro…",
-  "pl.f.currency": "Moneda", "pl.f.country": "País", "pl.cityFirst": "Escribe antes la ciudad: el país va con ella.",
+  "pl.f.currency": "Moneda", "pl.f.name": "Nombre", "pl.f.country": "País", "pl.cityFirst": "Escribe antes la ciudad: el país va con ella.",
   "pl.notFound": "No he encontrado este lugar en OpenStreetMap: escribe sus coordenadas a mano.",
   "pl.view": "Ver las notas de lugar con el diseño de Cool Trip", "pl.viewD": "Una ficha con su foto, sus datos y las secciones de su tipo. El botón de Cool Trip vuelve al Markdown.",
   "s2.odd": "Otro tipo",

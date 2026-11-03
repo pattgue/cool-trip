@@ -177,6 +177,11 @@ ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md
   /* el filtro reconoce las notas en los dos idiomas y sin mayúsculas, como Cool Trip */
   const fl = md.recogFilter(S.places, "place"), hit = fm => !!evaluate(fl, { fm, file: { path: "x.md", basename: "x", fm }, formulas: {}, today: X.TODAY, notes: [], backlinks: () => [] });
   ok("filtro de lugares", hit({ tipo: "lugar" }) && hit({ tipo: "Lugar" }) && hit({ type: "place" }) && !hit({ tipo: "viaje" }) && !hit({}), fl);
+  /* el icono en la base: el de su categoría y, con varios tipos, el del primero */
+  { const mb = md.placesBase(S, env, [], [{ path: "Lugares/Sala.md", first: "Sala de conciertos" }]);
+    const ico = (path, cat) => evaluate(mb.formulas.icon, { fm: { tipo: "lugar", "categoría": cat }, file: { path, basename: "x", fm: {} }, formulas: mb.formulas, today: X.TODAY, notes: [], backlinks: () => [], _cache: {} });
+    ok("icono en la base", ico("Lugares/Bar.md", "bares") === "beer" && ico("Lugares/R.md", "salas de conciertos") === "music" && ico("Lugares/Sala.md", "Galería, Sala de conciertos") === "music",
+      [ico("Lugares/Bar.md", "bares"), ico("Lugares/R.md", "salas de conciertos"), ico("Lugares/Sala.md", "Galería, Sala de conciertos")].join()); }
   ok("viajes de un lugar en inglés", run(pb, { ...X.PLACES[0], _c: {} }, "tripNames") === "2027 - Japón");
 }
 

@@ -1,7 +1,7 @@
 /* Cool Trip: cada viaje en una nota, pintada como una tarjeta de embarque con su plan día a día.
    Se abre desde el botón COOL TRIP de la Cool Bar (Cool Kit) o con los comandos. */
-import { MarkdownView, Plugin, TFile } from "obsidian";
-import type { WorkspaceLeaf } from "obsidian";
+import { MarkdownView, Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import type { ViewState } from "obsidian";
 import { joinCoolKit } from "./cool-kit/kit";
 import type { CoolKitHandle } from "./cool-kit/kit";
 import { locale, t } from "./i18n";
@@ -19,7 +19,6 @@ export default class CoolTripPlugin extends Plugin {
   settings: Settings = mergeSettings(null, "es");
   bar: CoolKitHandle | null = null;
   keeper = new BaseKeeper(this);
-  /* notas de viaje que el usuario ha pedido ver como Markdown (hasta que vuelva a pulsar COOL TRIP) */
   /* las pestañas que has pasado a Markdown (con su nota): al abrir otra nota en esa pestaña, vuelve a salir pintada */
   asMarkdown = new WeakMap<WorkspaceLeaf, string>();
 
@@ -59,10 +58,16 @@ export default class CoolTripPlugin extends Plugin {
     });
 
     /* las notas de viaje se abren pintadas */
-    /* (también al cambiar de pestaña y un momento después: desde una base o en el móvil, la nota a veces aún se está abriendo) */
-    const sync = () => { this.syncLeaves(); window.setTimeout(() => this.syncLeaves(), 120); };
-    this.registerEvent(this.app.workspace.on("file-open", sync));
-    this.registerEvent(this.app.workspace.on("active-leaf-change", sync));
+    /* las notas de viaje y de lugar se abren directamente pintadas (como Kanban): cuando Obsidian va a abrir una como Markdown,
+       se abre con la vista de Cool Trip. Así no se ve el Markdown un momento ni queda en el historial («atrás» vuelve a la base) */
+    const painted = (leaf: WorkspaceLeaf, state: ViewState) => this.paintedState(leaf, state), proto = WorkspaceLeaf.prototype;
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- se guarda el original para llamarlo con su pestaña y devolverlo al descargar
+    const open = proto.setViewState;
+    proto.setViewState = function (this: WorkspaceLeaf, state: ViewState, eState?: unknown) {
+      return open.call(this, painted(this, state), eState);
+    };
+    this.register(() => { proto.setViewState = open; });
+    this.registerEvent(this.app.workspace.on("file-open", () => this.syncLeaves()));
     /* las bases solo se revisan cuando cambia un viaje o un lugar (no con cada nota del vault) */
     this.registerEvent(this.app.metadataCache.on("changed", file => {
       this.marked.delete(file.path); this.syncLeaves();
@@ -142,6 +147,18 @@ export default class CoolTripPlugin extends Plugin {
     if (has && !before) this.syncLeaves();
   }
 
+  /* el estado con el que se abre una pestaña: una nota de viaje o de lugar en Markdown pasa a su vista (salvo si la pediste en Markdown) */
+  paintedState(leaf: WorkspaceLeaf, state: ViewState): ViewState {
+    const path = state.type === "markdown" && typeof state.state?.file === "string" ? state.state.file : "";
+    if (!path) return state;
+    if (this.asMarkdown.get(leaf) === path) return state;
+    this.asMarkdown.delete(leaf);
+    try { const root = leaf.getRoot(); if (root === this.app.workspace.leftSplit || root === this.app.workspace.rightSplit) return state; } catch { /* aún sin colocar */ }
+    const f = this.app.vault.getAbstractFileByPath(path);
+    if (!(f instanceof TFile)) return state;
+    const type = this.isTrip(f) ? VIEW_TYPE : this.isPlace(f) ? PLACE_VIEW : "";
+    return type ? { ...state, type } : state;
+  }
   syncLeaves() {
     const ws = this.app.workspace;
     ws.iterateAllLeaves(leaf => {
