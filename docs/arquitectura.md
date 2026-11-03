@@ -60,6 +60,7 @@ de Obsidian. El billete y la cabecera de lugar llevan su propia paleta sólida.
 | `node test/harness.mjs` | Pinta la nota, «Nuevo viaje», los ajustes y las fichas de lugar en Chromium con un Obsidian falso, y comprueba que no hay errores |
 | `node test/canvas.mjs <carpeta>` | Genera desde el plugin los tableros del canvas de diseño |
 | `node test/bases.mjs <cool-bases>` | Pinta las bases con el Cool Bases de verdad |
+| `node test/readme-shots.mjs` | Las capturas del README (`docs/img/`), en tema claro, después de `node test/harness.mjs light` |
 
 En GitHub, `.github/workflows/ci.yml` pasa los tipos, el lint, las pruebas y la compilación en cada subida; `release.yml` crea la
 Release cuando se sube una etiqueta `x.y.z` igual a la versión de `manifest.json`.
