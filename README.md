@@ -108,3 +108,5 @@ How it's built: [docs/arquitectura.md](docs/arquitectura.md) (in Spanish).
 ## License
 
 [MIT](LICENSE) © 2026 Patt
+
+The interface uses [Inter](https://rsms.me/inter/), included under the [SIL Open Font License 1.1](fonts/OFL.txt).
