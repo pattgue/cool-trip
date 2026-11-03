@@ -96,7 +96,7 @@ if (window.__mode.startsWith("settings")) {
   pg.appendChild(placePage({ place: placeInfo(app as never, plugin.settings, f), doc: parsePlace(S0.md), phone: window.__phone, lang: "es", photo: null, cover: "",
     trips: [{ name: "2027 - Japón", dates: "3 – 14 abr 2027", open: () => {} }], mapsUrl: "", today: 4, editing: location.hash === "#view" ? null : S0.editing || null,
     openUrl: () => {}, openLink: () => {}, edit: () => {}, setLines: () => {}, setProp: () => {}, ask, pickPlace: ask, lookup: () => null, locate: () => {},
-    currency: "¥", countries: ["España", "Italia", "Japón"], cities: ["Kioto", "Tokio"], setCountry: () => {}, setCurrency: () => {} }));
+    currency: "¥", countries: ["España", "Italia", "Japón"], cities: ["Kioto", "Tokio"], setCountry: () => {}, setCurrency: () => {}, rename: () => {} }));
   root.appendChild(pg);
   document.body.appendChild(root);
 } else {

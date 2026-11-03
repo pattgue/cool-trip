@@ -80,6 +80,7 @@ export interface PlaceCtx {
   locate(): void;                                         // buscar las coordenadas
   setCountry(country: string): void;                      // el país de su ciudad (va en los ajustes, no en la nota)
   setCurrency(cur: string): void;                         // cambia la moneda de todos sus precios
+  rename(name: string): void;                             // el nombre del lugar (el de su nota)
   cities: string[];                                       // las ciudades que ya usas (para escribirlas igual)
 }
 const L = (ctx: PlaceCtx, x: [string, string]) => x[ctx.lang === "en" ? 1 : 0];
@@ -161,9 +162,8 @@ function rowsSec(ctx: PlaceCtx, k: SecKey, type: PlaceType, extra?: HTMLElement 
   const rows = list.map((x, i) => {
     if (ctx.editing === `${k}#${i}`) return editor(i);
     const on = STAR.test(x), c = cells(x.replace(STAR, "")), rest = c.slice(1).filter((_, j) => j + 1 !== pc && c[j + 1]);
-    const free = pc > 0 && !!c[pc] && isFree(c[pc]);
     const r = button([h("span", { cls: "ct-prow-main" }, h("b", null, c[0] || "—"), rest.length ? h("span", { cls: "ct-sub" }, rest.join(" · ")) : null),
-      pc > 0 && c[pc] ? h("span", { cls: "ct-prow-price" + (free ? " is-free" : "") }, free ? t("pl.free") : c[pc]) : null], "ct-prow", () => ctx.edit(`${k}#${i}`));
+      pc > 0 && c[pc] ? h("span", { cls: "ct-prow-price" }, c[pc]) : null], "ct-prow", () => ctx.edit(`${k}#${i}`));
     if (!fav) return r;
     const star = iconButton("star", t(on ? "pl.unfav" : "pl.fav"), () => write(list.map((y, j) => j === i ? (on ? y.replace(STAR, "") : "★ " + y) : y)), "ct-ibtn ct-pfav" + (on ? " is-on" : ""));
     star.setAttribute("aria-pressed", String(on));
@@ -408,8 +408,8 @@ function heroForm(ctx: PlaceCtx, type: PlaceType, priceLabel: string, auto: stri
   shut.checked = p.closed;
   shut.addEventListener("change", () => ctx.setProp("closed", shut.checked));
   return h("div", { cls: "ct-phero-form" }, countries, cities,
-    h("span", { cls: "ct-phero-kind" }, icon(iconFor(p.category)), p.name.toUpperCase()),
     h("div", { cls: "ct-pform-grid" },
+      lab(t("pl.f.name"), (() => { const x = text("city", p.name, "", undefined, v => { if (v && v !== p.name) ctx.rename(v); }); x.dataset.field = "name"; return x; })(), " is-wide"),
       h("div", { cls: "ct-pfield is-types" }, h("span", { cls: "ct-label" }, t("pl.f.category")), h("div", { cls: "ct-ptypes" }, sels, more)),
       lab(priceLabel, h("span", { cls: "ct-pfield-in" }, text("price", priceNumber(p.price) || p.price, auto ? priceNumber(auto) : pricePh(type), undefined,
         v => ctx.setProp("price", /^\d[\d.,]*$/.test(v) ? withCurrency(v, ctx.currency) : v)), cur)),

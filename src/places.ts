@@ -54,7 +54,7 @@ async function ensureFolder(app: App, folder: string) {
   }
 }
 export { ensureFolder };
-const safeName = (s: string) => s.replace(/[\\/:*?"<>|#^[\]]/g, "").trim();
+export const safeName = (s: string) => s.replace(/[\\/:*?"<>|#^[\]]/g, "").trim();
 
 /* crea una nota de lugar (o devuelve la que ya hay con ese nombre en esa carpeta) */
 export async function createPlace(app: App, s: Settings, name: string, city: string, country: string): Promise<TFile> {

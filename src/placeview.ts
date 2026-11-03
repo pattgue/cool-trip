@@ -7,7 +7,7 @@ import { h } from "./dom";
 import { t, locale } from "./i18n";
 import { spanLabel } from "./dates";
 import { currencyOf, priceNumber, priceValue, toIso, toList, withCurrency } from "./md";
-import { allPlaces, isPlaceFile, isTripFile, mapsUrl, placeInfo, readLoc } from "./places";
+import { allPlaces, isPlaceFile, isTripFile, mapsUrl, placeInfo, readLoc, safeName } from "./places";
 import type { PlaceInfo } from "./places";
 import { countryOf, locate } from "./geo";
 import { parsePlace, placePage, serializePlace, setSection } from "./place-page";
@@ -135,6 +135,14 @@ export class PlaceView extends TextFileView {
         const key = p.city.trim().toLowerCase();
         if (v) s.countries[key] = v; else delete s.countries[key];
         void this.plugin.saveSettings().then(() => { this.plugin.keeper.schedule(); this.render(); });
+      },
+      /* el nombre es el de la nota: se renombra (Obsidian cambia los enlaces que le apuntan) */
+      rename: name => {
+        const n = safeName(name);
+        if (!n || n === f.basename) return;
+        const path = (f.parent && f.parent.path !== "/" ? f.parent.path + "/" : "") + n + ".md";
+        if (this.app.vault.getAbstractFileByPath(path)) { new Notice(t("new.exists")); this.render(); return; }
+        void this.app.fileManager.renameFile(f, path).then(() => this.render());
       },
       setCurrency: c => {
         this.currency = c;
