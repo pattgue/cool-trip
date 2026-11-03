@@ -2,7 +2,7 @@
    borrador (FormState.draft) y «Guardar» lo escribe en la nota. */
 import { append, h } from "./dom";
 import { t, vocab } from "./i18n";
-import { addDays, dayLabel, isIso, normTime } from "./dates";
+import { addDays, dayLabel, dayLabelLower, isIso, normTime } from "./dates";
 import { CURRENCIES, citiesOfDay, currencyOf, field, joinWhen, lineFor, newItem, priceNumber, setField, splitWhen, withCurrency } from "./md";
 import { iconFor } from "./places";
 import type { PlaceInfo } from "./places";
@@ -303,7 +303,7 @@ export function renderForm(ctx: FormCtx, f: FormState & FormExtra): HTMLElement 
   const cs = isIso(date) ? citiesOfDay(tr, date) : [];
   const dest = cs[cs.length - 1];
   const city = dest?.city || "", country = dest?.country || "";
-  const title = f.isNew ? t("add.to", { d: isIso(date) ? dayLabel(date).toLowerCase() : "" }) : t("edit");
+  const title = f.isNew ? t("add.to", { d: isIso(date) ? dayLabelLower(date) : "" }) : t("edit");
   const form = h("form", { cls: "ct-form", attr: { autocomplete: "off" } });
   form.addEventListener("submit", ev => { ev.preventDefault(); ctx.saveForm(f); });
   form.appendChild(h("div", { cls: "ct-form-head" }, h("span", { cls: "ct-form-title" }, title), h("span", { cls: "ct-grow" }),

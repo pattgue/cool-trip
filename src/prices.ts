@@ -1,6 +1,7 @@
 /* Los precios: su número, su moneda y cómo se escriben («60 €», «$60», «¥3.000», «45 CHF»). Los usan el plan, el coste y
    las fichas de lugar. */
 import type { Trip } from "./types";
+import { locale } from "./i18n";
 
 /* un número con su moneda: «60 €», «$60», «¥3.000», «45 CHF» (símbolo o código ISO en mayúsculas) */
 export const CURRENCIES = ["€", "$", "£", "¥", "CHF", "₩", "฿", "kr", "zł", "R$", "MXN", "ARS", "COP", "CLP", "PEN", "MAD", "TRY", "CZK", "HUF", "INR", "AUD", "CAD"];
@@ -41,6 +42,6 @@ export function withCurrency(num: string, cur: string): string {
   return PREFIX.has(cur) ? `${cur}${n}` : `${n} ${cur}`;
 }
 export function fmtMoney(n: number, cur = "€"): string {
-  const s = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const s = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, locale() === "en" ? "," : ".");     // 1.380 € · 1,380 €
   return withCurrency(s, cur);
 }

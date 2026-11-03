@@ -177,7 +177,8 @@ function rowsSec(ctx: PlaceCtx, k: SecKey, type: PlaceType, extra?: HTMLElement 
 /* horario: los siete días, cada uno con sus turnos («13:00–16:00, 20:00–23:30») o «cerrado» */
 interface DayHours { closed: boolean; shifts: [string, string][]; raw: string | null }
 const TIME = /^(\d{1,2})(?:[:.h](\d{2}))?$/;
-const hhmm = (x: string) => { const m = TIME.exec(x.trim()); return m && +m[1] < 25 ? `${m[1].padStart(2, "0")}:${m[2] || "00"}` : null; };
+/* «24:00» es medianoche: el campo de hora no lo admite y, vacío, el turno se perdía al guardar */
+const hhmm = (x: string) => { const m = TIME.exec(x.trim()); return m && +m[1] < 25 ? `${+m[1] === 24 ? "00" : m[1].padStart(2, "0")}:${m[2] || "00"}` : null; };
 const short = (x: string) => x.replace(/^0(\d)/, "$1");
 export function readDay(v: string, closedWords: string[]): DayHours {
   if (!v.trim()) return { closed: false, shifts: [], raw: null };

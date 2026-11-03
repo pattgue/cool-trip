@@ -8,7 +8,7 @@
 import { App, Notice, Platform, PluginSettingTab, TFolder } from "obsidian";
 import type CoolTripPlugin from "./main";
 import { h } from "./dom";
-import { t } from "./i18n";
+import { t, locale } from "./i18n";
 import { thisDevice } from "./cool-kit/kit";
 import type { Device } from "./cool-kit/kit";
 import { defaultSettings } from "./settings";
@@ -173,14 +173,20 @@ export class CoolTripSettingTab extends PluginSettingTab {
 
   /* el viaje de ejemplo de las vistas previas (pasos 3 y 7), escrito en el Markdown de la nota y leído como cualquier viaje */
   demo(): Trip {
-    const c1 = t("demo.c1"), c2 = t("demo.c2"), co = t("demo.country");
-    const md = ["---", "tipo: viaje", "inicio: 2027-04-03", "fin: 2027-04-14", `destinos: [${c1}, ${c2}]`, "viajeros: [Ana, Leo]", "portada: bermellon", "---",
-      `> [!cool-trip] ${t("demo.name")}`, `> ${c1} · ${co} · 6 noches · Ana, Leo`, `> ${c2} · ${co} · 5 noches · Ana, Leo`, "",
-      "## Plan", "", `### Sáb 3 abr · ${c1}`, "- 11:50 **Vuelo MAD → NRT** · 920 € · para Ana, Leo",
-      "    - Sale: sáb 3 abr · 11:50 · T4S", "    - Llega: dom 4 abr · 08:30 · T1", "    - Vuelo: IB 281 · Equipaje: 1 maleta cada uno",
-      "    - Reserva: K7QX2P", "    - Asientos: Ana 32A · Leo 32B", "",
-      `### Dom 4 abr · ${c1}`, `- [ ] 09:00 [[${t("demo.p1")}]]`, `- [ ] 18:30 [[${t("demo.p2")}]]`, ""].join("\n");
-    return parseTrip(md, t("demo.name"), defaultSettings("es"));
+    const c1 = t("demo.c1"), c2 = t("demo.c2"), co = t("demo.country"), en = locale() === "en";
+    /* en el idioma de Obsidian: la nota de ejemplo se enseña también en Markdown (paso 7) */
+    const L = en
+      ? { fm: ["type: trip", "start: 2027-04-03", "end: 2027-04-14", `destinations: [${c1}, ${c2}]`, "travelers: [Ana, Leo]"], n6: "6 nights", n5: "5 nights",
+        d1: "Sat, Apr 3", d2: "Sun, Apr 4", flight: "- 11:50 **Flight MAD → NRT** · 920 € · for Ana, Leo",
+        f: ["    - Departs: Sat, Apr 3 · 11:50 · T4S", "    - Arrives: Sun, Apr 4 · 08:30 · T1", "    - Flight: IB 281 · Luggage: 1 bag each", "    - Booking: K7QX2P", "    - Seats: Ana 32A · Leo 32B"] }
+      : { fm: ["tipo: viaje", "inicio: 2027-04-03", "fin: 2027-04-14", `destinos: [${c1}, ${c2}]`, "viajeros: [Ana, Leo]"], n6: "6 noches", n5: "5 noches",
+        d1: "Sáb 3 abr", d2: "Dom 4 abr", flight: "- 11:50 **Vuelo MAD → NRT** · 920 € · para Ana, Leo",
+        f: ["    - Sale: sáb 3 abr · 11:50 · T4S", "    - Llega: dom 4 abr · 08:30 · T1", "    - Vuelo: IB 281 · Equipaje: 1 maleta cada uno", "    - Reserva: K7QX2P", "    - Asientos: Ana 32A · Leo 32B"] };
+    const md = ["---", ...L.fm, "---",
+      `> [!cool-trip|bermellon] ${t("demo.name")}`, `> ${c1} · ${co} · ${L.n6} · Ana, Leo`, `> ${c2} · ${co} · ${L.n5} · Ana, Leo`, "",
+      "## Plan", "", `### ${L.d1} · ${c1}`, L.flight, ...L.f, "",
+      `### ${L.d2} · ${c1}`, `- [ ] 09:00 [[${t("demo.p1")}]]`, `- [ ] 18:30 [[${t("demo.p2")}]]`, ""].join("\n");
+    return parseTrip(md, t("demo.name"), defaultSettings(en ? "en" : "es"));
   }
   /* una pieza de la nota en sus dos versiones (ordenador y móvil); watch() enseña la del dispositivo y la escala si no cabe */
   real(cls: string, desk: [HTMLElement, number], phone: [HTMLElement, number], acc: string): HTMLElement {

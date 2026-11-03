@@ -83,7 +83,7 @@ export class PlaceView extends TextFileView {
   }
 
   render() {
-    const el = this.contentEl, f = this.file, s = this.plugin.settings;
+    const el = this.contentEl, f = this.file, s = this.plugin.settings, scroll = el.scrollTop;
     /* lo que estabas escribiendo en la cabecera sigue ahí (y con el foco) al volver a pintar */
     const focus = el.querySelector<HTMLInputElement>("input[data-field]:focus");
     const keep = focus ? { k: focus.dataset.field, v: focus.value, at: focus.selectionStart } : null;
@@ -164,6 +164,7 @@ export class PlaceView extends TextFileView {
         if (p.price && priceValue(p.price) > 0) void this.setProp("price", withCurrency(priceNumber(p.price), c));
       },
     })));
+    el.scrollTop = scroll;              // al abrir una sección de abajo, la ficha no vuelve arriba
     if (keep?.k) {
       const x = el.querySelector<HTMLInputElement>(`input[data-field="${keep.k}"]`);
       if (x) { x.value = keep.v; x.focus(); if (keep.at != null) x.setSelectionRange(keep.at, keep.at); }

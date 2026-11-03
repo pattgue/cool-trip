@@ -119,6 +119,7 @@ ok("varios tipos", md.placeTypes("Bar, Restaurante").join(" ") === "bar restaura
   ok("horario con dos turnos", d.shifts.length === 2 && md.writeDay(d, "cerrado") === "13:00–16:00, 20:00–23:30", md.writeDay(d, "cerrado"));
   ok("horario cerrado", md.readDay("Cerrado", cw).closed && md.writeDay(md.readDay("Cerrado", cw), "cerrado") === "cerrado");
   ok("horario de 9 a 22", md.writeDay(md.readDay("9:00–22:00", cw), "cerrado") === "9:00–22:00");
+  ok("horario hasta las 24:00 (no se pierde al guardar)", md.writeDay(md.readDay("17:00–24:00", cw), "cerrado") === "17:00–0:00", md.writeDay(md.readDay("17:00–24:00", cw), "cerrado"));
   ok("horario que no son horas se queda", md.readDay("24 h", cw).raw === "24 h" && md.writeDay(md.readDay("24 h", cw), "cerrado") === "24 h"); }
 ok("gratis", ["free", "Gratis", "0 €", "0"].every(md.isFree) && !md.isFree("10 €"));
 ok("tipos de lugar", ["Izakaya", "Teatro Real", "Sala de conciertos", "Ramen", "Olive bar"].map(md.placeType).join(" ") === "bar theatre music restaurant bar", ["Izakaya", "Teatro Real", "Sala de conciertos", "Ramen", "Olive bar"].map(md.placeType).join(" "));
@@ -127,6 +128,12 @@ const rawFm = "---\ntipo: viaje\ninicio: 2026-12-01\nfin: 2026-12-03\ndestinos: 
 const tR = md.parseTrip(rawFm, "r", S);
 ok("propiedades intactas si no cambian", md.serializeTrip(tR, S).startsWith(rawFm.trimEnd()), md.serializeTrip(tR, S).split("\n").slice(0, 7).join(" | "));
 ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md.showPrice("$5", "€") === "$5" && md.showPrice("", "€") === "");
+/* en inglés, los miles con coma y los días con mayúscula («Sat, Apr 3»), también en lo que se escribe */
+md.setLocaleForTests("en");
+ok("miles en inglés", md.fmtMoney(4500, "€") === "4,500 €" && md.fmtMoney(1380, "$") === "$1,380", md.fmtMoney(4500, "€"));
+ok("día en inglés", md.joinWhen("2027-04-03", "11:50", "T4S") === "Sat, Apr 3 · 11:50 · T4S", md.joinWhen("2027-04-03", "11:50", "T4S"));
+md.setLocaleForTests("es");
+ok("miles en español", md.fmtMoney(4500, "€") === "4.500 €" && md.joinWhen("2027-04-03", "11:50", "") === "sáb 3 abr · 11:50", md.joinWhen("2027-04-03", "11:50", ""));
 
 /* ---------- las bases (src/bases.ts): cada fórmula se lee y da lo del canvas ---------- */
 {

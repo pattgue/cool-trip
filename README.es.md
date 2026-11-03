@@ -4,7 +4,7 @@ Cada viaje en una nota de Obsidian: una portada como tarjeta de embarque, el pla
 
 🇬🇧 [Read in English](README.md)
 
-![Una nota de viaje en Cool Trip](docs/img/trip.png)
+![Una nota de viaje en Cool Trip](docs/img/trip.webp)
 
 ## Qué hace
 
@@ -12,23 +12,27 @@ Cada viaje en una nota de Obsidian: una portada como tarjeta de embarque, el pla
 
 - **El plan, día a día.** Añade a cada día lugares, comidas, transporte, alojamiento y notas, con hora, precio, para quién y sus documentos. Arrastra los pasos para ordenarlos o moverlos de día. Cada día te sugiere los lugares que tienes guardados en esa ciudad.
 
+  ![Añadir y mover pasos en el plan](docs/img/plan.webp)
+
 - **Reservas y documentos en un sitio.** Tarjetas de embarque, entradas y pasaportes: dónde está cada uno (tu nube, la cartera del móvil, una carpeta de tu dispositivo, el vault o en papel) y para quién. El localizador, la hora y el asiento se ven siempre en la nota.
 
 - **Mochila, maleta y por hacer.** La maleta con casillas, tus tareas con fecha límite y los recordatorios que añade Cool Trip: descargar los mapas sin conexión, descargar los archivos de la nube, hacer el check-in.
 
 - **Lo que cuesta.** Los precios se suman contra el presupuesto, con lo que falta por pagar, en la moneda del viaje.
 
+  ![La mochila, la maleta, por hacer y el coste](docs/img/side.webp)
+
 - **Una ficha para cada lugar.** Las notas de lugar se abren como una página hecha para su tipo: un restaurante tiene carta y horario; un museo, sus entradas y lo imprescindible; una sala, su programación y su aforo. Cada tipo tiene su icono y su color.
 
-  ![Una ficha de lugar en el móvil](docs/img/place-phone.png)
+  ![Una ficha de lugar en Cool Trip](docs/img/place.webp)
 
 - **Pensado para el móvil.** Cada pantalla tiene su versión móvil, y los lugares y los días se abren en tu app de mapas (Google Maps, Apple Maps u Organic Maps).
 
-  ![La nota del viaje en el móvil](docs/img/trip-phone.png)
+  <p><img src="docs/img/trip-phone.png" alt="La nota del viaje en el móvil" width="300"> <img src="docs/img/place-phone.png" alt="Una ficha de lugar en el móvil" width="300"></p>
 
 - **Tus viajes y lugares en Bases.** Cool Trip crea una base de viajes y otra de lugares y las mantiene al día. Con [Cool Bases](https://github.com/pattgue/cool-bases) se ven como tarjetas de embarque y como una guía por ciudad.
 
-  ![La base de viajes con Cool Bases](docs/img/bases-trips.png)
+  ![Las bases de viajes y lugares con Cool Bases](docs/img/bases.webp)
 
 ## Instalarlo
 
@@ -43,7 +47,7 @@ Cada viaje en una nota de Obsidian: una portada como tarjeta de embarque, el pla
 1. Abre Ajustes → **Cool Trip** y sigue los pasos. Cada uno adapta Cool Trip a las notas y propiedades que ya tienes.
 2. Crea un viaje: el comando **Nuevo viaje** o la **Cool Bar**. Elige los destinos, las fechas y un color o una foto; la tarjeta de embarque se dibuja mientras escribes.
 
-   ![Nuevo viaje](docs/img/new-trip.png)
+   ![Nuevo viaje](docs/img/new-trip.webp)
 3. Rellena el plan desde la nota del viaje. Toca el lápiz de la tarjeta para cambiar el viaje.
 
 ## Ajustes
