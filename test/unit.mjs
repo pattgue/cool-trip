@@ -127,6 +127,12 @@ const rawFm = "---\ntipo: viaje\ninicio: 2026-12-01\nfin: 2026-12-03\ndestinos: 
 const tR = md.parseTrip(rawFm, "r", S);
 ok("propiedades intactas si no cambian", md.serializeTrip(tR, S).startsWith(rawFm.trimEnd()), md.serializeTrip(tR, S).split("\n").slice(0, 7).join(" | "));
 ok("precio siempre con moneda", md.showPrice("6.99", "€") === "6.99 €" && md.showPrice("$5", "€") === "$5" && md.showPrice("", "€") === "");
+/* en inglés, los miles con coma y los días con mayúscula («Sat, Apr 3»), también en lo que se escribe */
+md.setLocaleForTests("en");
+ok("miles en inglés", md.fmtMoney(4500, "€") === "4,500 €" && md.fmtMoney(1380, "$") === "$1,380", md.fmtMoney(4500, "€"));
+ok("día en inglés", md.joinWhen("2027-04-03", "11:50", "T4S") === "Sat, Apr 3 · 11:50 · T4S", md.joinWhen("2027-04-03", "11:50", "T4S"));
+md.setLocaleForTests("es");
+ok("miles en español", md.fmtMoney(4500, "€") === "4.500 €" && md.joinWhen("2027-04-03", "11:50", "") === "sáb 3 abr · 11:50", md.joinWhen("2027-04-03", "11:50", ""));
 
 /* ---------- las bases (src/bases.ts): cada fórmula se lee y da lo del canvas ---------- */
 {

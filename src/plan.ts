@@ -3,7 +3,7 @@
 import type { App, TFile } from "obsidian";
 import { h } from "./dom";
 import { t, vocab } from "./i18n";
-import { addDays, dayLabel, dayNum, diffDays, isIso, monthShort, range, spanLabel, weekday } from "./dates";
+import { addDays, dayLabel, dayLabelLower, dayNum, diffDays, isIso, monthShort, range, spanLabel, weekday } from "./dates";
 import { citiesOfDay, field, fmtMoney, joinWhen, showPrice, tripCurrency, lineFor, newItem, priceValue, setField, splitWhen } from "./md";
 import { catColor, iconFor, mapsUrl, placeInfo, resolve } from "./places";
 import type { PlaceInfo } from "./places";
@@ -523,7 +523,7 @@ function dayEl(ctx: PlanCtx, di: number, spans: LodgingSpan[]): HTMLElement {
   const inPlace = f && f.isNew && f.at && rows.some(r => rowKey(r) === f.at);
   if (f && f.isNew && !inPlace) body.push(formRow(h("span", { cls: "ct-node-add" }, icon("plus"))));
   else body.push(dropTarget(rowEl(h("span", { cls: "ct-node-add" }, icon("plus")),
-    button([t("add.to", { d: isIso(date) ? dayLabel(date).toLowerCase() : "" })], "ct-add-btn",
+    button([t("add.to", { d: isIso(date) ? dayLabelLower(date) : "" })], "ct-add-btn",
       () => ctx.openForm({ day: di, index: -1, isNew: true, draft: newItem("place") }))), di, day.items.length, "end"));
   const sec = h("section", { cls: "ct-day" + (empty ? " is-empty" : ""), attr: { "data-date": date || "" } }, head, body);
   return sec;

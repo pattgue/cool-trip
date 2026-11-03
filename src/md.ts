@@ -3,7 +3,7 @@
 import { parseYaml, stringifyYaml } from "obsidian";
 import { MD, vocab } from "./i18n";
 import type { Vocab } from "./i18n";
-import { addDays, dayLabel, diffDays, isIso, iso, isTime, normTime, range, readDay } from "./dates";
+import { addDays, dayLabel, dayLabelLower, diffDays, isIso, iso, isTime, normTime, range, readDay } from "./dates";
 import type { Day, Dest, Doc, Field, Item, Kind, PropNames, Settings, Task, Trip, Where } from "./types";
 import { isTransport } from "./types";
 import { propKey, twinRecog } from "./settings";
@@ -161,7 +161,7 @@ export function splitWhen(v: string, near: string): { date: string; time: string
   return { date, time, at: rest.join(" · ") };
 }
 export function joinWhen(date: string, time: string, at: string): string {
-  return [date ? dayLabel(date).toLowerCase() : "", time, at.trim()].filter(Boolean).join(" · ");
+  return [date ? dayLabelLower(date) : "", time, at.trim()].filter(Boolean).join(" · ");
 }
 
 /* ---------- un paso del plan ---------- */
