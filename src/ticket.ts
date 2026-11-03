@@ -5,7 +5,7 @@ import { t } from "./i18n";
 import { dayNum, diffDays, isIso, longDate, spanLabel, todayIso, weekday, dayLabel } from "./dates";
 import { balanceNights, citiesOfDay, fmtMoney, nightsTotal, priceValue, redate, tripDates } from "./md";
 import type { Trip } from "./types";
-import { PALETTE, accentOf, avatar, barcode, button, coverHex, destHex, icon, iconButton, imageAccent, kicker, label, miniPerson, notchH, notchV, paletteId, paperPlane, personChip, plain, useAccent } from "./ui";
+import { PALETTE, accentOf, avatar, barcode, button, coverHex, destHex, icon, iconButton, imageAccent, kicker, label, miniPerson, notchH, notchV, paletteId, paperPlane, personChip, plain, pressable, useAccent } from "./ui";
 
 export interface TicketCtx {
   mode: "create" | "note";
@@ -225,10 +225,7 @@ function noteName(ctx: TicketCtx, big: boolean): HTMLElement {
   const el = h("span", { cls: "ct-note" }, label(t("new.note")), name, h("span", { cls: "ct-note-path" }, ctx.path));
   if (ctx.rename && editable(ctx)) {
     name.addClass("is-editable");
-    name.setAttribute("role", "button"); name.setAttribute("tabindex", "0");
-    const go = () => void ctx.prompt(t("new.note"), t("new.note"), ctx.trip.name).then(v => { if (v && v.trim() && v.trim() !== ctx.trip.name) ctx.rename!(v.trim()); });
-    name.addEventListener("click", go);
-    name.addEventListener("keydown", ev => { if (ev.key === "Enter") go(); });
+    pressable(name, () => void ctx.prompt(t("new.note"), t("new.note"), ctx.trip.name).then(v => { if (v && v.trim() && v.trim() !== ctx.trip.name) ctx.rename!(v.trim()); }));
   }
   return el;
 }

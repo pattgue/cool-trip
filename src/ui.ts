@@ -62,6 +62,14 @@ export function button(text: Kid, cls: string, onClick?: Click, attr: Record<str
 export function iconButton(name: string, label: string, onClick: Click, cls = "ct-ibtn"): HTMLButtonElement {
   return button(icon(name), cls, onClick, { "aria-label": label });
 }
+/* algo que no es un botón pero se toca como uno: también con Intro o Espacio y con nombre para el lector de pantalla */
+export function pressable<T extends HTMLElement>(el: T, onPress: () => void, label?: string): T {
+  el.setAttribute("role", "button"); el.setAttribute("tabindex", "0");
+  if (label) el.setAttribute("aria-label", label);
+  el.addEventListener("click", ev => { if (!(ev.target as HTMLElement).closest("a, button, input, select, textarea") || ev.target === el) onPress(); });
+  el.addEventListener("keydown", ev => { if (ev.target === el && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); onPress(); } });
+  return el;
+}
 export const pill = (iconName: string | null, text: string, onClick: Click, cls = "ct-pill") =>
   button([iconName ? icon(iconName) : null, h("span", null, text)], cls, onClick);
 

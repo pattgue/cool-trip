@@ -11,7 +11,7 @@ import { grip } from "./plan-drag";
 import { docButton, docForm } from "./docs";
 import type { Day, Doc, Item, Kind, Settings, Trip } from "./types";
 import { isTransport } from "./types";
-import { accentOf, button, destHex, faces, icon, iconButton, label, notchH, notchV, useAccent } from "./ui";
+import { accentOf, button, destHex, faces, icon, iconButton, label, notchH, notchV, pressable, useAccent } from "./ui";
 
 /* un formulario abierto: en qué día, qué paso (o -1 si es nuevo) y en qué hueco se abrió («at») */
 export interface FormState { day: number; index: number; draft: Item; isNew: boolean; at?: string; target?: number }
@@ -242,13 +242,11 @@ function foldBtn(ctx: PlanCtx, key: string): HTMLElement {
   }, "ct-fold");
 }
 function collapsedCard(ctx: PlanCtx, key: string, time: string, title: string, sub: string, price: string): HTMLElement {
-  const card = h("article", { cls: "ct-card ct-card-collapsed", attr: { role: "button", tabindex: "0", "aria-label": `${t("expand")}: ${title}` } }, timeEl(time),
+  const card = h("article", { cls: "ct-card ct-card-collapsed" }, timeEl(time),
     h("span", { cls: "ct-collapsed-main" }, h("span", { cls: "ct-collapsed-title" }, title), h("span", { cls: "ct-sub" }, sub)),
     price ? h("span", { cls: "ct-price" }, price) : null);
   const open = () => { ctx.collapsed.delete(key); ctx.rerender(); };
-  card.addEventListener("click", ev => { if (!(ev.target as HTMLElement).closest("a, button")) open(); });
-  card.addEventListener("keydown", ev => { if (ev.key === "Enter") open(); });
-  return card;
+  return pressable(card, open, `${t("expand")}: ${title}`);
 }
 /* lo que se apunta de cada transporte (el coche, según sea tuyo, de alquiler o compartido) */
 export function transportDetails(it: Item): [string, string][] {

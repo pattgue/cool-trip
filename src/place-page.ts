@@ -4,7 +4,7 @@
 import { h } from "./dom";
 import { t } from "./i18n";
 import { CURRENCIES, priceNumber, priceValue, showPrice, withCurrency } from "./md";
-import { button, icon, iconButton } from "./ui";
+import { button, icon, iconButton, pressable } from "./ui";
 import { catColor, iconFor, placeType } from "./places";
 import type { PlaceInfo, PlaceType } from "./places";
 import { CLOSED, DAYS, HINTS, PRICE_KIND, SECS, TYPE_NAMES, TYPE_SECS } from "./place-types";
@@ -109,9 +109,7 @@ function textSec(ctx: PlaceCtx, k: SecKey, type: PlaceType): HTMLElement {
     return h("section", { cls: cls + " is-editing" }, head(ctx, k), ta, foot(ctx, () => ctx.setLines(k, ta.value.split("\n"))));
   }
   const body = lines.length ? prose(lines) : h("span", { cls: "ct-psec-empty" }, hintOf(ctx, k, type));
-  const el = h("section", { cls: cls + (lines.length ? "" : " is-empty"), attr: { role: "button", tabindex: "0" } }, head(ctx, k), body);
-  el.addEventListener("click", () => ctx.edit(k));
-  return el;
+  return pressable(h("section", { cls: cls + (lines.length ? "" : " is-empty") }, head(ctx, k), body), () => ctx.edit(k), `${t("edit")}: ${L(ctx, def(k).title)}`);
 }
 function foot(ctx: PlaceCtx, save: () => void, remove?: () => void): HTMLElement {
   return h("div", { cls: "ct-psec-foot" }, remove ? button(t("pl.remove"), "ct-link-btn is-danger", remove) : null, h("span", { cls: "ct-grow" }),
@@ -178,14 +176,13 @@ function hoursSec(ctx: PlaceCtx, k: SecKey): HTMLElement {
       h("div", { cls: "ct-psec-foot is-left" }, same, h("span", { cls: "ct-sub" }, t("pl.closedHint", { c: L(ctx, CLOSED) }))),
       foot(ctx, save));
   }
-  const el = h("section", { cls: "ct-psec is-hours" + (byDay.size ? "" : " is-empty"), attr: { role: "button", tabindex: "0" } }, head(ctx, k),
+  const el = h("section", { cls: "ct-psec is-hours" + (byDay.size ? "" : " is-empty") }, head(ctx, k),
     byDay.size ? h("div", { cls: "ct-phours" }, DAYS.map((d, i) => {
       const v = byDay.get(i) || "";
       return h("span", { cls: "ct-phour" + (i === ctx.today ? " is-today" : "") + (closed(v) ? " is-closed" : "") },
         h("span", null, L(ctx, d)), h("b", null, v ? (closed(v) ? t("pl.closed") : v) : "—"));
     })) : h("span", { cls: "ct-psec-empty" }, t("pl.hoursHint")));
-  el.addEventListener("click", () => ctx.edit(k));
-  return el;
+  return pressable(el, () => ctx.edit(k), `${t("edit")}: ${L(ctx, def(k).title)}`);
 }
 
 /* etiquetas: se ven las que tiene; «+ Añadir» abre las sugeridas del tipo (y una propia), y en ese modo se quitan con la ✕ */
@@ -360,7 +357,7 @@ export function placePage(ctx: PlaceCtx): HTMLElement {
   /* Maps, visitado y estrellas: tocar es escribir (y solo entonces se crea la propiedad) */
   const stars = h("span", { cls: "ct-pstars", attr: { role: "radiogroup", "aria-label": t("pl.rating") } },
     [1, 2, 3, 4, 5].map(n => button(icon("star"), "ct-pstar" + (n <= p.rating ? " is-on" : ""), () => ctx.setProp("rating", n === p.rating ? 0 : n),
-      { role: "radio", "aria-checked": String(n === p.rating), "aria-label": String(n) })));
+      { role: "radio", "aria-checked": String(n === p.rating), "aria-label": `${n}/5` })));
   const seen = button([icon(p.visited ? "circle-check" : "circle"), t(p.visited ? "pl.visited" : "pl.toVisit")], "ct-pchip" + (p.visited ? " is-on" : ""),
     () => ctx.setProp("visited", !p.visited), { "aria-pressed": String(p.visited) });
   const maps = button([icon("map-pin"), t("pl.maps")], "ct-pmaps", () => ctx.openUrl(ctx.mapsUrl));
