@@ -109,6 +109,18 @@ ok("ficha de lugar: secciones en el cuerpo, propiedades intactas", plOut.startsW
   && /## Horario\n- Lunes: cerrado/.test(plOut) && md.linesOf(md.parsePlace(plOut), "menu").length === 2 && /## Menú del día\n/.test(plOut), plOut);
 md.setSection(pl, "hours", [], "es");
 ok("ficha de lugar: una sección vacía se quita", !/Horario/.test(md.serializePlace(pl)));
+/* varios tipos: icono y color del primero; secciones de todos, sin repetir la «Carta» */
+ok("varios tipos", md.placeTypes("Bar, Restaurante").join(" ") === "bar restaurant" && md.iconFor("Restaurante, bar") === "utensils", md.placeTypes("Bar, Restaurante").join(" "));
+{ const k = md.secsFor(["bar", "restaurant"]);
+  ok("secciones de bar y restaurante", k.filter(x => x === "menu" || x === "drinks").length === 1 && k.includes("cuisine") && k.includes("book") && k[k.length - 1] === "access", k.join(" ")); }
+/* el horario: turnos, cerrado y lo que no son horas */
+{ const cw = ["cerrado", "closed"];
+  const d = md.readDay("13:00–16:00, 20:00-23:30", cw);
+  ok("horario con dos turnos", d.shifts.length === 2 && md.writeDay(d, "cerrado") === "13:00–16:00, 20:00–23:30", md.writeDay(d, "cerrado"));
+  ok("horario cerrado", md.readDay("Cerrado", cw).closed && md.writeDay(md.readDay("Cerrado", cw), "cerrado") === "cerrado");
+  ok("horario de 9 a 22", md.writeDay(md.readDay("9:00–22:00", cw), "cerrado") === "9:00–22:00");
+  ok("horario que no son horas se queda", md.readDay("24 h", cw).raw === "24 h" && md.writeDay(md.readDay("24 h", cw), "cerrado") === "24 h"); }
+ok("gratis", ["free", "Gratis", "0 €", "0"].every(md.isFree) && !md.isFree("10 €"));
 ok("tipos de lugar", ["Izakaya", "Teatro Real", "Sala de conciertos", "Ramen", "Olive bar"].map(md.placeType).join(" ") === "bar theatre music restaurant bar", ["Izakaya", "Teatro Real", "Sala de conciertos", "Ramen", "Olive bar"].map(md.placeType).join(" "));
 /* las propiedades que no cambian se quedan como estaban escritas (formato, comillas, comentarios) */
 const rawFm = "---\ntipo: viaje\ninicio: 2026-12-01\nfin: 2026-12-03\ndestinos: [Roma]\nmio: 'algo'  # un comentario\n---\n";

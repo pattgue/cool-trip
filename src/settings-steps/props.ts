@@ -21,7 +21,7 @@ export function stepProps(tab: CoolTripSettingTab, body: HTMLElement) {
     number: ["number", "text"], checkbox: ["checkbox"] };
   const fits = (p: string, type: string) => { const ty = tab.propType(p); return !ty || (FITS[type] || []).includes(ty); };
   /* un valor que Cool Trip no sabe leer (una fecha como «2 nov», unas coordenadas sin números): el primero que encuentre */
-  const PLACE_KEYS: (keyof PropNames)[] = ["location", "city", "category", "price", "rating", "visited", "photo"];
+  const PLACE_KEYS: (keyof PropNames)[] = ["location", "city", "category", "price", "rating", "visited", "photo", "closed"];
   const unreadable = (k: keyof PropNames): string => {
     const read = k === "start" || k === "end" ? (v: unknown) => !!toIso(v) : k === "location" ? (v: unknown) => !!readLoc(v) : null;
     if (!read || !s.props[k]) return "";
@@ -66,5 +66,5 @@ export function stepProps(tab: CoolTripSettingTab, body: HTMLElement) {
     h("div", { cls: "ct-set-thead" }, h("span", null, t("s2.data")), h("span", null, t("s2.type")), h("span", null, t("s2.yours")), h("span", null, t("s2.state"))),
     group(t("s2.trip"), "plane"), row("start", "date", true), row("end", "date", true), row("destinations", "list", true), row("travelers", "list", false), row("cover", "text", false),
     group(t("s2.place"), "map-pin"), row("location", "list", true), row("city", "text", true), row("category", "text", false),
-    row("price", "text", false), row("rating", "number", false), row("visited", "checkbox", false), row("photo", "text", false)));
+    row("price", "text", false), row("rating", "number", false), row("visited", "checkbox", false), row("photo", "text", false), row("closed", "checkbox", false)));
 }

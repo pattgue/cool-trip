@@ -24,6 +24,21 @@ export async function geocode(name: string, city: string, country = ""): Promise
   } catch { return null; }
 }
 
+/* el país de una ciudad, en el idioma de Obsidian («Rome» → «Italy»; «Roma» → «Italia»), para no tener que elegirlo */
+export async function countryOf(city: string, lang: string): Promise<string> {
+  const q = city.trim();
+  if (!q) return "";
+  const gap = last + 1100 - Date.now();
+  if (gap > 0) await wait(gap);
+  last = Date.now();
+  try {
+    const r = await requestUrl({ url: `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&featureType=settlement&accept-language=${lang}&q=${encodeURIComponent(q)}`,
+      headers: { "User-Agent": "Cool Trip (Obsidian plugin)" }, throw: false });
+    const hit = Array.isArray(r.json) ? (r.json as { address?: { country?: string } }[])[0] : undefined;
+    return hit?.address?.country || "";
+  } catch { return ""; }
+}
+
 /* escribe las coordenadas en la nota (solo si no tiene) y devuelve si las ha encontrado */
 export async function locate(app: App, s: Settings, f: TFile, name: string, city: string, country = ""): Promise<boolean> {
   if (!s.props.location) return false;

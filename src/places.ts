@@ -6,7 +6,7 @@ import type { MapsApp, PropNames, Settings } from "./types";
 import { toList } from "./md";
 
 export interface PlaceInfo { file: TFile; name: string; city: string; country: string; category: string; price: string; loc: [number, number] | null;
-  rating: number; visited: boolean; photo: string }
+  rating: number; visited: boolean; photo: string; closed: boolean }
 
 const fmOf = (app: App, f: TFile): Record<string, unknown> | undefined => app.metadataCache.getFileCache(f)?.frontmatter;
 const str = (v: unknown): string => typeof v === "string" ? v : typeof v === "number" || typeof v === "boolean" ? String(v) : "";
@@ -34,7 +34,8 @@ export function placeInfo(app: App, s: Settings, f: TFile): PlaceInfo {
   const get = (k: keyof PropNames) => { const v = fm[propKey(s, k, fm)]; return (Array.isArray(v) ? v.map(str).join(", ") : str(v)).replace(/^\[\[|\]\]$/g, ""); };
   return { file: f, name: f.basename, city: get("city"), country: s.countries[get("city").trim().toLowerCase()] || "", category: get("category"),
     price: get("price"), loc: readLoc(fm[propKey(s, "location", fm)]), rating: stars(fm[propKey(s, "rating", fm)]),
-    visited: isYes(fm[propKey(s, "visited", fm)]), photo: get("photo") };
+    visited: isYes(fm[propKey(s, "visited", fm)]), photo: get("photo"),
+    closed: isYes(fm[propKey(s, "closed", fm)]) };
 }
 export function allPlaces(app: App, s: Settings): PlaceInfo[] {
   return app.vault.getMarkdownFiles().filter(f => isPlaceFile(app, s, f)).map(f => placeInfo(app, s, f));
@@ -104,7 +105,17 @@ export const ICONS: [RegExp, string, string, Family, PlaceType][] = [
   [/hotel|alojamiento|hostal|ryokan|apartamento|lodging|hostel/i, "bed", "#8FD8C4", "sleep", "lodging"],
 ];
 export const OTHER_ICON: [string, string, Family] = ["map-pin", "#8E8E93", "other"];
-const catOf = (category: string) => ICONS.find(([re]) => re.test(category));
+/* una categoría puede tener varios tipos («Bar, Restaurante»): el icono y el color son los del primero que se reconoce;
+   las secciones de la ficha, las de todos (placeTypes) */
+export const catParts = (category: string) => category.split(/\s*(?:,|·|\/|\+|&|\s+y\s+|\s+and\s+)\s*/i).map(x => x.trim()).filter(Boolean);
+const matchOf = (x: string) => ICONS.find(([re]) => re.test(x));
+const catOf = (category: string) => { for (const part of catParts(category)) { const m = matchOf(part); if (m) return m; } return matchOf(category); };
+export function placeTypes(category: string): PlaceType[] {
+  const out: PlaceType[] = [];
+  for (const part of catParts(category)) { const m = matchOf(part); if (m && !out.includes(m[4])) out.push(m[4]); }
+  if (!out.length) out.push(placeType(category));
+  return out;
+}
 export function iconFor(category: string): string { return catOf(category)?.[1] || OTHER_ICON[0]; }
 export function catColor(category: string): string { return catOf(category)?.[2] || OTHER_ICON[1]; }
 export function catFamily(category: string): Family { return catOf(category)?.[3] || OTHER_ICON[2]; }

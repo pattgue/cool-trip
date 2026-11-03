@@ -13,6 +13,7 @@ export interface SecDef {
   tags?: L[];                                  // etiquetas: las sugeridas
   hint?: L;                                    // lo que se ve cuando está vacía
   optional?: boolean;                          // solo sale si se marca (menú del día)
+  fav?: boolean;                               // filas: se pueden marcar como favoritas (★ delante)
 }
 
 const PRICE: L = ["Precio", "Price"];
@@ -21,10 +22,11 @@ const ACCESS: L[] = [["Sin escalones", "Step-free"], ["Ascensor", "Lift"], ["Ba�
 
 export const SECS = {
   cuisine: { title: ["Cocina", "Cuisine"], icon: "chef-hat", fmt: "text", hint: ["Qué tipo de cocina y sus especialidades…", "The kind of food and its specialities…"] },
-  menu: { title: ["Carta", "Menu"], icon: "scroll-text", fmt: "rows", cols: [["Plato", "Dish"], PRICE, ["Nota", "Note"]], hint: ["Los platos, con su precio…", "Dishes and their price…"] },
-  drinks: { title: ["Carta", "Menu"], icon: "scroll-text", fmt: "rows", cols: [["Bebida o plato", "Drink or dish"], PRICE, ["Nota", "Note"]], hint: ["Lo que se bebe y se pica, con su precio…", "Drinks and bites, with their price…"] },
+  menu: { title: ["Carta", "Menu"], icon: "scroll-text", fmt: "rows", fav: true, cols: [["Plato", "Dish"], PRICE, ["Nota", "Note"]], hint: ["Los platos, con su precio…", "Dishes and their price…"] },
+  drinks: { title: ["Carta", "Menu"], icon: "scroll-text", fmt: "rows", fav: true, cols: [["Bebida o plato", "Drink or dish"], PRICE, ["Nota", "Note"]], hint: ["Lo que se bebe y se pica, con su precio…", "Drinks and bites, with their price…"] },
   daily: { title: ["Menú del día", "Set menu"], icon: "utensils", fmt: "rows", cols: [["Qué incluye", "What's included"], PRICE], optional: true, hint: ["Qué incluye y cuánto cuesta…", "What's included and what it costs…"] },
-  book: { title: ["Reservar", "Booking"], icon: "calendar-check", fmt: "text", hint: ["Si hay que reservar, cómo y con cuánta antelación…", "Whether to book, how and how far ahead…"] },
+  book: { title: ["Reservar", "Booking"], icon: "calendar-check", fmt: "specs",
+    fields: [["Teléfono", "Phone"], ["Reserva online", "Book online"], ["Email", "Email"], ["Antelación", "How far ahead"]] },
   hours: { title: ["Horario", "Opening hours"], icon: "clock", fmt: "hours" },
   access: { title: ["Accesibilidad", "Accessibility"], icon: "accessibility", fmt: "tags", tags: ACCESS },
   topCafe: { title: ["Top", "Highlights"], icon: "sparkles", fmt: "tags", tags: [["Terraza", "Terrace"], ["Para trabajar", "Good for work"], ["Enchufes", "Plugs"], ["Wifi", "Wi-Fi"], ["Tranquilo", "Quiet"], ["Vistas", "Views"]] },
@@ -39,6 +41,8 @@ export const SECS = {
   ticketsLive: { title: ["Entradas", "Tickets"], icon: "ticket", fmt: "rows", cols: [["Tipo", "Type"], ["Precio orientativo", "Usual price"], ["Dónde", "Where"]], hint: ["Orientativo: suele cambiar según el evento…", "A rough guide: it changes with each event…"] },
   exhibits: { title: ["Exposiciones y actividades", "Exhibitions and activities"], icon: "frame", fmt: "rows", cols: [["Nombre", "Name"], ["Cuándo", "When"], ["Nota", "Note"]], hint: ["Las permanentes o las que se repiten…", "Permanent or recurring ones…"] },
   events: { title: ["Eventos", "Events"], icon: "calendar-days", fmt: "rows", cols: [["Qué", "What"], ["Cuándo", "When"], PRICE], hint: ["Los que se repiten (cada jueves, cada temporada…)…", "Recurring ones (every Thursday, every season…)…"] },
+  genres: { title: ["Géneros", "Genres"], icon: "music", fmt: "tags", tags: [["Rock", "Rock"], ["Indie", "Indie"], ["Pop", "Pop"], ["Electrónica", "Electronic"],
+    ["Jazz", "Jazz"], ["Hip hop", "Hip hop"], ["Flamenco", "Flamenco"], ["Clásica", "Classical"], ["Metal", "Metal"], ["Latina", "Latin"], ["Punk", "Punk"], ["Folk", "Folk"]] },
   programme: { title: ["Qué se programa", "What's on"], icon: "music", fmt: "text", hint: ["Los estilos de música que suele tener…", "The music it usually has…"] },
   capacity: { title: ["Aforo", "Capacity"], icon: "users", fmt: "specs", fields: [["Aforo", "Capacity"]] },
   specialty: { title: ["Especialización", "Speciality"], icon: "bookmark", fmt: "text", hint: ["En qué está especializada…", "What it specialises in…"] },
@@ -66,7 +70,7 @@ export const TYPE_SECS: Record<PlaceType, SecKey[]> = {
   museum: ["tickets", "exhibits", "hours", "access"],
   books: ["specialty", "events", "hours", "access"],
   theatre: ["programme", "ticketsLive", "hours", "capacity", "access"],
-  music: ["programme", "ticketsLive", "hours", "capacity", "access"],
+  music: ["genres", "ticketsLive", "drinks", "hours", "capacity", "access"],
   cinema: ["tickets", "hours", "access"],
   club: ["music", "doorRules", "hours", "access"],
   bar: ["drinks", "topBar", "hours", "access"],
@@ -87,6 +91,19 @@ export const TYPE_SECS: Record<PlaceType, SecKey[]> = {
   lodging: ["stay", "rooms", "contact", "extras", "houseRules", "access"],
   other: ["hours"],
 };
+/* las secciones de un lugar con varios tipos («Bar, Restaurante»): las de todos, en orden; si dos se llaman igual (las dos
+   «Carta»), sale una, la más completa; el horario, el contacto y la accesibilidad, al final */
+const LAST: SecKey[] = ["hours", "contact", "capacity", "access"];
+const size = (k: SecKey) => { const d: SecDef = SECS[k]; return (d.cols || d.fields || d.tags || []).length; };
+export function secsFor(types: PlaceType[]): SecKey[] {
+  const out: SecKey[] = [];
+  for (const k of types.flatMap(x => TYPE_SECS[x] || TYPE_SECS.other)) {
+    if (out.includes(k)) continue;
+    const same = out.findIndex(o => SECS[o].title[0].toLowerCase() === SECS[k].title[0].toLowerCase());
+    if (same < 0) out.push(k); else if (size(k) > size(out[same])) out[same] = k;
+  }
+  return [...out.filter(k => !LAST.includes(k)), ...LAST.filter(k => out.includes(k))];
+}
 /* lo que cambia según el tipo dentro de una misma sección */
 export const HINTS: Partial<Record<PlaceType, Partial<Record<SecKey, L>>>> = {
   theatre: { programme: ["El tipo de espectáculos que suele tener…", "The kind of shows it usually has…"] },

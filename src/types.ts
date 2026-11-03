@@ -6,7 +6,7 @@ export interface Recog { mode: RecogMode; key: string; value: string; folder: st
 
 export interface PropNames {
   start: string; end: string; destinations: string; travelers: string; cover: string;
-  location: string; city: string; category: string; price: string; rating: string; visited: string; photo: string;
+  location: string; city: string; category: string; price: string; rating: string; visited: string; photo: string; closed: string;
 }
 
 export type MapsApp = "google" | "apple" | "organic";
