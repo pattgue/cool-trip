@@ -34,8 +34,8 @@ Plan each trip in one Obsidian note: a boarding-pass cover, a day-by-day plan wi
 
   ![The trips and places bases with Cool Bases](docs/img/bases.webp)
 
-## What's new in 1.1.0
-
+## What's new
+### 1.1.0
 - **Campsites** are now a place type of their own, with a tent icon. Hostels, apartments, B&Bs and more are recognised as lodging too.
 - **Cool Bases look right away:** turn on Cool Bases and your trips and places bases switch to its design, no restart needed.
 - **Packing list groups:** each `###` heading in the packing list becomes a group. Optional, in Settings → 1.
