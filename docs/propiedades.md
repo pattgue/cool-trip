@@ -41,7 +41,7 @@ Se elige **una** de estas tres formas por tipo de nota:
 | Propiedad | Formato | ¿Obligatoria? | Para qué sirve |
 |---|---|---|---|
 | `inicio` · `start` | fecha | **sí** | Primer día. Crea los días del plan, la cuenta atrás y el orden en las bases. |
-| `fin` · `end` | fecha | **sí** | Último día. Noches, días, «próximos» o «viajados» en la base. |
+| `fin` · `end` | fecha | no | Último día. Noches, días, «próximos» o «viajados» en la base. Vacía, el viaje no tiene vuelta (solo ida, o aún no se sabe): el billete pone «Vuelta: —», el plan llega hasta el último día que tenga algo y en la base sigue en «Próximos». |
 | `destinos` · `destinations` | lista de ciudades | **sí** | Las ciudades en orden: billete, reparto de noches, color de cada destino y qué lugares sugiere. |
 | `viajeros` · `travelers` | lista de nombres | no | Para repartir billetes, documentos y gastos («para Ana»), y para filtrar en las bases. |
 | `portada` · `cover` | imagen | no | Solo si la portada es una foto. El color del billete va dentro de la nota. |

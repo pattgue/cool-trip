@@ -55,6 +55,23 @@ ok("se conserva lo que no es de Cool Trip", out1.includes("Notas sueltas que esc
 const b = md.blankTrip("2026 - Roma", "2026-12-01", "2026-12-05", [{ city: "Roma", country: "Italia", nights: 0, travelers: ["Patt"] }], ["Patt"], "bermellón");
 const ob = md.serializeTrip(b, S);
 ok("viaje nuevo", ob.includes("> Roma · Italia · 4 noches · Patt") && ob.includes("### Mar 1 dic · Roma") && ob.includes("### Sáb 5 dic · Roma"), "\n" + ob);
+/* sin vuelta: la fecha de vuelta se queda vacía y el plan llega hasta el último día que tenga algo */
+const ow = md.blankTrip("2026 - Lisboa", "2026-12-01", "", [{ city: "Lisboa", country: "Portugal", nights: 0, travelers: ["Patt"] }], ["Patt"], "cielo");
+const owOut = md.serializeTrip(ow, S);
+ok("sin vuelta: viaje nuevo", ow.open && ow.end === "2026-12-01" && ow.days.length === 1 && !/^fin:/m.test(owOut) && /^inicio:.*2026-12-01/m.test(owOut), "\n" + owOut);
+const owNote = "---\ntipo: viaje\ninicio: 2026-12-01\ndestinos: Lisboa\n---\n## Plan\n\n### Mar 1 dic · Lisboa\n\n### Vie 4 dic · Lisboa\n- [ ] 10:00 [[Torre de Belém]]\n";
+const ow2 = md.parseTrip(owNote, "x", S);
+ok("sin vuelta: hasta el último día con algo", ow2.open && ow2.end === "2026-12-04" && ow2.days.length === 4 && ow2.days[3].items.length === 1, ow2.end + " " + ow2.days.length);
+const ow3 = md.parseTrip(owNote + "- **[[Hotel Tejo]]** · alojamiento\n    - Check-out: mié 9 dic · 11:00\n", "x", S);
+md.serializeTrip(ow3, S);
+ok("sin vuelta: la salida del alojamiento cuenta", ow3.end === "2026-12-09" && ow3.days.length === 9 && ow3.dests[0].nights === 8 && md.parseTrip(md.serializeTrip(ow3, S), "x", S).dests[0].nights === 8, ow3.end + " " + JSON.stringify(ow3.dests));
+ok("sin vuelta: se escribe sin «fin»", !/^fin:/m.test(md.serializeTrip(ow2, S)));
+md.redate(ow2, "2026-12-01", "2026-12-06");
+const ow4 = md.parseTrip(md.serializeTrip(ow2, S), "x", S);
+ok("poner la vuelta", !ow4.open && ow4.end === "2026-12-06" && ow4.days.length === 6, ow4.end);
+md.redate(ow4, "2026-12-01", "");
+const ow5out = md.serializeTrip(ow4, S), ow5 = md.parseTrip(ow5out, "x", S);
+ok("quitar la vuelta", ow5.open && ow5.end === "2026-12-04" && !/^fin:/m.test(ow5out) && ow5.days.length === 4, ow5.end + "\n" + ow5out);
 /* añadidos de la 0.1.2: documentos con varios sitios y viajeros, moneda, alojamiento sin nota, sugerencias ocultas */
 const docs = md.parseDocs("DNI (en papel · Wallet · para Ana) · [Billete · Leo](https://x.y/z) (en papel) · Seguro (Mapfre)");
 ok("documento con varios sitios", docs[0].name === "DNI" && docs[0].where === "paper" && docs[0].also.join() === "wallet" && docs[0].para.join() === "Ana", JSON.stringify(docs[0]));

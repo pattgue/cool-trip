@@ -326,6 +326,22 @@ export function citiesOfDay(t: Trip, date: string): Dest[] {
   return [t.dests[t.dests.length - 1]];
 }
 export const tripDates = (t: Trip) => range(t.start, t.end);
+/* sin vuelta, el viaje llega hasta el último día del plan que tenga algo (también la llegada de un transporte o la salida de un
+   alojamiento que se reservaron otro día) */
+function lastDay(start: string, days: Day[]): string {
+  let end = start;
+  const later = (d: string) => { if (isIso(d) && d > end && diffDays(start, d) < 400) end = d; };
+  for (const d of days) {
+    if (!isIso(d.date) || d.date < start) continue;
+    if (d.items.length || d.raw.some(l => l.trim() && !/^###/.test(l))) later(d.date);
+    for (const it of d.items) for (const k of ["arrive", "checkout"]) later(splitWhen(field(it, k), start).date);
+  }
+  return end;
+}
+/* con la vuelta sin fecha, el plan se vuelve a ajustar cada vez que cambia */
+export function settleOpen(t: Trip) {
+  if (t.open && isIso(t.start)) redate(t, t.start, "");
+}
 
 /* los nombres de las propiedades del viaje tal y como los usa esta nota */
 const props = (s: Settings, fm: Record<string, unknown>) =>
@@ -345,6 +361,7 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
   const P = props(s, t.fm);
   t.start = toIso(t.fm[P.start]);
   t.end = toIso(t.fm[P.end]) || t.start;
+  t.open = isIso(t.start) && !toIso(t.fm[P.end]);
   t.travelers = toList(t.fm[P.travelers]);
   t.cover = typeof t.fm[P.cover] === "string" ? String(t.fm[P.cover]) : "";
   const bk = oldBudget(s), bv = bk ? t.fm[bk] : null;
@@ -432,6 +449,7 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
     const c = calloutDests.find(d => low(d.city) === low(city));
     return { city, country: c?.country || "", nights: c?.nights || 0, travelers: c ? c.travelers : [...t.travelers] };
   });
+  if (t.open) t.end = lastDay(t.start, parsedDays);
   balanceNights(t);
 
   /* días: uno por fecha del viaje; lo que no encaja se queda al final */
@@ -479,8 +497,9 @@ export function serializeTrip(t: Trip, s: Settings): string {
     if (!k || toList(fm[k]).join("\u0000") === v.join("\u0000")) return;
     put(k, v.length > 0, typeof fm[k] === "string" ? v.join(", ") : v);
   };
+  settleOpen(t);
   date(P.start, t.start);
-  date(P.end, t.end);
+  if (t.open) put(P.end, false, null); else date(P.end, t.end);
   list(P.destinations, t.dests.map(d => d.city));
   list(P.travelers, [...t.travelers]);
   /* la portada solo es propiedad si es una imagen; el color va en el bloque del viaje */
@@ -561,16 +580,18 @@ export function addPackList(t: Trip, list: { items: Task[]; groups: string[] }, 
 
 /* un viaje nuevo (Nuevo viaje) */
 export function blankTrip(name: string, start: string, end: string, dests: Dest[], travelers: string[], cover: string, accent = ""): Trip {
-  const t: Trip = { fm: {}, name, start, end, dests, travelers, cover, budget: 0, accent, mochila: [], packing: [], packGroups: [], packRaw: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
+  const t: Trip = { fm: {}, name, start, end: isIso(end) ? end : start, open: isIso(start) && !isIso(end), dests, travelers, cover, budget: 0, accent, mochila: [], packing: [], packGroups: [], packRaw: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
   balanceNights(t);
   t.days = tripDates(t).map(date => ({ date, items: [], raw: [] }));
   return t;
 }
 /* las fechas cambian: los días se recolocan (lo que cae fuera se conserva al final) */
+/* sin vuelta («end» vacío), el viaje llega hasta el último día que tenga algo */
 export function redate(t: Trip, start: string, end: string) {
   const keep = new Map(t.days.filter(d => d.date).map(d => [d.date, d] as const));
   const others = t.days.filter(d => !d.date);
-  t.start = start; t.end = end < start ? start : end;
+  t.open = !isIso(end);
+  t.start = start; t.end = t.open ? lastDay(start, t.days) : end < start ? start : end;
   balanceNights(t);
   const dates = tripDates(t);
   t.days = dates.map(date => keep.get(date) || { date, items: [], raw: [] });

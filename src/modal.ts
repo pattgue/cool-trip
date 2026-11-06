@@ -58,8 +58,8 @@ export class NewTripModal extends Modal {
   private async create() {
     const tr = this.trip, s = this.plugin.settings;
     if (!tr.dests.length) { new Notice(t("new.needDest")); return; }
-    if (!isIso(tr.start) || !isIso(tr.end)) { new Notice(t("new.needDates")); return; }
-    const done = blankTrip(tr.name || tr.dests[0].city, tr.start, tr.end, tr.dests, tr.travelers, tr.cover, paletteId(tr.cover) ? "" : tr.accent);
+    if (!isIso(tr.start)) { new Notice(t("new.needDates")); return; }
+    const done = blankTrip(tr.name || tr.dests[0].city, tr.start, tr.open ? "" : tr.end, tr.dests, tr.travelers, tr.cover, paletteId(tr.cover) ? "" : tr.accent);
     const folder = tripFolder(s);
     const path = normalizePath((folder ? folder + "/" : "") + done.name.replace(/[\\/:*?"<>|]/g, "") + ".md");
     if (this.app.vault.getAbstractFileByPath(path)) { new Notice(t("new.exists")); return; }

@@ -68,7 +68,8 @@ export interface Trip {
   fmRaw?: { text: string; snap: string };   // las propiedades tal como estaban escritas (si no cambian, se dejan igual)
   name: string;                // el nombre de la nota
   start: string;               // AAAA-MM-DD
-  end: string;
+  end: string;                 // el último día; sin vuelta, el último día del plan que tenga algo
+  open?: boolean;              // sin fecha de vuelta (solo ida, o aún no se sabe cuándo se vuelve)
   dests: Dest[];
   travelers: string[];
   cover: string;               // nombre de la paleta, o ruta / URL de una imagen

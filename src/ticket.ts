@@ -90,21 +90,23 @@ function removeTraveler(ctx: TicketCtx, name: string) {
   for (const d of tr.dests) d.travelers = d.travelers.filter(x => x !== name);
   ctx.changed();
 }
+/* la vuelta puede quedarse vacía (solo ida, o sin saber aún cuándo se vuelve): «end» vacío */
+const back = (tr: Trip) => tr.open ? "" : tr.end;
 function setDates(ctx: TicketCtx, start: string, end: string) {
   if (!isIso(start)) return;
-  if (!isIso(end) || end < start) end = start;
+  if (isIso(end) && end < start) end = start;
   if (ctx.mode === "note") redate(ctx.trip, start, end);
-  else { ctx.trip.start = start; ctx.trip.end = end; balanceNights(ctx.trip); }
+  else { ctx.trip.start = start; ctx.trip.open = !isIso(end); ctx.trip.end = isIso(end) ? end : start; balanceNights(ctx.trip); }
   ctx.changed();
 }
 
 /* un campo de fecha: se ve el texto bonito y encima, invisible, el selector de fecha del sistema */
-function dateField(ctx: TicketCtx, lbl: string, value: string, set: (v: string) => void, size: "lg" | "md" | "sm"): HTMLElement {
+function dateField(ctx: TicketCtx, lbl: string, value: string, set: (v: string) => void, size: "lg" | "md" | "sm", clearable = false): HTMLElement {
   if (!editable(ctx)) return staticField(lbl, value ? (size === "lg" ? longDate(value) : dayLabel(value)) : "—", size);
   const tap = Platform.isMobile;
   const input = h("input", { cls: "ct-date-input" + (tap ? " is-tap" : ""), attr: tap ? { type: "date", value, "aria-label": lbl } : { type: "date", value, tabindex: "-1", "aria-hidden": "true" } });
   let last = value;
-  const pick = () => { if (input.value && input.value !== last) { last = input.value; set(input.value); } };
+  const pick = () => { if ((input.value || clearable) && input.value !== last) { last = input.value; set(input.value); } };
   input.addEventListener("change", pick);
   input.addEventListener("blur", pick);
   const text = value ? (size === "lg" ? longDate(value) : dayLabel(value)) : "—";
@@ -122,6 +124,7 @@ function countdown(tr: Trip, big: boolean): HTMLElement {
   const today = todayIso();
   let n = "", txt = "";
   if (isIso(tr.start) && today < tr.start) { n = String(diffDays(today, tr.start)); txt = t("days.to"); }
+  else if (isIso(tr.start) && tr.open) { n = String(diffDays(tr.start, today) + 1); txt = t("days.open"); }      /* sin vuelta: el día del viaje, sin final */
   else if (isIso(tr.start) && isIso(tr.end) && today <= tr.end) { n = String(diffDays(tr.start, today) + 1); txt = t("days.during", { m: tripDates(tr).length }); }
   else if (isIso(tr.end)) { txt = t("trip.done"); }
   return h("div", { cls: "ct-countdown" + (big ? " is-big" : "") },
@@ -256,12 +259,12 @@ function desktop(ctx: TicketCtx): HTMLElement {
     h("div", { cls: "ct-cover-top" }, kicker(t("new.destinations")), destBtn(ctx, true)),
     h("div", { cls: "ct-cities" }, cities));
   coverStyle(ctx, header);
-  const nights = nightsTotal(tr), days = tripDates(tr).length;
+  const nights = nightsTotal(tr), days = tripDates(tr).length, known = days && !tr.open;
   const fields = h("div", { cls: "ct-fields" },
-    dateField(ctx, t("new.depart"), tr.start, v => setDates(ctx, v, tr.end), "lg"),
-    dateField(ctx, t("new.return"), tr.end, v => setDates(ctx, tr.start, v), "lg"),
-    staticField(t("new.days"), days ? String(days) : "—", "lg"),
-    staticField(t("new.nights"), days ? String(nights) : "—", "lg"));
+    dateField(ctx, t("new.depart"), tr.start, v => setDates(ctx, v, back(tr)), "lg"),
+    dateField(ctx, t("new.return"), back(tr), v => setDates(ctx, tr.start, v), "lg", true),
+    staticField(t("new.days"), known ? String(days) : "—", "lg"),
+    staticField(t("new.nights"), known ? String(nights) : "—", "lg"));
   const reparto = tr.dests.length ? h("div", { cls: "ct-reparto" }, label(t("new.split")), days ? strip(ctx) : null, destRows(ctx, false)) : null;
   const main = h("div", { cls: "ct-ticket-main" }, header, h("div", { cls: "ct-ticket-body" }, fields, reparto));
   /* en la nota, el lápiz de arriba a la derecha desbloquea la portada (y el ✓ la vuelve a sellar) */
@@ -320,10 +323,10 @@ function phone(ctx: TicketCtx): HTMLElement {
   if (create) {
     const body = h("div", { cls: "ct-phone-body" }, noteName(ctx, true),
       h("div", { cls: "ct-fields ct-fields-2" },
-        dateField(ctx, t("new.depart"), tr.start, v => setDates(ctx, v, tr.end), "md"),
-        dateField(ctx, t("new.return"), tr.end, v => setDates(ctx, tr.start, v), "md"),
-        staticField(t("new.days"), days ? String(days) : "—", "md"),
-        staticField(t("new.nights"), days ? String(nightsTotal(tr)) : "—", "md")));
+        dateField(ctx, t("new.depart"), tr.start, v => setDates(ctx, v, back(tr)), "md"),
+        dateField(ctx, t("new.return"), back(tr), v => setDates(ctx, tr.start, v), "md", true),
+        staticField(t("new.days"), days && !tr.open ? String(days) : "—", "md"),
+        staticField(t("new.nights"), days && !tr.open ? String(nightsTotal(tr)) : "—", "md")));
     editor.appendChild(barcode(plain(tr.name).replace(/\W/g, "").toUpperCase() || "COOLTRIP",
       ["CT", isIso(tr.start) ? tr.start.slice(0, 4) : "", ...tr.dests.slice(0, 3).map(d => plain(d.city).slice(0, 3).toUpperCase())].filter(Boolean).join(" · ")));
     editor.appendChild(button([h("span", null, t("new.create")), icon("arrow-right")], "ct-btn-primary ct-btn-create", () => ctx.create?.()));
@@ -331,9 +334,9 @@ function phone(ctx: TicketCtx): HTMLElement {
   }
   /* nota: compacta; el lápiz despliega lo mismo que en «Nuevo viaje» */
   const cells = h("div", { cls: "ct-phone-cells" },
-    dateField(ctx, t("new.depart"), tr.start, v => setDates(ctx, v, tr.end), "sm"),
-    dateField(ctx, t("new.return"), tr.end, v => setDates(ctx, tr.start, v), "sm"),
-    staticField(t("new.days"), days ? String(days) : "—", "sm"),
+    dateField(ctx, t("new.depart"), tr.start, v => setDates(ctx, v, back(tr)), "sm"),
+    dateField(ctx, t("new.return"), back(tr), v => setDates(ctx, tr.start, v), "sm", true),
+    staticField(t("new.days"), days && !tr.open ? String(days) : "—", "sm"),
     staticField(t("new.travelers"), h("span", { cls: "ct-faces" }, tr.travelers.map((p, k) => avatar(p, k, "ct-avatar ct-avatar-face"))), "sm"),
     iconButton(ctx.expanded ? "chevron-down" : "pencil", t("editCover"), () => ctx.toggleExpanded?.(), "ct-ibtn ct-ibtn-sm"));
   const stub = h("div", { cls: "ct-phone-count" }, countdown(tr, true),

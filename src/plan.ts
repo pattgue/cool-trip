@@ -138,7 +138,7 @@ function rowsOf(tr: Trip, di: number, spans: LodgingSpan[]): Row[] {
   const cs = citiesOfDay(tr, date);
   if (date === tr.start && !leaves) extra.push({ r: "transport", time: "00:00", which: "out", to: tr.dests[0]?.city });
   else if (cs.length > 1 && !leaves) extra.push({ r: "transport", time: "11:30", which: "change", from: cs[0].city, to: cs[cs.length - 1].city });
-  if (date === tr.end && date !== tr.start && !leaves) extra.push({ r: "transport", time: "23:59", which: "back", from: tr.dests[tr.dests.length - 1]?.city });
+  if (date === tr.end && date !== tr.start && !leaves && !tr.open) extra.push({ r: "transport", time: "23:59", which: "back", from: tr.dests[tr.dests.length - 1]?.city });
 
   /* se mezclan por hora (a igual hora, primero lo escrito) */
   const out: Row[] = [];
@@ -494,8 +494,8 @@ function dayEl(ctx: PlanCtx, di: number, spans: LodgingSpan[]): HTMLElement {
   const cs = inTrip ? citiesOfDay(tr, date) : [];
   const rows = rowsOf(tr, di, spans);
   const empty = !day.items.length;
-  const sub = !inTrip ? t("day.out") : n === 1 ? t("day.first", { n: total }) : [t("day", { n }),
-    cs.length > 1 ? t("day.change") : n === total ? t("day.back") : empty ? t("day.empty") : ""].filter(Boolean).join(" · ");
+  const sub = !inTrip ? t("day.out") : n === 1 ? (tr.open ? t("day", { n }) : t("day.first", { n: total })) : [t("day", { n }),
+    cs.length > 1 ? t("day.change") : n === total && !tr.open ? t("day.back") : empty ? t("day.empty") : ""].filter(Boolean).join(" · ");
   const badge = h("span", { cls: "ct-badge" + (empty ? " is-small" : "") },
     h("span", { cls: "ct-badge-wd" }, isIso(date) ? weekday(date) : "?"), h("span", { cls: "ct-badge-n" }, isIso(date) ? String(dayNum(date)) : "?"));
   badge.setCssProps({ "--ct-day-a": destHex(Math.max(0, tr.dests.indexOf(cs[0]))), "--ct-day-b": destHex(Math.max(0, tr.dests.indexOf(cs[cs.length - 1]))) });

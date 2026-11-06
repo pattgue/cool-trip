@@ -91,7 +91,9 @@ function trips(tab: CoolTripSettingTab) {
     const fm: Record<string, unknown> = tab.app.metadataCache.getFileCache(f)?.frontmatter || {};
     const get = (k: keyof PropNames): unknown => fm[propKey(s, k, fm)];
     const str = (v: unknown) => typeof v === "string" ? v : "";
-    return { name: f.basename, start: str(get("start")), end: str(get("end")), dests: toList(get("destinations")), travelers: toList(get("travelers")), cover: str(get("cover")) };
+    /* sin vuelta, el viaje dura hasta hoy (como en la base) */
+    const start = str(get("start")), today = new Date().toISOString().slice(0, 10);
+    return { name: f.basename, start, end: str(get("end")) || (start > today ? start : today), dests: toList(get("destinations")), travelers: toList(get("travelers")), cover: str(get("cover")) };
   }).filter(tr => tr.start).sort((a, b) => a.start.localeCompare(b.start));
   if (list.length) {
     const today = new Date().toISOString().slice(0, 10), next = list.filter(tr => (tr.end || tr.start) >= today);

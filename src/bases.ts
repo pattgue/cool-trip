@@ -49,6 +49,9 @@ const nv = (p: string) => { const t = twinProp(p); return t ? `if(${note(p)}, ${
 const chain = (cases: [string, string][], last: string) => cases.reduceRight((acc, [c, v]) => `if(${c}, ${v}, ${acc})`, last);
 const DAY = 86400000;
 const days = (a: string, b: string) => `((number(${a}) - number(${b})) / ${DAY}).round()`;
+/* el último día del viaje; sin vuelta, hoy mientras dura (el viaje sigue en «Próximos» y no pasa a «Viajados») */
+const lastDay = (P: Settings["props"], S: string) => P.end
+  ? `(if(${nv(P.end)}, date(${nv(P.end)}), if(${S} > today(), ${S}, today())))` : S;
 
 /* el filtro de la base: cómo reconoce los ajustes cada tipo de nota. Con «tipo: viaje», también «type: trip» (lo mismo que
    reconoce Cool Trip: el móvil y el ordenador pueden tener Obsidian en idiomas distintos) y sin distinguir mayúsculas */
@@ -72,7 +75,7 @@ export function oldFilter(r: Recog): string {
 /* trips: el color de cada viaje (lo escribe Cool Trip en la base, porque el color va dentro de la nota, no en una propiedad) */
 function tripFormulas(s: Settings, trips: { path: string; color: string }[] = []): Record<string, string> {
   const P = s.props, w = words();
-  const S = `date(${nv(P.start)})`, E = `date(${nv(P.end || P.start)})`;
+  const S = `date(${nv(P.start)})`, E = lastDay(P, S);
   const cover = P.cover ? nv(P.cover) : '""';
   /* pal: una portada que es el nombre de un color (o ninguna); si no, la portada es una foto */
   const pal = chain([[`!${cover}`, q(HEX.bermellon)], ...PAL_RE.map(([id, re]) => [`/${re}/i.matches(${cover}.toString())`, q(HEX[id])] as [string, string])], '""');
@@ -163,15 +166,15 @@ function ticketModel(s: Settings): Record<string, unknown> {
 
 export function tripsBase(s: Settings, env: BaseEnv, trips: { path: string; color: string }[] = []): BaseDoc {
   const P = s.props, v = viewNames();
-  const S = nv(P.start), E = nv(P.end || P.start);
+  const S = nv(P.start), E = lastDay(P, `date(${S})`);
   const cards = (name: string, filter: string, o: Record<string, unknown>, ratio: number, lines: string[]): View => env.cool
     ? { type: "cool-bases", name, filters: { and: [filter] }, ...o, order: ["file.name"], coolbases: ticketModel(s) }
     : { type: "cards", name, filters: { and: [filter] }, ...o, order: ["file.name", ...lines], image: "formula.cover", imageFit: "cover", imageAspectRatio: ratio, cardSize: 240 };
   const dests = "note." + P.destinations, who = P.travelers ? "note." + P.travelers : null;
   const views: View[] = [
-    cards(v.upcoming, `date(${E}) >= today()`, { sort: [{ property: `note.${P.start}`, direction: "ASC" }] }, 0.48,
+    cards(v.upcoming, `${E} >= today()`, { sort: [{ property: `note.${P.start}`, direction: "ASC" }] }, 0.48,
       ["formula.when", "formula.datesNights", dests, who].filter((x): x is string => !!x)),
-    cards(v.travelled, `date(${E}) < today()`, { groupBy: { property: "formula.year", direction: "DESC" }, sort: [{ property: `note.${P.start}`, direction: "DESC" }] }, 0.4,
+    cards(v.travelled, `${E} < today()`, { groupBy: { property: "formula.year", direction: "DESC" }, sort: [{ property: `note.${P.start}`, direction: "DESC" }] }, 0.4,
       ["formula.datesYear", "formula.nightsWho"]),
     { type: "table", name: v.all, order: ["file.name", "formula.datesYear", "formula.nights", dests, who, "formula.when"].filter(Boolean),
       sort: [{ property: `note.${P.start}`, direction: "DESC" }], summaries: { "formula.nights": "Sum" } },
