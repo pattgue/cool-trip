@@ -64,6 +64,19 @@
 .ct-pack-item:hover .ct-pack-x { opacity: 1; }
 .ct-pack-input { height: 30px; font-size: 12px; background: transparent !important; }
 .is-mobile .ct-pack-x { opacity: .7; }
+/* los grupos de la maleta («### Ropa»): su nombre con la cuenta, sus pastillas y un «+» que se abre en un campo */
+.ct-pack-group { display: flex; flex-direction: column; gap: 6px; }
+.ct-pack-group + .ct-pack-group, .ct-pack-list + .ct-pack-group { padding-top: 8px; border-top: 1px dashed color-mix(in srgb, var(--ct-strong) 14%, transparent); }
+.ct-pack-group-head { display: flex; align-items: center; gap: 6px; min-height: 22px; }
+.ct-pack-group-name { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ct-strong); overflow-wrap: anywhere; }
+.ct-pack-group-head:hover .ct-hover { opacity: 1; }
+.ct-pack-plus { all: unset; box-sizing: border-box; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; cursor: pointer;
+  border: 1.5px dashed color-mix(in srgb, var(--ct-muted) 55%, transparent); color: var(--ct-muted); background: transparent !important; box-shadow: none !important; }
+.ct-pack-plus:hover { color: var(--ct-strong); border-color: var(--ct-muted); }
+.ct-pack-plus .ct-ico svg { width: 12px; height: 12px; }
+.ct-root .ct-pack-input.is-inline { width: 150px; height: 26px !important; padding: 0 10px !important; border-radius: 999px !important; font-size: 12px !important; }
+.ct-view.is-phone .ct-pack-input.is-inline { height: 30px !important; font-size: 16px !important; }      /* 16px: así iOS no hace zoom al escribir */
+.ct-pack-acts { display: flex; flex-wrap: wrap; gap: 6px; }
 .ct-task-due.is-soon { color: color-mix(in srgb, var(--ct-mustard) 55%, var(--ct-berm)); }
 /* el presupuesto: un botón propio (no edita la caja) y su barra, blanca hasta que queda poco */
 .ct-cost-budget { --ct-budget: var(--text-normal); }

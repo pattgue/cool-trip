@@ -79,7 +79,7 @@ Se puede desactivar.
 |---|---|
 | `> [!cool-trip\|color] Nombre` | El nombre del viaje y su color. Debajo, una línea por destino (`Kioto · Japón · 3 noches · Ana`) y el presupuesto (`> Presupuesto: 1500`). |
 | `## Mochila` · `## Bag` | Los documentos: dónde están (nube, Wallet, vault, dispositivo, papel) y para quién. |
-| `## Maleta` · `## Packing` | Lo que hay que meter: `- [x]` ya está dentro, `- [ ]` falta. |
+| `## Maleta` · `## Packing` | Lo que hay que meter: `- [x]` ya está dentro, `- [ ]` falta. Cada `### Ropa` de dentro es un grupo (se ven como grupos si están activados en Ajustes › 1; si no, se guardan igual). |
 | `## Por hacer` · `## To do` | Tus tareas, con fecha límite opcional `📅 2026-11-02`. |
 | `## Plan` | Un `###` por día con sus pasos: lugares, comidas, transporte, alojamiento, entradas, notas. Cada paso puede llevar hora, precio (con `· por pagar` si falta pagarlo), «para» quién y sus documentos. |
 
@@ -127,4 +127,5 @@ orden. Con varios tipos («Bar, Restaurante»), manda el primero que escribes. S
 | `trophy` | #B8C26A | ver | estadio, stadium, deporte, sport, futbol, football |
 | `droplets` | #A6DCD8 | ver | onsen, spa, baños, bath, termas |
 | `signpost` | #B9B4AA | pasear | cruce, crossing, plaza, square, calle, street, barrio, neighbo |
-| `bed` | #8FD8C4 | dormir | hotel, alojamiento, hostal, ryokan, apartamento, lodging, hostel |
+| `tent` | #6FAF7A | dormir | camping, cámping, campsite, campground, glamping, acampada |
+| `bed` | #8FD8C4 | dormir | hotel, alojamiento, hostal, albergue, ryokan, apartamento, apartment, piso, airbnb, casa rural, guesthouse, guest house, b&b, lodging, hostel, inn, motel |

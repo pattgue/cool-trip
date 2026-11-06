@@ -52,6 +52,14 @@ export function stepNotes(tab: CoolTripSettingTab, body: HTMLElement) {
   /* las notas de lugar con el diseño de Cool Trip (opcional) */
   body.appendChild(h("label", { cls: "ct-set-card is-check" + (s.placeView ? " is-on" : "") }, tab.check(s.placeView, v => { s.placeView = v; tab.save(); tab.display(); tab.plugin.syncLeaves(); }),
     h("span", { cls: "ct-set-card-text" }, h("span", { cls: "ct-set-opt-title" }, h("b", null, t("pl.view"))), h("span", null, t("pl.viewD")))));
+  /* la maleta: grupos y listas típicas (opcionales) */
+  const P = s.pack, redraw = () => { tab.save(); tab.display(); tab.plugin.redrawTrips(); };
+  body.appendChild(h("label", { cls: "ct-set-card is-check" + (P.groups ? " is-on" : "") }, tab.check(P.groups, v => { P.groups = v; redraw(); }),
+    h("span", { cls: "ct-set-card-text" }, h("span", { cls: "ct-set-opt-title" }, h("b", null, t("pk.groups"))), h("span", null, t("pk.groupsD")))));
+  body.appendChild(h("label", { cls: "ct-set-card is-check" + (P.lists ? " is-on" : "") }, tab.check(P.lists, v => { P.lists = v; redraw(); }),
+    h("span", { cls: "ct-set-card-text" }, h("span", { cls: "ct-set-opt-title" }, h("b", null, t("pk.lists"))), h("span", null, t("pk.listsD")),
+      P.lists ? h("div", { cls: "ct-f" }, h("span", { cls: "ct-label" }, t("pk.folder")),
+        tab.folderPicker(P.folder, v => { P.folder = v; tab.save(); tab.display(); }, t("pk.folder"))) : null)));
 }
 
 /* el explorador de archivos con la organización automática (el ejemplo del boceto) */

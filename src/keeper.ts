@@ -2,7 +2,8 @@
    - Sus fórmulas (el color de cada viaje, el país de cada ciudad…) y el CSS de su billete, de la versión de ahora.
    - El color de cada billete en las vistas de Cool Bases (el bloque marcado de su CSS libre).
    - La vista de cada ciudad nueva en la base de lugares (una sola vez: si la borras, no vuelve).
-   También crea las bases y les añade el mapa o el diseño de Cool Bases cuando se instalan esos plugins. */
+   También crea las bases y, en cuanto se activa Cool Bases o Maps (aunque Obsidian ya esté abierto), les pone su diseño o su
+   mapa: solo a las vistas que creó Cool Trip, y una vez por activación (si después vuelves una vista a tarjetas, se queda así). */
 import { getIcon, normalizePath, parseYaml, stringifyYaml, TFile } from "obsidian";
 import type { App } from "obsidian";
 import type CoolTripPlugin from "./main";
@@ -91,6 +92,7 @@ export class BaseKeeper {
     if (kind === "trips") syncBase(doc, kind, s, env, { colors: await this.colors() });
     if (!(this.app.vault.getAbstractFileByPath(path) instanceof TFile)) await this.app.vault.create(normalizePath(path), stringifyYaml(doc));
     s.basesMade[kind] = path;
+    s.basesEnv = { cool: env.cool, maps: env.maps };
     if (kind === "places") s.baseCities = [...new Set([...s.baseCities, ...cities.map(c => c.toLowerCase())])];
     await this.plugin.saveSettings();
   }
@@ -162,6 +164,30 @@ export class BaseKeeper {
     return out;
   }
 
+  /* ---------- al activar o desactivar Cool Bases o Maps: Obsidian no avisa, así que se mira cada pocos segundos ---------- */
+  private lastEnv = "";
+  watchPlugins() {
+    const now = () => { const e = this.env(); return `${e.cool}|${e.maps}`; };
+    this.lastEnv = now();
+    this.plugin.registerInterval(window.setInterval(() => {
+      const e = now();
+      if (e !== this.lastEnv) { this.lastEnv = e; this.schedule(); }
+    }, 3000));
+  }
+  /* lo que pasa al activar uno de los dos: las tarjetas de Cool Trip pasan a Cool Bases; la base de lugares gana el mapa */
+  private async plugins(): Promise<void> {
+    const s = this.plugin.settings, env = this.env(), was = s.basesEnv;
+    if (was.cool === env.cool && was.maps === env.maps) return;
+    for (const kind of ["trips", "places"] as const) {
+      if (!this.file(kind)) continue;
+      const m = await this.missing(kind);
+      const what = { useCool: env.cool && !was.cool && m.cool, addMap: env.maps && !was.maps && m.map };
+      if (what.useCool || what.addMap) await this.upgrade(kind, what);
+    }
+    s.basesEnv = { cool: env.cool, maps: env.maps };
+    await this.plugin.saveSettings();
+  }
+
   /* ---------- al cambiar el vault (con un respiro, para no escribir a cada tecla) ---------- */
   schedule() {
     window.clearTimeout(this.timer);
@@ -172,6 +198,7 @@ export class BaseKeeper {
     if (this.running) { this.schedule(); return; }
     this.running = true;
     try {
+      await this.plugins();
       const s = this.plugin.settings, env = this.env();
       if (this.file("trips")) {
         const hexes = await this.tripHexes(), colors = tripColorsCss(hexes);

@@ -17,12 +17,14 @@ export interface Settings {
   placeFolder: string;         // dónde se guardan los lugares nuevos (con organización automática, + /Ciudad)
   autoOrganize: boolean;
   placeView: boolean;          // las notas de lugar, con el diseño de Cool Trip
+  pack: { groups: boolean; lists: boolean; folder: string };   // la maleta: grupos («### Ropa») y «Cargar lista» (de la carpeta elegida; «» = todo el vault)
   props: PropNames;
   files: { cloud: boolean; wallet: boolean; device: boolean; vault: boolean; vaultFolder: string };
   maps: { app: MapsApp; modes: string[]; geocode: boolean };   // geocode: buscar las coordenadas de los lugares en OpenStreetMap
   bases: { trips: string; places: string };   // la carpeta de cada base («» = raíz)
   baseCities: string[];        // las ciudades que ya tienen (o tuvieron) su vista en la base de lugares, en minúsculas
   basesMade: { trips: string; places: string };   // el archivo de cada base que ya creó Cool Trip («» = ninguno)
+  basesEnv: { cool: boolean; maps: boolean };     // si Cool Bases y Maps estaban activados la última vez que se revisaron las bases
   done: number[];              // pasos de los ajustes ya hechos (con «Siguiente»: número en verde)
   countries: Record<string, string>;   // el país de cada ciudad que ya has usado (para ponerlo solo)
   language: "es" | "en";       // el idioma con el que se crearon las sugerencias
@@ -33,7 +35,7 @@ export interface Settings {
 export type Where = "cloud" | "wallet" | "device" | "vault" | "paper";
 /* un documento: dónde está (el primero manda: su enlace o su etiqueta), en qué otros sitios lo llevas y de quién es */
 export interface Doc { name: string; where: Where; url: string; also: Where[]; para: string[] }
-export interface Task { text: string; done: boolean; due?: string }   // due: fecha límite (AAAA-MM-DD)
+export interface Task { text: string; done: boolean; due?: string; group?: string }   // due: fecha límite (AAAA-MM-DD); group: el grupo de la maleta («### Ropa»)
 export interface Dest { city: string; country: string; nights: number; travelers: string[] }
 
 export type TransportKind = "flight" | "train" | "bus" | "car" | "boat";
@@ -75,6 +77,8 @@ export interface Trip {
   mochila: Doc[];
   tasks: Task[];
   packing: Task[];             // la maleta: hecho = ya dentro
+  packGroups: string[];        // los grupos de la maleta («### Ropa»), en su orden (también los vacíos)
+  packRaw: string[];           // lo demás que haya escrito en la maleta (se respeta, al final de la sección)
   hidden: string[];            // sugerencias de «Por hacer» que se han quitado (no vuelven a salir)
   days: Day[];                 // uno por fecha, más los que quedaron fuera de las fechas
   intro: string[];             // lo que haya antes de las secciones (se respeta)

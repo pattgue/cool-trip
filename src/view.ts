@@ -8,6 +8,7 @@ import { t } from "./i18n";
 import { isIso } from "./dates";
 import { parseTrip, serializeTrip } from "./md";
 import { allPlaces, createPlace, resolve, walletUrl } from "./places";
+import { loadPackList } from "./pack-lists";
 import type { PlaceInfo } from "./places";
 import { locate } from "./geo";
 import { fitRoutes, plan } from "./plan";
@@ -143,6 +144,7 @@ export class TripView extends TextFileView {
       collapsed: this.collapsed, folded: this.folded,
       bagDraft: this.bagDraft,
       setBagDraft: (d, redraw = true) => { this.bagDraft = d; if (redraw) this.render(); },
+      loadPackList: () => loadPackList(this.app, this.plugin.settings, () => this.trip, file, () => this.commit()),
       docAdd: this.docAdd,
       setDocAdd: (d, redraw = true) => { this.docAdd = d; if (redraw) this.render(); },
       move: (a, ai, b, bi) => this.move(a, ai, b, bi),
@@ -155,8 +157,8 @@ export class TripView extends TextFileView {
       src: c => this.plugin.coverSrc(c, file.path),
       openDoc: d => this.openDoc(d, file),
       places: () => this.placesCache ??= allPlaces(this.app, this.plugin.settings),
-      createPlace: async (name, city, country) => {
-        const st = this.plugin.settings, f = await createPlace(this.app, st, name, city, country);
+      createPlace: async (name, city, country, category) => {
+        const st = this.plugin.settings, f = await createPlace(this.app, st, name, city, country, category);
         if (st.maps.geocode) void locate(this.app, st, f, name, city, country);      // las coordenadas, sin esperar
         this.placesCache = null; return f.basename;
       },

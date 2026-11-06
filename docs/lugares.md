@@ -58,5 +58,6 @@ junto a su categoría.
 | Playa, lago y río | Mejor momento · Qué llevar · Servicios · Horario · Accesibilidad |
 | Montaña y ruta | Rutas · Qué llevar · Mejor momento · Horario · Accesibilidad |
 | Barrio, calle y plaza | Top (lugares enlazados) · Mejor momento · Accesibilidad |
-| Alojamiento | Check-in / Check-out · Habitaciones · Contacto · Facilidades y extras · Horarios y reglas · Accesibilidad |
+| Alojamiento (hotel, hostal, albergue, apartamento…) | Check-in / Check-out · Habitaciones · Contacto · Facilidades y extras · Horarios y reglas · Accesibilidad |
+| Camping y glamping | Las mismas que el alojamiento |
 | Otros | Horario |

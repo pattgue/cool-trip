@@ -188,8 +188,60 @@ ok("miles en español", md.fmtMoney(4500, "€") === "4.500 €" && md.joinWhen(
   { const mb = md.placesBase(S, env, [], [{ path: "Lugares/Sala.md", first: "Sala de conciertos" }]);
     const ico = (path, cat) => evaluate(mb.formulas.icon, { fm: { tipo: "lugar", "categoría": cat }, file: { path, basename: "x", fm: {} }, formulas: mb.formulas, today: X.TODAY, notes: [], backlinks: () => [], _cache: {} });
     ok("icono en la base", ico("Lugares/Bar.md", "bares") === "beer" && ico("Lugares/R.md", "salas de conciertos") === "music" && ico("Lugares/Sala.md", "Galería, Sala de conciertos") === "music",
-      [ico("Lugares/Bar.md", "bares"), ico("Lugares/R.md", "salas de conciertos"), ico("Lugares/Sala.md", "Galería, Sala de conciertos")].join()); }
+      [ico("Lugares/Bar.md", "bares"), ico("Lugares/R.md", "salas de conciertos"), ico("Lugares/Sala.md", "Galería, Sala de conciertos")].join());
+    ok("camping en la base", ico("Lugares/C.md", "Camping") === "tent" && ico("Lugares/G.md", "Glamping") === "tent" && ico("Lugares/H.md", "Hostal") === "bed", [ico("Lugares/C.md", "Camping"), ico("Lugares/H.md", "Hostal")].join()); }
   ok("viajes de un lugar en inglés", run(pb, { ...X.PLACES[0], _c: {} }, "tripNames") === "2027 - Japón");
+}
+
+/* la maleta con grupos: «### Ropa» dentro de la maleta es un grupo; se lee, se escribe igual y no se pierde nada */
+{
+  const note = ["> [!cool-trip] Playa", "", "## Maleta", "- [ ] Gafas de sol", "", "### Ropa", "- [x] Bañador", "- [ ] Chanclas", "", "### Aseo", "- [ ] Crema solar",
+    "", "### Vacío", "", "Una nota suelta", "", "## Por hacer", "", "## Plan", "", "<!-- cool-trip -->", ""].join("\n");
+  const p = md.parseTrip(note, "Playa", S);
+  ok("maleta: grupos", p.packGroups.join() === "Ropa,Aseo,Vacío" && p.packing.map(x => `${x.group || "-"}:${x.text}`).join() === "-:Gafas de sol,Ropa:Bañador,Ropa:Chanclas,Aseo:Crema solar", JSON.stringify(p.packing));
+  const out = md.serializeTrip(p, S), again = md.parseTrip(out, "Playa", S);
+  ok("maleta: los ### no se pierden", out.includes("### Ropa\n- [x] Bañador\n- [ ] Chanclas") && out.includes("### Vacío") && out.includes("Una nota suelta"), out);
+  ok("maleta: estable", md.serializeTrip(again, S) === out);
+  /* cargar una lista: de una nota suelta (sus títulos ## y ### son grupos; el # no) y de otro viaje (su maleta) */
+  const lista = ["---", "tipo: lista", "---", "# Maleta playa", "- [ ] Toalla", "## Ropa", "- Bañador", "- [x] Pareo", "### Aseo", "* Crema solar", "```", "- no", "```"].join("\n");
+  const L = md.packListOf(lista, S);
+  ok("lista: nota suelta", L.items.map(x => `${x.group || "-"}:${x.text}:${x.done}`).join() === "-:Toalla:false,Ropa:Bañador:false,Ropa:Pareo:false,Aseo:Crema solar:false" && L.groups.join() === "Ropa,Aseo", JSON.stringify(L));
+  ok("lista: de otro viaje", md.packListOf(note, S).items.length === 4 && md.packListOf(note, S).items.every(x => !x.done));
+  ok("lista: un viaje sin maleta no da su plan", md.packListOf(sample.replace(/## Maleta[\s\S]*?(?=\n## )/, ""), S).items.length === 0);
+  const q = md.parseTrip(note, "Playa", S), n = md.addPackList(q, L, true);
+  ok("lista: lo que ya está no se repite", n === 2 && q.packing.filter(x => x.text === "Bañador").length === 1 && q.packing.some(x => x.text === "Pareo" && x.group === "Ropa" && !x.done) && q.packing.some(x => x.text === "Toalla" && !x.group), JSON.stringify(q.packing));
+  const r = md.parseTrip("> [!cool-trip] X\n", "X", S);
+  md.addPackList(r, L, false);
+  ok("lista: sin grupos, todo suelto", r.packing.length === 4 && r.packing.every(x => !x.group) && !md.serializeTrip(r, S).includes("###"));
+}
+/* el camping y los alojamientos */
+ok("camping", ["Camping", "cámping", "Campsite", "Glamping"].map(md.placeType).every(x => x === "camping") && md.iconFor("Camping") === "tent" && md.secsFor(["camping"]).join() === md.secsFor(["lodging"]).join());
+ok("alojamientos", ["Hostal", "Apartamento", "Apartment", "Albergue", "Guesthouse", "B&B"].map(md.placeType).every(x => x === "lodging"), ["Hostal", "Apartamento", "Apartment", "Albergue", "Guesthouse", "B&B"].map(md.placeType).join());
+
+/* al activar Cool Bases con Obsidian abierto, las vistas de Cool Trip pasan a Cool Bases (una vez); al activar Maps, el mapa */
+{
+  const files = new Map(), enabled = new Set();
+  const mk = path => Object.assign(new md.TFile(), { path, basename: path.replace(/\.base$/, ""), extension: "base" });
+  const st = JSON.parse(JSON.stringify(S));
+  st.basesMade = { trips: "Viajes.base", places: "Lugares.base" }; st.baseCities = ["tokio"];
+  const off = { cool: false, maps: false, iconSvg: () => "" };
+  files.set("Viajes.base", md.stringifyYaml(md.tripsBase(st, off)));
+  files.set("Lugares.base", md.stringifyYaml(md.placesBase(st, off, ["Tokio"])));
+  const app = { plugins: { enabledPlugins: enabled }, metadataCache: { getFileCache: () => ({}) },
+    vault: { getAbstractFileByPath: p => files.has(p) ? mk(p) : null, getMarkdownFiles: () => [], read: async f => files.get(f.path), cachedRead: async f => files.get(f.path),
+      modify: async (f, text) => { files.set(f.path, text); } } };
+  const plugin = { app, settings: st, saveSettings: async () => {}, registerInterval: () => 0 };
+  const k = new md.BaseKeeper(plugin);
+  const types = p => md.parseYaml(files.get(p)).views.map(v => v.type).join();
+  await k.run();
+  ok("bases: sin Cool Bases no cambian", types("Viajes.base") === "cards,cards,table", types("Viajes.base"));
+  enabled.add("cool-bases"); enabled.add("maps");
+  await k.run();
+  ok("bases: al activar Cool Bases pasan a su diseño", types("Viajes.base").startsWith("cool-bases,cool-bases") && types("Lugares.base").includes("cool-bases") && st.basesEnv.cool, types("Viajes.base") + " | " + types("Lugares.base"));
+  ok("bases: al activar Maps, el mapa", types("Lugares.base").includes("map"), types("Lugares.base"));
+  const d = md.parseYaml(files.get("Viajes.base")); d.views[0].type = "cards"; files.set("Viajes.base", md.stringifyYaml(d));
+  await k.run();
+  ok("bases: si vuelves una vista a tarjetas, se queda", types("Viajes.base").startsWith("cards,cool-bases"), types("Viajes.base"));
 }
 
 console.log(fails ? `\n${fails} fallos` : "\nTodo bien");

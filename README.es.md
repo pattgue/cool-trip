@@ -16,7 +16,7 @@ Cada viaje en una nota de Obsidian: una portada como tarjeta de embarque, el pla
 
 - **Reservas y documentos en un sitio.** Tarjetas de embarque, entradas y pasaportes: dónde está cada uno (tu nube, la cartera del móvil, una carpeta de tu dispositivo, el vault o en papel) y para quién. El localizador, la hora y el asiento se ven siempre en la nota.
 
-- **Mochila, maleta y por hacer.** La maleta con casillas, tus tareas con fecha límite y los recordatorios que añade Cool Trip: descargar los mapas sin conexión, descargar los archivos de la nube, hacer el check-in.
+- **Mochila, maleta y por hacer.** La maleta con casillas, tus tareas con fecha límite y los recordatorios que añade Cool Trip: descargar los mapas sin conexión, descargar los archivos de la nube, hacer el check-in. Opcional (Ajustes › 1): la maleta por grupos con títulos `###` (Ropa, Aseo…) y cargar una lista típica de cualquier nota, como «Maleta playa» o la de otro viaje.
 
 - **Lo que cuesta.** Los precios se suman contra el presupuesto, con lo que falta por pagar, en la moneda del viaje.
 
@@ -80,7 +80,7 @@ Como una nota normal: un callout con el nombre y los destinos, y secciones para 
 Solo para buscar las coordenadas de un lugar, si activas **Buscar las coordenadas solas** (Ajustes → 4, activado por defecto). Manda a OpenStreetMap (Nominatim) el nombre y la ciudad del lugar, y nada más. Los mapas se abren en tu app de mapas.
 
 **¿Necesito Cool Bases?**
-No. Cool Trip funciona solo. Cool Bases solo les da a las bases el aspecto de tarjeta de embarque y de guía por ciudad.
+No. Cool Trip funciona solo. Cool Bases solo les da a las bases el aspecto de tarjeta de embarque y de guía por ciudad. Las bases se crean en Ajustes › 5; si instalas Cool Bases después, Cool Trip pasa sus vistas al diseño de Cool Bases en cuanto lo activas (y añade el mapa cuando activas Maps). Las vistas que hayas añadido tú no se tocan.
 
 **¿Dónde se guardan mis documentos?**
 Donde elijas en Ajustes → 3. Cool Trip solo guarda un enlace a cada archivo. Si sincronizas el vault con Obsidian Sync, deja fuera del vault los archivos grandes: Sync tiene un límite de tamaño por archivo.

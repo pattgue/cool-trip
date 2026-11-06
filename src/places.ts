@@ -56,8 +56,9 @@ async function ensureFolder(app: App, folder: string) {
 export { ensureFolder };
 export const safeName = (s: string) => s.replace(/[\\/:*?"<>|#^[\]]/g, "").trim();
 
-/* crea una nota de lugar (o devuelve la que ya hay con ese nombre en esa carpeta) */
-export async function createPlace(app: App, s: Settings, name: string, city: string, country: string): Promise<TFile> {
+/* crea una nota de lugar (o devuelve la que ya hay con ese nombre en esa carpeta); la categoría, si se sabe (un alojamiento
+   creado desde su reserva: «Hostal», «Camping»…) */
+export async function createPlace(app: App, s: Settings, name: string, city: string, country: string, category = ""): Promise<TFile> {
   const folder = placeFolder(s, city);
   await ensureFolder(app, folder);
   const path = normalizePath((folder ? folder + "/" : "") + safeName(name) + ".md");
@@ -68,6 +69,7 @@ export async function createPlace(app: App, s: Settings, name: string, city: str
   if (s.places.mode === "property" && s.places.key) fm.push(`${s.places.key}: ${q(s.places.value)}`);
   if (s.places.mode === "tag" && s.places.value) fm.push(`tags:\n  - ${s.places.value.replace(/^#/, "")}`);
   if (city) fm.push(`${s.props.city}: ${q(city)}`);
+  if (category && s.props.category) fm.push(`${s.props.category}: ${q(category)}`);
   const body = fm.length ? `---\n${fm.join("\n")}\n---\n` : "";
   return app.vault.create(path, body);
 }
@@ -78,7 +80,7 @@ export type Family = "see" | "eat" | "walk" | "sleep" | "other";
 /* cada tipo de lugar: las palabras que lo reconocen (es · en), su icono, su color (uno distinto por tipo) y su grupo.
    El orden importa: gana el primero que encaja («bar de tapas» es bar; «sala de conciertos», música). */
 export type PlaceType = "temple" | "museum" | "books" | "theatre" | "music" | "cinema" | "club" | "bar" | "restaurant" | "cafe" | "market" | "shop" | "viewpoint"
-  | "park" | "water" | "mountain" | "castle" | "monument" | "zoo" | "stadium" | "spa" | "street" | "lodging" | "other";
+  | "park" | "water" | "mountain" | "castle" | "monument" | "zoo" | "stadium" | "spa" | "street" | "camping" | "lodging" | "other";
 export const ICONS: [RegExp, string, string, Family, PlaceType][] = [
   [/templo|santuario|temple|shrine|iglesia|church|catedral|cathedral|mezquita|mosque|bas[ií]lica|sinagoga|synagogue|monasterio|monastery|ermita/i, "church", "#C2B3F5", "see", "temple"],
   [/museo|museum|galer[ií]a|gallery|exposici[oó]n|exhibition|\barte\b|\bart\b/i, "palette", "#9CC9F0", "see", "museum"],
@@ -102,7 +104,8 @@ export const ICONS: [RegExp, string, string, Family, PlaceType][] = [
   [/estadio|stadium|deporte|sport|f[uú]tbol|football/i, "trophy", "#B8C26A", "see", "stadium"],
   [/onsen|\bspa\b|ba[ñn]os|bath|termas/i, "droplets", "#A6DCD8", "see", "spa"],
   [/cruce|crossing|plaza|square|calle|street|barrio|neighbo/i, "signpost", "#B9B4AA", "walk", "street"],
-  [/hotel|alojamiento|hostal|ryokan|apartamento|lodging|hostel/i, "bed", "#8FD8C4", "sleep", "lodging"],
+  [/c[aá]mping|campsite|campground|glamping|acampada/i, "tent", "#6FAF7A", "sleep", "camping"],
+  [/hotel|alojamiento|hostal|albergue|ryokan|apartamento|apartment|\bpiso\b|airbnb|casa rural|guesthouse|guest house|\bb&b\b|lodging|hostel|\binn\b|motel/i, "bed", "#8FD8C4", "sleep", "lodging"],
 ];
 export const OTHER_ICON: [string, string, Family] = ["map-pin", "#8E8E93", "other"];
 /* una categoría puede tener varios tipos («Bar, Restaurante»): el icono y el color son los del primero que se reconoce;

@@ -16,7 +16,7 @@ Plan each trip in one Obsidian note: a boarding-pass cover, a day-by-day plan wi
 
 - **Bookings and documents in one place.** Boarding passes, tickets and passports: where each one is (your cloud, your phone's wallet, a folder on your device, the vault or paper) and who it's for. The booking code, time and seat stay visible in the note.
 
-- **Bag, packing and to-dos.** A packing list with checkboxes, your to-dos with due dates, and reminders Cool Trip adds for you: download offline maps, download your cloud files, check in online.
+- **Bag, packing and to-dos.** A packing list with checkboxes, your to-dos with due dates, and reminders Cool Trip adds for you: download offline maps, download your cloud files, check in online. Optional (Settings → 1): group the packing list with `###` headings (Clothes, Toiletries…) and load a standard list from any note, like “Beach packing” or a past trip.
 
 - **What it costs.** Prices add up against your budget, with what is still unpaid, in the trip's currency.
 
@@ -80,7 +80,7 @@ A normal note: a callout with the name and destinations, and sections for the ba
 Only to look up the coordinates of a place, if you turn on **Find coordinates automatically** (Settings → 4, on by default). It sends the place's name and city to OpenStreetMap (Nominatim) and nothing else. Maps open in your maps app.
 
 **Do I need Cool Bases?**
-No. Cool Trip works on its own. Cool Bases only gives the bases their boarding-pass and city-guide look.
+No. Cool Trip works on its own. Cool Bases only gives the bases their boarding-pass and city-guide look. Create the bases in Settings → 5; if you install Cool Bases later, Cool Trip switches its views to the Cool Bases look as soon as you turn it on (and adds the map when you turn on Maps). Views you added yourself are left alone.
 
 **Where are my documents stored?**
 Wherever you choose in Settings → 3. Cool Trip only keeps a link to each file. If your vault syncs with Obsidian Sync, keep large files out of the vault: Sync has a size limit per file.

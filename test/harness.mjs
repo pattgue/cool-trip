@@ -21,11 +21,12 @@ button{background:#363636;border:0;border-radius:4px;height:30px}</style></head>
 <body class="theme-${theme}"><script>window.__sample=${JSON.stringify(readFileSync(join(here, "sample.md"), "utf8"))};window.__mode=${JSON.stringify(mode)};</script>
 <script src="harness.js"></script></body></html>`;
 writeFileSync(join(out, "view.html"), page("view"));
+writeFileSync(join(out, "pack.html"), page("pack"));
 writeFileSync(join(out, "modal.html"), page("modal"));
 for (const k of ["eat", "see", "music"]) writeFileSync(join(out, `place-${k}.html`), page("place-" + k));
 for (let i = 1; i <= 7; i++) writeFileSync(join(out, `settings${i}.html`), page("settings" + i));
 const b = await chromium.launch();
-for (const [name, w, mode, phone] of [...[1, 2, 3, 4, 5, 6, 7].map(i => ["settings" + i, 1100, "settings" + i, false]), ["desk", 1440, "view", false], ["phone", 390, "view", true], ["modal", 1440, "modal", false], ["modal-img", 1440, "modal.html#img", false], ["modal-phone", 390, "modal", true]]) {
+for (const [name, w, mode, phone] of [...[1, 2, 3, 4, 5, 6, 7].map(i => ["settings" + i, 1100, "settings" + i, false]), ["desk", 1440, "view", false], ["phone", 390, "view", true], ["pack", 1440, "pack", false], ["pack-phone", 390, "pack", true], ["modal", 1440, "modal", false], ["modal-img", 1440, "modal.html#img", false], ["modal-phone", 390, "modal", true]]) {
   const p = await b.newPage({ viewport: { width: w, height: 900 } });
   const errs = [];
   p.on("pageerror", e => errs.push(e.message));
@@ -150,6 +151,40 @@ await b.close();
   await p.mouse.up();
   md = await p.evaluate(() => window.__saved || "");
   ok("arrastrar a otro día", /### Dom 4 abr[^#]*Comprar SIM[^#]*\[\[Senso-ji\]\]/.test(md));
+  console.log(errs.length ? "ERRORES: " + errs.join(" | ") : "sin errores");
+  await b2.close();
+}
+/* la maleta con grupos: añadir a un grupo con su «+», meter una cosa, crear un grupo y quitarlo (sus cosas se quedan) */
+{
+  const b2 = await chromium.launch();
+  const p = await b2.newPage({ viewport: { width: 1440, height: 2000 } });
+  const errs = [];
+  const ok = (name, cond, extra = "") => console.log(name + ":", cond ? "ok" : "FALLA " + extra);
+  let md = "";
+  p.on("pageerror", e => errs.push(e.message));
+  await p.goto(pathToFileURL(join(out, "pack.html")).href);
+  await p.waitForTimeout(300);
+  ok("maleta: tres grupos", await p.locator(".ct-pack-group").count() === 3);
+  await p.click(".ct-pack-group:has-text('Aseo') .ct-pack-plus");
+  await p.fill(".ct-pack-input.is-inline", "Gafas de sol");
+  await p.press(".ct-pack-input.is-inline", "Enter");
+  await p.waitForTimeout(100);
+  md = await p.evaluate(() => window.__saved || "");
+  ok("maleta: añadir a un grupo", /### Aseo\n(- \[[ x]\] .+\n)*- \[ \] Gafas de sol/.test(md), md.split("## Por hacer")[0].split("## Maleta")[1]);
+  ok("maleta: el campo sigue abierto", await p.evaluate(() => document.activeElement?.classList.contains("is-inline") === true));
+  await p.click(".ct-pack-group:has-text('Ropa') .ct-pack-pill:has-text('Chubasquero')");
+  md = await p.evaluate(() => window.__saved || "");
+  ok("maleta: meter una cosa", md.includes("- [x] Chubasquero"));
+  await p.click(".ct-pack-acts >> text=Nuevo grupo");
+  await p.fill(".ct-prompt input", "Playa");
+  await p.press(".ct-prompt input", "Enter");
+  await p.waitForTimeout(100);
+  md = await p.evaluate(() => window.__saved || "");
+  ok("maleta: grupo nuevo", md.includes("### Playa"));
+  await p.click(".ct-pack-group:has-text('Electrónica') .ct-pack-group-head button[aria-label^='Quitar el grupo']");
+  md = await p.evaluate(() => window.__saved || "");
+  ok("maleta: quitar un grupo deja sus cosas", !md.includes("### Electrónica") && md.includes("- [ ] Adaptador de enchufe"));
+  ok("maleta: botón de cargar lista", await p.locator(".ct-pack-load").count() === 1);
   console.log(errs.length ? "ERRORES: " + errs.join(" | ") : "sin errores");
   await b2.close();
 }

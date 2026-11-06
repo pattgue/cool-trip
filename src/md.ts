@@ -334,7 +334,7 @@ const props = (s: Settings, fm: Record<string, unknown>) =>
 const oldBudget = (s: Settings) => (s.props as unknown as Record<string, string | undefined>).budget || "";
 
 export function parseTrip(text: string, name: string, s: Settings): Trip {
-  const t: Trip = { fm: {}, name, start: "", end: "", dests: [], travelers: [], cover: "", budget: 0, accent: "", mochila: [], packing: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
+  const t: Trip = { fm: {}, name, start: "", end: "", dests: [], travelers: [], cover: "", budget: 0, accent: "", mochila: [], packing: [], packGroups: [], packRaw: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
   let body = text;
   const m = fmRe.exec(text);
   if (m) {
@@ -355,7 +355,7 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
   const lines = body.split(/\r?\n/);
   const calloutDests: Dest[] = [];
   let section: "intro" | "bag" | "pack" | "todo" | "plan" | "outro" = "intro";
-  let day: Day | null = null, item: Item | null = null;
+  let day: Day | null = null, item: Item | null = null, packGroup = "";
   const parsedDays: Day[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -394,8 +394,12 @@ export function parseTrip(text: string, name: string, s: Settings): Trip {
       continue;
     }
     if (section === "pack") {
-      const b = /^\s*-\s+\[([ xX])\]\s+(.+)$/.exec(line) || /^\s*-\s+()(.+)$/.exec(line);
-      if (b) t.packing.push({ text: b[2].trim(), done: !!b[1] && b[1] !== " " });
+      /* los grupos: un «### Ropa» dentro de la maleta; las cosas de debajo son de ese grupo */
+      const g = /^###\s+(.+?)\s*#*\s*$/.exec(line);
+      if (g) { packGroup = g[1]; if (!t.packGroups.includes(packGroup)) t.packGroups.push(packGroup); continue; }
+      const b = /^\s*[-*+]\s+\[([ xX])\]\s+(.+)$/.exec(line) || /^\s*[-*+]\s+()(.+)$/.exec(line);
+      if (b) t.packing.push({ text: b[2].trim(), done: !!b[1] && b[1] !== " ", ...(packGroup ? { group: packGroup } : {}) });
+      else if (line.trim()) t.packRaw.push(line);
       continue;
     }
     if (section === "todo") {
@@ -496,7 +500,7 @@ export function serializeTrip(t: Trip, s: Settings): string {
   out.push("");
   if (t.intro.length) out.push(...t.intro, "");
   out.push(`## ${v.bag}`, ...t.mochila.map(d => "- " + docMd(d, v)), "");
-  if (t.packing.length) out.push(`## ${v.pack}`, ...t.packing.map(x => `- [${x.done ? "x" : " "}] ${x.text}`), "");
+  if (t.packing.length || t.packGroups.length || t.packRaw.length) out.push(`## ${v.pack}`, ...packMd(t), "");
   out.push(`## ${v.todo}`, ...t.tasks.map((x: Task) => `- [${x.done ? "x" : " "}] ${x.text}${x.due ? ` 📅 ${x.due}` : ""}`), "");
   out.push(`## ${v.plan}`, "");
   for (const d of t.days) {
@@ -511,9 +515,53 @@ export function serializeTrip(t: Trip, s: Settings): string {
   return out.join("\n");
 }
 
+/* la maleta: primero lo que no tiene grupo y luego cada grupo con su «### Nombre» (también los que están vacíos) */
+function packMd(t: Trip): string[] {
+  const line = (x: Task) => `- [${x.done ? "x" : " "}] ${x.text}`;
+  const groups = [...t.packGroups, ...t.packing.map(x => x.group || "").filter(g => g && !t.packGroups.includes(g))];
+  const out = t.packing.filter(x => !x.group || !groups.includes(x.group)).map(line);
+  for (const g of [...new Set(groups)]) {
+    if (out.length) out.push("");
+    out.push(`### ${g}`, ...t.packing.filter(x => x.group === g).map(line));
+  }
+  if (t.packRaw.length) out.push("", ...t.packRaw);
+  return out;
+}
+/* una lista de la maleta escrita en otra nota («Maleta playa», o la maleta de otro viaje): si la nota tiene la sección de la
+   maleta, esa; si no, todas sus casillas y listas, con sus títulos («## Ropa», «### Aseo») como grupos. El título # no cuenta */
+export function packListOf(text: string, s: Settings): { items: Task[]; groups: string[] } {
+  const trip = parseTrip(text, "", s);
+  if (trip.packing.length || /^>\s*\[!cool-trip/im.test(text)) return { items: trip.packing.map(x => ({ ...x, done: false })), groups: trip.packGroups };
+  const body = text.replace(fmRe, ""), items: Task[] = [], groups: string[] = [];
+  let group = "", fence = false;
+  for (const l of body.split(/\r?\n/)) {
+    if (/^\s*(```|~~~)/.test(l)) { fence = !fence; continue; }
+    if (fence) continue;
+    const hd = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(l);
+    if (hd) { group = hd[1].length > 1 ? hd[2] : ""; if (group && !groups.includes(group)) groups.push(group); continue; }
+    const b = /^\s*[-*+]\s+\[[ xX]\]\s+(.+)$/.exec(l) || /^\s*[-*+]\s+(.+)$/.exec(l);
+    if (b && b[1].trim()) items.push({ text: b[1].trim(), done: false, ...(group ? { group } : {}) });
+  }
+  return { items, groups: groups.filter(g => items.some(x => x.group === g)) };
+}
+/* añade una lista a la maleta: lo que ya está (con el mismo nombre) no se repite; los grupos se juntan por su nombre */
+export function addPackList(t: Trip, list: { items: Task[]; groups: string[] }, grouped: boolean): number {
+  const have = new Set(t.packing.map(x => low(x.text)));
+  let n = 0;
+  for (const x of list.items) {
+    if (have.has(low(x.text))) continue;
+    have.add(low(x.text));
+    const g = grouped && x.group ? t.packGroups.find(y => low(y) === low(x.group!)) || x.group : "";
+    if (g && !t.packGroups.includes(g)) t.packGroups.push(g);
+    t.packing.push({ text: x.text, done: false, ...(g ? { group: g } : {}) });
+    n++;
+  }
+  return n;
+}
+
 /* un viaje nuevo (Nuevo viaje) */
 export function blankTrip(name: string, start: string, end: string, dests: Dest[], travelers: string[], cover: string, accent = ""): Trip {
-  const t: Trip = { fm: {}, name, start, end, dests, travelers, cover, budget: 0, accent, mochila: [], packing: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
+  const t: Trip = { fm: {}, name, start, end, dests, travelers, cover, budget: 0, accent, mochila: [], packing: [], packGroups: [], packRaw: [], tasks: [], hidden: [], days: [], intro: [], outro: [] };
   balanceNights(t);
   t.days = tripDates(t).map(date => ({ date, items: [], raw: [] }));
   return t;

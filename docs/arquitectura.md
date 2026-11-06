@@ -28,7 +28,8 @@ guía editable de Patt (ver `CLAUDE.md`); aquí está cómo está hecho.
 | `ticket.ts` | La tarjeta de embarque: en «Nuevo viaje» y arriba de la nota |
 | `plan.ts` · `plan-drag.ts` | El plan día a día (pasos, reservas, huecos) y el arrastre de pasos |
 | `forms.ts` | Los formularios del plan, en su sitio, sin ventanas |
-| `side.ts` · `docs.ts` | El lateral (mochila, maleta, por hacer, coste) y los documentos |
+| `side.ts` · `docs.ts` | El lateral (mochila, maleta con sus grupos, por hacer, coste) y los documentos |
+| `pack-lists.ts` | «Cargar lista» de la maleta: elegir la nota y añadir su lista (`packListOf` y `addPackList`, en `md.ts`) |
 | `modal.ts` | «Nuevo viaje» |
 | `placeview.ts` · `place-page.ts` · `place-types.ts` | La ficha de lugar: la vista, la página y las secciones de cada tipo con su formato |
 | `places.ts` | Las notas de lugar: encontrarlas, crearlas, su tipo (icono, color y grupo) y el enlace a la app de mapas |
@@ -49,7 +50,9 @@ de Obsidian. El billete y la cabecera de lugar llevan su propia paleta sólida.
 - **Cambios desde fuera** (Sync, otro plugin): las vistas vuelven a leer la nota cuando cambia; la ficha de lugar guarda al
   momento para no pisar propiedades tocadas después.
 - **Las bases son del usuario.** `keeper.ts` solo reescribe lo que es de Cool Trip (sus fórmulas y el bloque marcado de su CSS),
-  y solo cuando cambia un viaje o un lugar.
+  y solo cuando cambia un viaje o un lugar. Además mira cada 3 segundos si se ha activado Cool Bases o Maps (Obsidian no avisa):
+  al activarse, las vistas que creó Cool Trip pasan a Cool Bases y la base de lugares gana el mapa, una vez por activación
+  (`basesEnv` en los ajustes guarda cómo estaban).
 - **Móvil.** Todo tiene versión móvil; se decide por `Platform.isPhone` o por el ancho de la vista (menos de 760 px).
 
 ## Pruebas

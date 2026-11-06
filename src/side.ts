@@ -16,6 +16,7 @@ export interface SideCtx extends PlanCtx {
   folded: Set<string>;            // cajas contraídas (en el móvil)
   bagDraft: Doc | null;           // el documento que se está añadiendo a la mochila
   setBagDraft(d: Doc | null, redraw?: boolean): void;
+  loadPackList(): void;           // «Cargar lista»: elige una nota y añade su lista a la maleta
 }
 
 function box(ctx: SideCtx, id: string, title: string, right: HTMLElement | string | null, body: () => (HTMLElement | null)[], summary?: () => HTMLElement | null, ico?: string): HTMLElement {
@@ -88,28 +89,83 @@ export function mochila(ctx: SideCtx): HTMLElement {
     packing(ctx),
   ], undefined, "backpack");
 }
-/* la maleta, dentro de la mochila y plegable: cada cosa es una pastilla; tocarla la mete (llena) o la saca (a rayas) */
-function packing(ctx: SideCtx): HTMLElement {
-  const list = ctx.trip.packing, inside = list.filter(x => x.done).length, folded = ctx.folded.has("pack");
+/* la maleta, dentro de la mochila y plegable: cada cosa es una pastilla; tocarla la mete (llena) o la saca (a rayas).
+   Con los grupos activados (Ajustes › 1), cada «### Ropa» de la maleta es un grupo con su nombre, su cuenta y su «+»;
+   con las listas, «Cargar lista» añade la de otra nota */
+let packAdding: string | null = null;           // el grupo en el que se está escribiendo una cosa nueva («» = sin grupo)
+export function packing(ctx: SideCtx): HTMLElement {
+  const tr = ctx.trip, list = tr.packing, inside = list.filter(x => x.done).length, folded = ctx.folded.has("pack");
+  const P = ctx.s.pack, grouped = P.groups;
   const head = button([icon(folded ? "chevron-right" : "chevron-down"), icon("luggage"), h("span", null, t("pack")), h("span", { cls: "ct-grow" }),
     list.length ? h("span", { cls: "ct-sub" }, `${inside}/${list.length}`) : null], "ct-pack-head", () => {
     if (folded) ctx.folded.delete("pack"); else ctx.folded.add("pack");
     ctx.rerender();
   }, { "aria-expanded": String(!folded) });
   if (folded) return h("div", { cls: "ct-pack" }, head);
-  const add = h("input", { cls: "ct-input ct-pack-input", attr: { type: "text", placeholder: t("pack.add") } });
-  add.addEventListener("keydown", ev => {
-    if (ev.key !== "Enter" || !add.value.trim()) return;
-    ev.preventDefault();
-    list.push({ text: add.value.trim(), done: false });
-    ctx.commit();
-  });
+  /* el campo para añadir: el de abajo (sin grupo) o el de un grupo; después de añadir, sigue listo para la siguiente */
+  const field = (group: string, cls: string, placeholder: string) => {
+    const el = h("input", { cls: "ct-input ct-pack-input " + cls, attr: { type: "text", placeholder, "data-group": group } });
+    el.addEventListener("keydown", ev => {
+      if (ev.key === "Escape" && group) { packAdding = null; ctx.rerender(); return; }
+      if (ev.key !== "Enter" || !el.value.trim()) return;
+      ev.preventDefault();
+      list.push({ text: el.value.trim(), done: false, ...(group ? { group } : {}) });
+      packAdding = group;
+      ctx.commit();
+    });
+    if (group) el.addEventListener("blur", () => { if (!el.value.trim() && packAdding === group) window.setTimeout(() => { if (packAdding === group) { packAdding = null; ctx.rerender(); } }, 150); });
+    if (packAdding === group) window.setTimeout(() => { if (el.isConnected) el.focus(); }, 0);
+    return el;
+  };
   const pill = (x: Task) => h("span", { cls: "ct-pack-item" + (x.done ? " is-in" : "") },
     button([icon(x.done ? "check" : "circle-dashed"), h("span", null, x.text)], "ct-pack-pill", () => { x.done = !x.done; ctx.commit(); },
       { "aria-pressed": String(x.done), title: x.done ? t("pack.in") : t("pack.out") }),
     iconButton("x", t("remove"), () => { list.splice(list.indexOf(x), 1); ctx.commit(); }, "ct-ibtn ct-pack-x ct-hover"));
-  return h("div", { cls: "ct-pack" }, head,
-    list.length ? h("div", { cls: "ct-pack-list" }, [...list.filter(x => !x.done), ...list.filter(x => x.done)].map(pill)) : null, add);
+  const pills = (xs: Task[]) => [...xs.filter(x => !x.done), ...xs.filter(x => x.done)].map(pill);
+  const add = field("", "", t("pack.add"));
+  const load = P.lists ? button([icon("list-plus"), h("span", null, t("pk.load"))], "ct-pill is-dashed is-small ct-pack-load",
+    () => ctx.loadPackList()) : null;
+  if (!grouped) {
+    return h("div", { cls: "ct-pack" }, head,
+      list.length ? h("div", { cls: "ct-pack-list" }, pills(list)) : null, add, load ? h("div", { cls: "ct-pack-acts" }, load) : null);
+  }
+  const groups = [...new Set([...tr.packGroups, ...list.map(x => x.group || "").filter(Boolean)])];
+  const loose = list.filter(x => !x.group || !groups.includes(x.group));
+  const rename = (g: string) => void promptText(ctx.app, t("pk.rename"), t("pk.groupPh"), g).then(v => {
+    if (!v || v === g) return;
+    const to = groups.find(y => y.toLowerCase() === v.toLowerCase()) || v;      // con el nombre de otro grupo, se juntan
+    tr.packGroups = [...new Set(tr.packGroups.map(y => y === g ? to : y))];
+    for (const x of list) if (x.group === g) x.group = to;
+    ctx.commit();
+  });
+  const ungroup = (g: string) => {
+    tr.packGroups = tr.packGroups.filter(y => y !== g);
+    for (const x of list) if (x.group === g) delete x.group;
+    ctx.commit();
+  };
+  const group = (g: string) => {
+    const xs = list.filter(x => x.group === g);
+    const plus = packAdding === g ? field(g, "is-inline", t("pk.addShort"))
+      : iconButton("plus", t("pk.addTo", { g }), () => { packAdding = g; ctx.rerender(); }, "ct-pack-plus");
+    return h("div", { cls: "ct-pack-group" },
+      h("div", { cls: "ct-pack-group-head" }, h("span", { cls: "ct-pack-group-name" }, g), xs.length ? h("span", { cls: "ct-sub" }, `${xs.filter(x => x.done).length}/${xs.length}`) : null,
+        h("span", { cls: "ct-grow" }),
+        iconButton("pencil", t("pk.rename"), () => rename(g), "ct-ibtn ct-ibtn-sm ct-hover"),
+        iconButton("x", t("pk.ungroup"), () => ungroup(g), "ct-ibtn ct-ibtn-sm ct-hover")),
+      h("div", { cls: "ct-pack-list" }, pills(xs), plus));
+  };
+  const newGroup = button([icon("folder-plus"), h("span", null, t("pk.newGroup"))], "ct-pill is-dashed is-small", () => {
+    void promptText(ctx.app, t("pk.newGroup"), t("pk.groupPh")).then(v => {
+      if (!v) return;
+      const g = groups.find(y => y.toLowerCase() === v.toLowerCase()) || v;
+      if (!tr.packGroups.includes(g)) tr.packGroups.push(g);
+      packAdding = g;
+      ctx.commit();
+    });
+  });
+  return h("div", { cls: "ct-pack is-grouped" }, head,
+    loose.length ? h("div", { cls: "ct-pack-list" }, pills(loose)) : null,
+    groups.map(group), add, h("div", { cls: "ct-pack-acts" }, newGroup, load));
 }
 
 /* ---------- por hacer ---------- */
