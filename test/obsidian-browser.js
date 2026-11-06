@@ -52,6 +52,7 @@ export class TextFileView extends ItemView { requestSave() { window.__saved = th
 export class MarkdownView extends ItemView {}
 export class Modal { constructor(app) { this.app = app; this.containerEl = document.createElement("div"); this.containerEl.className = "modal-container"; this.modalEl = this.containerEl.createDiv({ cls: "modal" }); this.modalEl.createDiv({ cls: "modal-close-button" }); this.titleEl = this.modalEl.createDiv(); this.contentEl = this.modalEl.createDiv({ cls: "modal-content" }); }
   open() { document.body.appendChild(this.containerEl); this.onOpen?.(); } close() { this.containerEl.remove(); this.onClose?.(); } }
+export class FuzzySuggestModal extends Modal { setPlaceholder() {} }
 export class Plugin {}
 export class PluginSettingTab { constructor(app, plugin) { this.app = app; this.plugin = plugin; this.containerEl = document.createElement("div"); } }
 /* las filas de ajustes de Obsidian, con su DOM (setting-item › info + control), para ver la sección de la Cool Bar */

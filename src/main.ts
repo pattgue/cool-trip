@@ -73,7 +73,7 @@ export default class CoolTripPlugin extends Plugin {
       this.marked.delete(file.path); this.syncLeaves();
       if (this.isTrip(file) || isPlaceFile(this.app, this.settings, file)) this.keeper.schedule();
     }));
-    this.app.workspace.onLayoutReady(() => { void this.adapt(); this.syncLeaves(); this.keeper.schedule(); });
+    this.app.workspace.onLayoutReady(() => { void this.adapt(); this.syncLeaves(); this.keeper.schedule(); this.keeper.watchPlugins(); });
     this.registerEvent(this.app.metadataCache.on("resolved", () => { void this.adapt(); }));
     /* las bases que creó Cool Trip siguen siendo suyas aunque se muevan o se renombren (y dejan de serlo si se borran) */
     this.registerEvent(this.app.vault.on("rename", (f, old) => { this.followBase(old, f.path); this.keeper.schedule(); }));
@@ -111,6 +111,8 @@ export default class CoolTripPlugin extends Plugin {
   }
 
   async saveSettings() { await this.saveData(this.settings); this.bar?.refresh(); }
+  /* los viajes abiertos se vuelven a pintar (al cambiar un ajuste que se ve en la nota, como los grupos de la maleta) */
+  redrawTrips() { for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) (leaf.view as TripView).render(); }
 
   /* el país de una ciudad: el que ya usaste */
   guessCountry(city: string): string {

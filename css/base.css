@@ -100,7 +100,7 @@
 :is(.ct-doc-name, .ct-task-text, .ct-detail-v, .ct-sub, .ct-step-title, .ct-mini-title, .ct-collapsed-title, .ct-slot-title, .ct-day-title, .ct-note-name)::first-letter { text-transform: uppercase; }
 
 /* Móvil: los botones pequeños se tocan en 44 × 44 px (lo que pide la accesibilidad) sin cambiar cómo se ven */
-.ct-view.is-phone :is(.ct-ibtn, .ct-check, .ct-fold, .ct-task-check, .ct-task-x, .ct-task-action, .ct-pack-x, .ct-lock-btn, .ct-stepbtn, .ct-swatch, .ct-map, .ct-person-add, .ct-node-add) { position: relative; }
+.ct-view.is-phone :is(.ct-ibtn, .ct-check, .ct-fold, .ct-task-check, .ct-task-x, .ct-task-action, .ct-pack-x, .ct-pack-plus, .ct-lock-btn, .ct-stepbtn, .ct-swatch, .ct-map, .ct-person-add, .ct-node-add) { position: relative; }
 .ct-view.is-phone :is(.ct-pack-x, .ct-lock-btn) { position: absolute; }
-.ct-view.is-phone :is(.ct-ibtn, .ct-check, .ct-fold, .ct-task-check, .ct-task-x, .ct-task-action, .ct-pack-x, .ct-lock-btn, .ct-stepbtn, .ct-swatch, .ct-map, .ct-person-add, .ct-node-add)::after {
+.ct-view.is-phone :is(.ct-ibtn, .ct-check, .ct-fold, .ct-task-check, .ct-task-x, .ct-task-action, .ct-pack-x, .ct-pack-plus, .ct-lock-btn, .ct-stepbtn, .ct-swatch, .ct-map, .ct-person-add, .ct-node-add)::after {
   content: ""; position: absolute; inset: min(0px, calc((100% - 44px) / 2)); }

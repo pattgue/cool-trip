@@ -211,4 +211,10 @@ export const es: Record<string, string> = {
   "pl.f.addType": "Otro tipo", "pl.f.removeType": "— Quitar este tipo —", "pl.f.closed": "Cerrado definitivamente",
   "pl.f.closedD": "Ya no abre. Se queda en tus viajes y en la base, marcado como cerrado.",
   "p.closed": "Cerrado", "p.closedD": "Si el sitio ha cerrado para siempre",
+  "pk.groups": "Grupos en la maleta", "pk.groupsD": "Cada título ### dentro de la maleta es un grupo (Ropa, Aseo…), con su nombre y sus cosas. Desde la nota puedes crear grupos y añadir cosas a cada uno.",
+  "pk.lists": "Listas típicas para la maleta", "pk.listsD": "Un botón «Cargar lista» copia en la maleta la lista de otra nota (por ejemplo, «Maleta playa») o la de otro viaje. Lo que ya está no se repite.",
+  "pk.folder": "Dónde están tus listas", "pk.group": "Grupo", "pk.newGroup": "Nuevo grupo", "pk.groupPh": "Ropa, Aseo, Playa…", "pk.rename": "Cambiar el nombre del grupo",
+  "pk.ungroup": "Quitar el grupo (sus cosas se quedan en la maleta)", "pk.addTo": "Añadir a {g}", "pk.addShort": "Añadir…",
+  "pk.load": "Cargar lista", "pk.loadPh": "Elige la nota con la lista…", "pk.loaded": "Añadidas {n} cosas de «{f}»", "pk.loaded1": "Añadida 1 cosa de «{f}»",
+  "pk.nothing": "Ya estaba todo en la maleta", "pk.empty": "«{f}» no tiene ninguna lista",
 };

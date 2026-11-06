@@ -210,4 +210,10 @@ export const en: Record<string, string> = {
   "pl.f.addType": "Another type", "pl.f.removeType": "— Remove this type —", "pl.f.closed": "Permanently closed",
   "pl.f.closedD": "It no longer opens. It stays in your trips and in the base, marked as closed.",
   "p.closed": "Closed", "p.closedD": "If the place has closed for good",
+  "pk.groups": "Packing list groups", "pk.groupsD": "Each ### heading inside the packing list is a group (Clothes, Toiletries…), with its name and its items. From the note you can create groups and add items to each one.",
+  "pk.lists": "Standard packing lists", "pk.listsD": "A “Load list” button copies the list from another note (for example, “Beach packing”) or from another trip into the packing list. What's already there isn't repeated.",
+  "pk.folder": "Where your lists are", "pk.group": "Group", "pk.newGroup": "New group", "pk.groupPh": "Clothes, Toiletries, Beach…", "pk.rename": "Rename the group",
+  "pk.ungroup": "Remove the group (its items stay in the packing list)", "pk.addTo": "Add to {g}", "pk.addShort": "Add…",
+  "pk.load": "Load list", "pk.loadPh": "Pick the note with the list…", "pk.loaded": "Added {n} items from “{f}”", "pk.loaded1": "Added 1 item from “{f}”",
+  "pk.nothing": "Everything was already packed", "pk.empty": "“{f}” has no list",
 };

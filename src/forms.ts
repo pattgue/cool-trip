@@ -15,7 +15,7 @@ import { button, icon, iconButton, label, personChip } from "./ui";
 
 export interface FormCtx extends PlanCtx {
   places(): PlaceInfo[];
-  createPlace(name: string, city: string, country: string): Promise<string>;     // devuelve el nombre de la nota
+  createPlace(name: string, city: string, country: string, category?: string): Promise<string>;     // devuelve el nombre de la nota
   saveForm(f: FormState): void;
   deleteForm(f: FormState): void;
 }
@@ -141,7 +141,9 @@ function placePicker(ctx: FormCtx, d: Item, city: string, country: string, label
       h("b", null, p.name), h("span", { cls: "ct-sub" }, [p.closed ? t("pl.closedForever") : "", p.category, p.city].filter(Boolean).join(" · ")))], "ct-option", () => pick(p.name), { role: "option" }));
     const exact = places.some(p => p.name.toLowerCase() === q);
     if (!exact) list.appendChild(button([icon("plus"), h("span", null, t("f.create", { q: query.trim(), f: city || "—" }))], "ct-option", () => {
-      void ctx.createPlace(query.trim(), city, country).then(name => { pick(name); });
+      /* un alojamiento nuevo lleva su tipo de categoría (Hotel, Hostal, Apartamento, Camping), para su icono y su ficha */
+      const cat = d.kind === "lodging" && lodgingType(d) !== "friends" ? t("lt." + lodgingType(d)) : "";
+      void ctx.createPlace(query.trim(), city, country, cat).then(name => { pick(name); });
     }, { role: "option" }));
     list.hidden = false;
   };

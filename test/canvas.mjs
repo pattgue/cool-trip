@@ -24,6 +24,9 @@ const BOARDS = [
   { file: "NuevoViaje-Movil.dc.html", title: "Nuevo viaje · móvil", w: 390, mode: "modal", phone: true },
   { file: "Nota-Plan.dc.html", title: "Nota del viaje", w: 1440, mode: "view", phone: false },
   { file: "Nota-Movil.dc.html", title: "Nota del viaje · móvil", w: 390, mode: "view", phone: true },
+  /* la mochila sola, con la maleta por grupos y «Cargar lista» (Ajustes › 1); el ancho, el que tiene en la nota */
+  { file: "Nota-Maleta.dc.html", title: "Nota del viaje · maleta con grupos", w: 0, vw: 1440, mode: "pack", phone: false },
+  { file: "Nota-Maleta-Movil.dc.html", title: "Nota del viaje · maleta con grupos · móvil", w: 390, mode: "pack", phone: true },
   ...[["eat", "Restaurante", "restaurante"], ["see", "Museo", "museo"], ["music", "Sala", "sala de conciertos"]].flatMap(([m, f, n]) => [
     { file: `Lugar-${f}.dc.html`, title: `Nota de lugar · ${n}`, w: 1440, mode: "place-" + m, phone: false },
     { file: `Lugar-${f}-Movil.dc.html`, title: `Nota de lugar · ${n} · móvil`, w: 390, mode: "place-" + m, phone: true }]),
@@ -38,7 +41,9 @@ for (const bd of BOARDS) {
   await p.addInitScript(ph => { window.__phone = ph; }, bd.phone);
   await p.goto(pathToFileURL(join(out, bd.mode + ".html")).href);
   await p.waitForTimeout(400);
-  const { html, h } = await p.evaluate(mode => {
+  /* en el móvil la mochila sale plegada: se abre */
+  if (bd.mode === "pack" && bd.phone) { await p.click(".ct-box-head .ct-ibtn"); await p.waitForTimeout(200); }
+  const { html, h, w } = await p.evaluate(({ mode, phone }) => {
     let el;
     if (mode === "modal") {
       el = document.querySelector(".modal-container");
@@ -55,9 +60,22 @@ for (const bd of BOARDS) {
       el = document.querySelector(".ct-settings");
       const cs = getComputedStyle(el);
       for (const k of ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "backgroundColor"]) el.style[k] = cs[k];
+    } else if (mode === "pack") {
+      /* solo la mochila, con el ancho que tiene en la nota y el fondo de la página alrededor */
+      el = document.querySelector(".ct-view");
+      const box = el.querySelector(phone ? ".ct-box" : ".ct-aside .ct-box"), page = el.querySelector(".ct-page");
+      const bw = Math.round(box.getBoundingClientRect().width);
+      box.style.width = bw + "px";
+      el.dataset.packW = String(bw + (phone ? 32 : 48));
+      page.replaceChildren(box);
+      page.style.padding = phone ? "16px" : "24px";
+      el.style.height = "auto"; el.style.overflow = "visible";
     } else el = document.querySelector(".ct-view");
-    return { html: el.outerHTML, h: Math.ceil(el.getBoundingClientRect().height) };
-  }, bd.mode);
+    const r = el.getBoundingClientRect(), packW = Number(el.dataset.packW || 0);
+    delete el.dataset.packW;
+    return { html: el.outerHTML, h: Math.ceil(mode === "pack" ? el.scrollHeight : r.height), w: packW };
+  }, { mode: bd.mode, phone: bd.phone });
+  if (!bd.w) bd.w = w;
   const pad = bd.mode === "modal" && !bd.phone ? 40 : 0;
   const height = h + pad * 2;
   sizes[bd.file] = { w: bd.w, h: height };

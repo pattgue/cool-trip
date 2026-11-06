@@ -88,6 +88,7 @@ export const TYPE_SECS: Record<PlaceType, SecKey[]> = {
   stadium: ["events", "tickets", "hours", "access"],
   spa: ["tickets", "rules", "hours", "access"],
   street: ["topLinks", "bestTime", "access"],
+  camping: ["stay", "rooms", "contact", "extras", "houseRules", "access"],
   lodging: ["stay", "rooms", "contact", "extras", "houseRules", "access"],
   other: ["hours"],
 };
@@ -116,7 +117,7 @@ export const TYPE_NAMES: Record<Exclude<PlaceType, "other">, L> = {
   restaurant: ["Restaurante", "Restaurant"], cafe: ["Café", "Café"], market: ["Mercado", "Market"], shop: ["Tienda", "Shop"],
   viewpoint: ["Mirador", "Viewpoint"], park: ["Parque", "Park"], water: ["Playa", "Beach"], mountain: ["Montaña", "Mountain"],
   castle: ["Castillo", "Castle"], monument: ["Monumento", "Monument"], zoo: ["Zoo", "Zoo"], stadium: ["Estadio", "Stadium"],
-  spa: ["Spa", "Spa"], street: ["Barrio", "Neighbourhood"], lodging: ["Hotel", "Hotel"],
+  spa: ["Spa", "Spa"], street: ["Barrio", "Neighbourhood"], camping: ["Camping", "Campsite"], lodging: ["Hotel", "Hotel"],
 };
 /* el precio de la cabecera: medio en los de comer y beber; la entrada en los que llevan entradas */
 export const PRICE_KIND = (type: PlaceType): "avg" | "ticket" | "" =>

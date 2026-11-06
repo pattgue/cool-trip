@@ -100,8 +100,15 @@ if (window.__mode.startsWith("settings")) {
   root.appendChild(pg);
   document.body.appendChild(root);
 } else {
+  /* «pack»: la maleta con grupos y «Cargar lista» activados, con algo dentro */
+  let sample = window.__sample;
+  if (window.__mode === "pack") {
+    plugin.settings.pack = { groups: true, lists: true, folder: "" };
+    sample = sample.replace("## Por hacer", ["## Maleta", "- [ ] Paraguas plegable", "", "### Ropa", "- [x] Camisetas", "- [ ] Chubasquero", "- [ ] Zapatillas cómodas", "- [x] Calcetines",
+      "", "### Aseo", "- [x] Cepillo de dientes", "- [ ] Protector solar", "- [ ] Medicinas", "", "### Electrónica", "- [ ] Adaptador de enchufe", "- [x] Power bank", "", "## Por hacer"].join("\n"));
+  }
   const view = new TripView({ app } as never, plugin as never);
   (view as unknown as { file: TFile }).file = trip;
   document.body.appendChild(view.containerEl);
-  view.setViewData(window.__sample, true);
+  view.setViewData(sample, true);
 }
