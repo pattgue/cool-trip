@@ -25,3 +25,15 @@ cambie el texto que lo promete.
       Maps lleva el color del destino y en el coste entradas y lugares son la misma barra.)
 - [x] **Diseño de las notas de lugar** (0.2.10, propuesta en el canvas: fila 6; falta el visto bueno de Patt). (opcional en los ajustes): empieza por el tipo y cambia según él (comer: precio medio, tipo de
       comida; museo: entradas, qué incluye, datos útiles…), con la portada. Primero se plantea en el canvas.
+
+## Revisión automática de Obsidian (1.1.0, 6 nov 2026)
+
+Todo pasa (atestaciones, red, dependencias, sin ofuscar, `main.js` reproducido byte a byte). Quedan avisos, ninguno bloquea:
+
+- [ ] **Búsqueda de ajustes (Obsidian 1.13):** sin `getSettingDefinitions()` los ajustes no salen en el buscador de Ajustes, y
+      `display` está marcado como obsoleto. Los pasos de los ajustes son a medida: habría que declarar al menos sus opciones
+      principales sin cambiar cómo se ven. Mirar cómo lo resuelve Cool Bases.
+- [ ] **`:has` en `css/cool-kit.css:84`** (la Cool Bar flotante): es del Cool Kit, se cambia en `pattgue/cool-bases` y se copia aquí.
+- Los `!important` y las propiedades «parcialmente compatibles con 1.9.12» (`all`, columnas, `display: contents`,
+  `text-decoration`) se quedan: los `!important` pisan los estilos de botones y campos de Obsidian y de los temas, y el plugin pide
+  Obsidian 1.10 o más. Recorrer el vault entero (aviso «Vault Enumeration») es necesario para encontrar viajes y lugares.

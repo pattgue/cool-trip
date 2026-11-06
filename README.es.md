@@ -34,6 +34,14 @@ Cada viaje en una nota de Obsidian: una portada como tarjeta de embarque, el pla
 
   ![Las bases de viajes y lugares con Cool Bases](docs/img/bases.webp)
 
+## Novedades de la 1.1.0
+
+- **Camping** es ahora un tipo de lugar propio, con icono de tienda. Hostales, apartamentos, B&B y otros también se reconocen como alojamiento.
+- **El diseño de Cool Bases, al momento:** activa Cool Bases y tus bases de viajes y lugares pasan a su diseño, sin reiniciar.
+- **Grupos en la maleta:** cada título `###` de la maleta es un grupo. Opcional, en Ajustes › 1.
+- **Cargar una lista típica:** copia la maleta de cualquier nota (como «Maleta playa») o de otro viaje. Opcional, en Ajustes › 1.
+- **Arreglo:** los títulos `###` de la maleta ya no se pierden al editar el viaje.
+
 ## Instalarlo
 
 **Desde Complementos de la comunidad** (cuando esté en la lista): Ajustes → Complementos de la comunidad → Explorar → busca **Cool Trip** → Instalar → Activar.
